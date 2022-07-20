@@ -9,6 +9,7 @@ Cysharp OSS repository uses and maintain for this purpose.
 
 - [Reusable workflows](#reusable-workflows)
   - [update-packagejson.yaml](#update-packagejsonyaml)
+  - [clean-packagejson-branch.yaml](#clean-packagejson-branchyaml)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
