@@ -103,7 +103,7 @@ jobs:
       dry-run: ${{ fromJson(github.event.inputs.dry-run) }}
 
   cleanup:
-    if: github.event.inputs.dry_run == 'true'
+    if: github.event.inputs.dry-run == 'true'
     needs: [update-packagejson]
     uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
     with:
