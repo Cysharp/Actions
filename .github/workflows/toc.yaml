@@ -3,6 +3,8 @@ name: TOC Generator
 on:
   push:
     branches: ["main"]
+    paths:
+      - "README.md"
 
 jobs:
   toc:
