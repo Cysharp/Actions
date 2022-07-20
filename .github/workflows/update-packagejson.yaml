@@ -16,17 +16,24 @@ on:
         required: true
         type: boolean
 
+env:
+  DRY_RUN_BRANCH_PREFIX: "test_release"
+
 jobs:
   update-packagejson:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
+      branch-name: ${{ steps.env.outputs.branch-name }}
     steps:
       - name: Configure Environment Variables
+        id: env
         run: |
           echo "FILE_PATH=${{ inputs.file-path }}" | tee -a "$GITHUB_ENV"
           echo "GIT_TAG=${{ inputs.tag }}" | tee -a "$GITHUB_ENV"
           echo "DRY_RUN=${{ inputs.dry-run }}" | tee -a "$GITHUB_ENV"
+          echo "::set-output name=branch-name::${{ env.DRY_RUN_BRANCH_PREFIX }}-${{ inputs.tag }}"
 
       - uses: actions/checkout@v3
 
@@ -73,5 +80,5 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ env.DRY_RUN_BRANCH_PREFIX }}-${{ env.GIT_TAG }}
+          branch: ${{ steps.env.outputs.branch-name }}
           tags: false

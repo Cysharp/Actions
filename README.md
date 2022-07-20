@@ -38,10 +38,6 @@ on:
         default: false
         type: boolean
 
-env:
-  GIT_TAG: ${{ github.event.inputs.tag }}
-  DRY_RUN: ${{ github.event.inputs.dry-run }}
-
 jobs:
   # reusable workflow caller
   update-packagejson:
@@ -70,4 +66,45 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: ${{ needs.update-packagejson.outputs.sha }}  # use updated commit sha
+```
+
+## clean-packagejson-branch.yaml
+
+> [See workflow]((https://github.com/Cysharp/Actions/blob/main/.github/workflows/clean-packagejson-branch.yaml)
+
+Clean up update-poackagejson job's dry-run branch.
+Mainly used for UPM release workflow.
+
+**Sample usage**
+
+
+```yaml
+name: Build-Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: git tag you want create. (sample 1.0.0)"
+        required: true
+      dry-run:
+        description: "dry_run: true will never create release/nuget."
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  update-packagejson:
+    uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
+    with:
+      file-path: ./src/Foo.Unity/Assets/Plugins/Foo/package.json
+      tag: ${{ github.event.inputs.tag }}
+      dry-run: ${{ fromJson(github.event.inputs.dry-run) }}
+
+  cleanup:
+    if: github.event.inputs.dry_run == 'true'
+    needs: [update-packagejson]
+    uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
+    with:
+      branch: ${{ needs.update-packagejson.outputs.branch-name }}
 ```
