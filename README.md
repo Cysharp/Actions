@@ -1,7 +1,7 @@
 Actions
 
-Cysharp GitHub Actions reusable workflow and composite actions.
-Cysharp OSS repository uses this actions.
+Cysharp GitHub Actions "reusable workflows" and "composite actions".
+Cysharp OSS repository uses and maintain for this purpose.
 
 # 📖 Table of contents
 
@@ -17,6 +17,8 @@ Details
 # Reusable workflows
 
 ## update-packagejson.yaml
+
+> [See workflow]((https://github.com/Cysharp/Actions/blob/main/.github/workflows/update-packagejson.yaml))
 
 Update specified Unity's package.json version with tag version.
 Mainly used for UPM release workflow.

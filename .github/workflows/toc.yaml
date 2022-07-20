@@ -11,5 +11,5 @@ jobs:
     steps:
       - uses: technote-space/toc-generator@v4
         with:
-          TOC_TITLE: "Details"
+          TOC_TITLE: ""
           FOLDING: false
