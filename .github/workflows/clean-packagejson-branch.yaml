@@ -1,0 +1,20 @@
+name: (R) Update package.json
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: "branch name to delete"
+        required: true
+        type: string
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Delete branch
+        uses: dawidd6/action-delete-branch@v3
+        with:
+          github_token: ${{ github.token }}
+          branches: ${{ inputs.branch }}
