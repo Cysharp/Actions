@@ -14,7 +14,6 @@ on:
       dry-run:
         description: "dry_run: true will never create release/nuget."
         required: true
-        default: false
         type: boolean
 
 jobs:
