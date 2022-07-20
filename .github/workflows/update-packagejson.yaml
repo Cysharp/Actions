@@ -24,9 +24,9 @@ jobs:
     steps:
       - name: Configure Environment Variables
         run: |
-          echo "FILE_PATH=${inputs.packagejson}" | tee -a "$GITHUB_ENV"
-          echo "GIT_TAG=${inputs.tag}" | tee -a "$GITHUB_ENV"
-          echo "DRY_RUN=${inputs.dry-run}" | tee -a "$GITHUB_ENV"
+          echo "FILE_PATH=${{ inputs.file-path }}" | tee -a "$GITHUB_ENV"
+          echo "GIT_TAG=${{ inputs.tag }}" | tee -a "$GITHUB_ENV"
+          echo "DRY_RUN=${{ inputs.dry-run }}" | tee -a "$GITHUB_ENV"
 
       - uses: actions/checkout@v3
 
