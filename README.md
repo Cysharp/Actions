@@ -5,6 +5,7 @@ Cysharp OSS repository uses and maintain for this purpose.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+# 📖 Table of Contents
 
 - [Reusable workflows](#reusable-workflows)
   - [update-packagejson.yaml](#update-packagejsonyaml)
