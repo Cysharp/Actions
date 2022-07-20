@@ -4,15 +4,15 @@ on:
   workflow_call:
     inputs:
       file-path:
-        description: "file-path: package.json path to update."
+        description: "package.json path to update."
         required: true
         type: string
       tag:
-        description: "tag: git tag you want create. (sample 1.0.0)"
+        description: "git tag you want create. (sample 1.0.0)"
         required: true
         type: string
       dry-run:
-        description: "dry_run: true will never create release/nuget."
+        description: "true to simularate commit but not push change."
         required: true
         type: boolean
 
@@ -24,7 +24,7 @@ jobs:
     steps:
       - name: Configure Environment Variables
         run: |
-          echo "FILE_PaATH=${inputs.packagejson}" | tee -a "$GITHUB_ENV"
+          echo "FILE_PATH=${inputs.packagejson}" | tee -a "$GITHUB_ENV"
           echo "GIT_TAG=${inputs.tag}" | tee -a "$GITHUB_ENV"
           echo "DRY_RUN=${inputs.dry-run}" | tee -a "$GITHUB_ENV"
 
