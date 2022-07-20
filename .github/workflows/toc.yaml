@@ -1,0 +1,15 @@
+name: TOC Generator
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  toc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: technote-space/toc-generator@v4
+        with:
+          TOC_TITLE: "Details"
+          FOLDING: true

@@ -1,7 +1,12 @@
-Actions
+# Actions
 
 Cysharp GitHub Actions reusable workflow and composite actions.
 Cysharp OSS repository uses this actions.
+
+## 📖 Table of contents
+
+<!-- START doctoc -->
+<!-- END doctoc -->
 
 # Reusable workflows
 
