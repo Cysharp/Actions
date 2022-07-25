@@ -51,16 +51,6 @@ jobs:
       tag: ${{ github.event.inputs.tag }}
       dry-run: ${{ fromJson(github.event.inputs.dry-run) }}
 
-  # dotnet build
-  build-dotnet:
-    needs: [update-packagejson]
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo ${{ needs.update-packagejson.outputs.sha }}
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.update-packagejson.outputs.sha }} # use updated commit sha
-
   # unity build
   build-unity:
     needs: [update-packagejson]
@@ -69,7 +59,7 @@ jobs:
       - run: echo ${{ needs.update-packagejson.outputs.sha }}
       - uses: actions/checkout@v3
         with:
-          ref: ${{ needs.update-packagejson.outputs.sha }}  # use updated commit sha
+          ref: ${{ needs.update-packagejson.outputs.sha }}  # use updated package.json
 ```
 
 ## clean-packagejson-branch.yaml
@@ -106,7 +96,9 @@ jobs:
       dry-run: ${{ fromJson(github.event.inputs.dry-run) }}
 
   cleanup:
-    if: github.event.inputs.dry-run == 'true'
+    # you can trigger with update-packagejson.outputs.branch-created to determine branch created.
+    if: needs.update-packagejson.outputs.is-branch-created == 'true'
+    # if: github.event.inputs.dry-run == 'true' # or other trigger.
     needs: [update-packagejson]
     uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
     with:

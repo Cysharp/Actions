@@ -15,6 +15,16 @@ on:
         description: "true to simularate commit but not push change."
         required: true
         type: boolean
+    outputs:
+      sha:
+        descrition: "Git commit sha after package.json has changed."
+        value: ${{ jobs.update-packagejson.outputs.sha }}
+      branch-name:
+        description: Git branch name created.
+        value: ${{ jobs.update-packagejson.outputs.branch-name }}
+      is-branch-created:
+        description: Indicate is Git branch created or not.
+        value: ${{ jobs.update-packagejson.outputs.is-branch-created }}
 
 env:
   DRY_RUN_BRANCH_PREFIX: "test_release"
@@ -26,6 +36,7 @@ jobs:
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
       branch-name: ${{ steps.env.outputs.branch-name }}
+      is-branch-created: ${{ steps.env.outputs.is-branch-created }}
     steps:
       - name: Configure Environment Variables
         id: env
@@ -34,6 +45,7 @@ jobs:
           echo "GIT_TAG=${{ inputs.tag }}" | tee -a "$GITHUB_ENV"
           echo "DRY_RUN=${{ inputs.dry-run }}" | tee -a "$GITHUB_ENV"
           echo "::set-output name=branch-name::${{ env.DRY_RUN_BRANCH_PREFIX }}-${{ inputs.tag }}"
+          echo "::set-output name=is-branch-created::${{ inputs.dry-run }}"
 
       - uses: actions/checkout@v3
 
