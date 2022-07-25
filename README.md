@@ -8,8 +8,9 @@ Cysharp OSS repository uses and maintain for this purpose.
 # 📖 Table of Contents
 
 - [Reusable workflows](#reusable-workflows)
-  - [update-packagejson.yaml](#update-packagejsonyaml)
   - [clean-packagejson-branch.yaml](#clean-packagejson-branchyaml)
+  - [stale-issue.yaml](#stale-issueyaml)
+  - [update-packagejson.yaml](#update-packagejsonyaml)
 - [Actions](#actions)
   - [check-metas](#check-metas)
   - [setup-dotnet](#setup-dotnet)
