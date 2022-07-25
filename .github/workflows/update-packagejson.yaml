@@ -69,11 +69,11 @@ jobs:
       - name: Check update
         id: check_update
         run: |
-          git diff --exit-code || echo "::set-output name=changed::1"
           for line in $inputs; do
             echo "Showing package.json for $line (After)"
             cat "$line"
           done
+          git diff --exit-code || echo "::set-output name=changed::1"
 
       - name: Commit files
         id: commit
