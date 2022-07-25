@@ -109,3 +109,52 @@ jobs:
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 ```
+
+
+# Actions
+
+## check-metas
+
+> [See action]((https://github.com/Cysharp/Actions/blob/main/.github/actions/check-meta/action.yaml))
+
+Check Unity .meta files are not generated.
+Mainly used for Unity CI workflow.
+
+**Sample usage**
+
+```yaml
+name: build-debug
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-unity:
+    name: "Build Unity package"
+    strategy:
+      matrix:
+        unity: ["2020.3.33f1"]
+        include:
+          - unity: 2020.3.33f1
+            license: UNITY_LICENSE_2020
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+      # execute scripts/Export Package
+      # /opt/Unity/Editor/Unity -quit -batchmode -nographics -silent-crashes -logFile -projectPath . -executeMethod PackageExporter.Export
+      - name: Export unitypackage
+        uses: game-ci/unity-builder@v2
+        env:
+          UNITY_LICENSE: ${{ secrets[matrix.license] }}
+        with:
+          buildMethod: PackageExporter.Export
+          versioning: None
+
+      - uses: Cysharp/Actions/.github/actions/check-metas # check meta files
+        with:
+          directory: src/MyProject.Unity
+```
