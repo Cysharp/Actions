@@ -157,7 +157,7 @@ jobs:
           buildMethod: PackageExporter.Export
           versioning: None
 
-      - uses: Cysharp/Actions/.github/actions/check-metas # check meta files
+      - uses: Cysharp/Actions/.github/actions/check-metas@main # check meta files
         with:
           directory: src/MyProject.Unity
 ```
@@ -189,5 +189,5 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
-      - uses: Cysharp/Actions/.github/actions/setup-dotnet
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
 ```
