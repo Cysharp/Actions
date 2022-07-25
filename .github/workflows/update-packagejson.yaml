@@ -17,7 +17,7 @@ on:
         type: boolean
     outputs:
       sha:
-        descrition: "Git commit sha after package.json has changed."
+        description: "Git commit sha after package.json has changed."
         value: ${{ jobs.update-packagejson.outputs.sha }}
       branch-name:
         description: Git branch name created.
