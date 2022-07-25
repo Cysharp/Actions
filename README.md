@@ -12,6 +12,7 @@ Cysharp OSS repository uses and maintain for this purpose.
   - [clean-packagejson-branch.yaml](#clean-packagejson-branchyaml)
 - [Actions](#actions)
   - [check-metas](#check-metas)
+  - [setup-dotnet](#setup-dotnet)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
