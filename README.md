@@ -113,7 +113,10 @@ jobs:
   update-packagejson:
     uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
     with:
-      file-path: ./src/Foo.Unity/Assets/Plugins/Foo/package.json
+      # you can write multi path
+      file-path: |
+        ./src/Foo.Unity/Assets/Plugins/Foo/package.json
+        ./src/Foo.Unity/Assets/Plugins/Bar/package.json
       tag: ${{ github.event.inputs.tag }}
       dry-run: ${{ fromJson(github.event.inputs.dry-run) }}
 
