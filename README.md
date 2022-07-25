@@ -17,7 +17,7 @@ Cysharp OSS repository uses and maintain for this purpose.
 
 ## update-packagejson.yaml
 
-> [See workflow]((https://github.com/Cysharp/Actions/blob/main/.github/workflows/update-packagejson.yaml))
+> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/update-packagejson.yaml)
 
 Update specified Unity's package.json version with tag version.
 Mainly used for UPM release workflow.
@@ -71,7 +71,7 @@ jobs:
 
 ## clean-packagejson-branch.yaml
 
-> [See workflow]((https://github.com/Cysharp/Actions/blob/main/.github/workflows/clean-packagejson-branch.yaml)
+> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/clean-packagejson-branch.yaml)
 
 Clean up update-poackagejson job's dry-run branch.
 Mainly used for UPM release workflow.
@@ -115,7 +115,7 @@ jobs:
 
 ## check-metas
 
-> [See action]((https://github.com/Cysharp/Actions/blob/main/.github/actions/check-meta/action.yaml))
+> [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/check-metas/action.yaml)
 
 Check Unity .meta files are not generated.
 Mainly used for Unity CI workflow.
@@ -157,4 +157,34 @@ jobs:
       - uses: Cysharp/Actions/.github/actions/check-metas # check meta files
         with:
           directory: src/MyProject.Unity
+```
+
+
+## setup-dotnet
+
+> [See action]((https://github.com/Cysharp/Actions/blob/main/.github/actions/setup-dotnet/action.yaml))
+
+Setup .NET SDK and Environment variables.
+Mainly used for .NET CI workflow.
+
+**Sample usage**
+
+```yaml
+name: build-debug
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  dotnet-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet
 ```
