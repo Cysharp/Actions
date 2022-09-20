@@ -6,18 +6,20 @@ inputs:
     required: false
     default: "6.0"
   include-prerelease:
-    description: 'Whether prerelease versions should be matched with non-exact versions (for example 5.0.0-preview.6 being matched by 5, 5.0, 5.x or 5.0.x). Defaults to false if not provided.'
+    description: "Whether prerelease versions should be matched with non-exact versions (for example 5.0.0-preview.6 being matched by 5, 5.0, 5.x or 5.0.x). Defaults to false if not provided."
     required: false
     default: "false"
 
 runs:
   using: "composite"
   steps:
+    # see: https://github.com/actions/setup-dotnet
     - uses: actions/setup-dotnet@v2
       with:
         dotnet-version: ${{ inputs.dotnet-version }}
         include-prerelease: ${{ inputs.include-prerelease }}
 
+    # see: https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-environment-variables
     - name: "Prepare Environment Variables (.NET SDK)"
       shell: bash
       run: |
