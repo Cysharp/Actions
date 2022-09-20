@@ -184,7 +184,7 @@ jobs:
 
 ## setup-dotnet
 
-> [See action]((https://github.com/Cysharp/Actions/blob/main/.github/actions/setup-dotnet/action.yaml))
+> [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/setup-dotnet/action.yaml)
 
 Setup .NET SDK and Environment variables.
 Mainly used for .NET CI workflow.
