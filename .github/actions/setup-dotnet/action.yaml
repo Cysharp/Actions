@@ -5,6 +5,10 @@ inputs:
     description: .NET SDK versions to install
     required: false
     default: "6.0"
+  include-prerelease:
+    description: 'Whether prerelease versions should be matched with non-exact versions (for example 5.0.0-preview.6 being matched by 5, 5.0, 5.x or 5.0.x). Defaults to false if not provided.'
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -12,6 +16,7 @@ runs:
     - uses: actions/setup-dotnet@v2
       with:
         dotnet-version: ${{ inputs.dotnet-version }}
+        include-prerelease: ${{ inputs.include-prerelease }}
 
     - name: "Prepare Environment Variables (.NET SDK)"
       shell: bash
