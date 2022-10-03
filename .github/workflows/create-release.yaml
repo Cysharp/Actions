@@ -1,0 +1,73 @@
+name: (R) create-release
+
+on:
+  workflow_call:
+    inputs:
+      commit-id:
+        description: "commit id to craete release"
+        required: true
+        type: string
+      enable-nuget-push:
+        description: "true to upload nuget package. false will not upload"
+        required: false
+        type: boolean
+        default: true
+      nuget-path:
+        description: "nuget path to upload."
+        required: false
+        type: string
+        default: "./nuget/*.nupkg"
+      enable-unityasset-upload:
+        description: "true to upload unity asset. false will not upload"
+        required: false
+        type: boolean
+        default: true
+      unityasset-name:
+        description: "unityasset name uploaded."
+        required: true
+        type: string
+      unityasset-path:
+        description: "unityasset path to upload."
+        required: true
+        type: string
+      dry-run:
+        description: "true to not upload."
+        required: true
+        type: boolean
+
+jobs:
+  create-relase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        if: ${{ inputs.enable-nuget-push }}
+      # Create Releases
+      - uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.GIT_TAG }}
+          release_name: Ver.${{ env.GIT_TAG }}
+          commitish: ${{ inputs.commit-id }}
+          draft: true
+          prerelease: false
+        if: ${{ !inputs.dry-run }}
+      # Download(All) Artifacts to current directory
+      - uses: actions/download-artifact@v2
+      - name: Show download aritifacts
+        run: ls -lR
+      # Upload to NuGet
+      - run: dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://www.nuget.org/api/v2/package -k "${{ secrets.nuget-key }}"
+        if: ${{ inputs.enable-nuget-push }}
+      # Upload to Releases(unitypackage)
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: ${{ inputs.unityasset-name }}
+          asset_path: ${{ inputs.unityasset-path }}
+          asset_content_type: application/octet-stream
+        if: ${{ inputs.enable-unityasset-upload }}

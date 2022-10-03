@@ -49,17 +49,96 @@ jobs:
     uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
     with:
       file-path: ./src/Foo.Unity/Assets/Plugins/Foo/package.json
-      tag: ${{ github.event.inputs.tag }}
-      dry-run: ${{ fromJson(github.event.inputs.dry-run) }}
+      tag: ${{ inputs.tag }}
+      dry-run: ${{ inputs.dry-run }}
 
   cleanup:
     # you can trigger with update-packagejson.outputs.branch-created to determine branch created.
     if: needs.update-packagejson.outputs.is-branch-created == 'true'
-    # if: github.event.inputs.dry-run == 'true' # or other trigger.
+    # if: inputs.dry-run == 'true' # or other trigger.
     needs: [update-packagejson]
     uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
+```
+
+## create-release.yaml
+
+> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/create-release.yaml)
+
+Create GitHub Release, upload NuGet and upload Unity AssetBundle to release assets.
+Mainly used for NuGet and Unity release workflow.
+
+**Sample usage**
+
+
+```yaml
+name: Build-Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: git tag you want create. (sample 1.0.0)"
+        required: true
+      dry-run:
+        description: "dry_run: true will never create release/nuget."
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  dotnet-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+      - run: dotnet build Foo.sln -c Release -p:Version=${{ env.GIT_TAG }}
+      - run: dotnet pack Foo.sln -c Release --no-build -p:Version=${{ env.GIT_TAG }} -o ./publish
+      # Store artifacts.
+      - uses: actions/upload-artifact@v1
+        with:
+          name: nuget
+          path: ./publish/
+
+  build-unity:
+    name: "Build Unity package"
+    strategy:
+      matrix:
+        unity: ["2020.3.33f1"]
+        include:
+          - unity: 2020.3.33f1
+            license: UNITY_LICENSE_2020
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v3
+      - name: Export unitypackage
+        uses: game-ci/unity-builder@v2
+        env:
+          UNITY_LICENSE: ${{ secrets[matrix.license] }}
+        with:
+          projectPath: src/Foo.Unity
+          unityVersion: ${{ matrix.unity }}
+          targetPlatform: StandaloneLinux64
+          buildMethod: PackageExporter.Export
+          versioning: None
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Foo.${{ env.GIT_TAG }}.unitypackage
+          path: ./src/Foo.Unity/Foo.${{ env.GIT_TAG }}.unitypackage
+
+  create-release:
+    needs: [update-packagejson, dotnet-build, build-unity]
+    uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
+    with:
+      commit-id: ${{ needs.update-packagejson.outputs.sha }}
+      enable-nuget-push: true        # enable nuget push
+      enable-unityasset-upload: true # enable upload Unity Asset to GitHub Release
+      unityasset-name: Foo.${{ env.GIT_TAG }}.unitypackage
+      unityasset-path: ./Foo.${{ env.GIT_TAG }}.unitypackage/Foo.${{ env.GIT_TAG }}.unitypackage
+      dry-run: ${{ inputs.dry-run }}
 ```
 
 ## stale-issue.yaml
@@ -117,8 +196,8 @@ jobs:
       file-path: |
         ./src/Foo.Unity/Assets/Plugins/Foo/package.json
         ./src/Foo.Unity/Assets/Plugins/Bar/package.json
-      tag: ${{ github.event.inputs.tag }}
-      dry-run: ${{ fromJson(github.event.inputs.dry-run) }}
+      tag: ${{ inputs.tag }}
+      dry-run: ${{ inputs.dry-run }}
 
   # unity build
   build-unity:
@@ -166,6 +245,8 @@ jobs:
             license: UNITY_LICENSE_2020
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v3
       # execute scripts/Export Package
       # /opt/Unity/Editor/Unity -quit -batchmode -nographics -silent-crashes -logFile -projectPath . -executeMethod PackageExporter.Export
       - name: Export unitypackage
