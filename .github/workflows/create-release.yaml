@@ -55,7 +55,7 @@ jobs:
         if: ${{ inputs.nuget-push }}
 
       # Download(All) Artifacts to current directory
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
       - name: Show download aritifacts
         run: ls -lR
 
