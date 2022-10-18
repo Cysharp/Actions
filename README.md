@@ -89,14 +89,22 @@ on:
         type: boolean
 
 jobs:
+  update-packagejson:
+    uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
+    with:
+      file-path: ./src/Foo.Unity/Assets/Plugins/Foo/package.json
+      tag: ${{ inputs.tag }}
+      dry-run: ${{ inputs.dry-run }}
+      push-tag: false # recommend push tag on create-release job.
+
   dotnet-build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-      - run: dotnet build Foo.sln -c Release -p:Version=${{ env.GIT_TAG }}
-      - run: dotnet pack Foo.sln -c Release --no-build -p:Version=${{ env.GIT_TAG }} -o ./publish
+      - run: dotnet build Foo.sln -c Release -p:Version=${{ inputs.tag }}
+      - run: dotnet pack Foo.sln -c Release --no-build -p:Version=${{ inputs.tag }} -o ./publish
       # Store artifacts.
       - uses: actions/upload-artifact@v1
         with:
@@ -127,19 +135,21 @@ jobs:
           versioning: None
       - uses: actions/upload-artifact@v2
         with:
-          name: Foo.${{ env.GIT_TAG }}.unitypackage
-          path: ./src/Foo.Unity/Foo.${{ env.GIT_TAG }}.unitypackage
+          name: Foo.${{ inputs.tag }}.unitypackage
+          path: ./src/Foo.Unity/Foo.${{ inputs.tag }}.unitypackage
 
   create-release:
-    needs: [update-packagejson, dotnet-build, build-unity]
+    needs: [update-packagejson, build-dotnet, build-unity]
     uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
     with:
-      commit-id: ${{ needs.update-packagejson.outputs.sha }}
-      enable-nuget-push: true        # enable nuget push
-      enable-unityasset-upload: true # enable upload Unity Asset to GitHub Release
-      unityasset-name: Foo.${{ env.GIT_TAG }}.unitypackage
-      unityasset-path: ./Foo.${{ env.GIT_TAG }}.unitypackage/Foo.${{ env.GIT_TAG }}.unitypackage
       dry-run: ${{ inputs.dry-run }}
+      commit-id: ${{ needs.update-packagejson.outputs.sha }}
+      tag: ${{ inputs.tag }}
+      push-tag: true
+      nuget-push: true
+      unitypackage-upload: true
+      unitypackage-name: Foo.${{ inputs.tag }}.unitypackage
+      unitypackage-path: ./Foo.${{ inputs.tag }}.unitypackage/Foo.${{ inputs.tag }}.unitypackage
 ```
 
 ## stale-issue.yaml
@@ -199,6 +209,7 @@ jobs:
         ./src/Foo.Unity/Assets/Plugins/Bar/package.json
       tag: ${{ inputs.tag }}
       dry-run: ${{ inputs.dry-run }}
+      push-tag: false # recommend push tag on create-release job.
 
   # unity build
   build-unity:
@@ -210,8 +221,6 @@ jobs:
         with:
           ref: ${{ needs.update-packagejson.outputs.sha }}  # use updated package.json
 ```
-
-
 
 # Actions
 
