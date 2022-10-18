@@ -7,6 +7,10 @@ on:
         description: "commit id to craete release, tag"
         required: true
         type: string
+      tag:
+        description: "git tag you want create. (sample 1.0.0)"
+        required: true
+        type: string
       push-tag:
         description: "true = push tag. false = no push tag."
         required: false
@@ -77,8 +81,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.GIT_TAG }}
-          release_name: Ver.${{ env.GIT_TAG }}
+          tag_name: ${{ inputs.tag }}
+          release_name: Ver.${{ inputs.tag }}
           commitish: ${{ inputs.commit-id }}
           draft: true
           prerelease: false
