@@ -21,7 +21,7 @@ on:
         description: "true = upload nuget package. false = not upload"
         required: false
         type: boolean
-        default: true
+        default: false
       nuget-path:
         description: "nuget path to upload."
         required: false
@@ -32,7 +32,7 @@ on:
         description: "true = upload unitypackage. false = not upload"
         required: false
         type: boolean
-        default: true
+        default: false
       unitypackage-name:
         description: "unitypackage name to uploaded."
         required: true
@@ -65,7 +65,7 @@ jobs:
           ref: ${{ inputs.push-tag && inputs.commit-id }}
         if: ${{ inputs.push-tag }}
       - name: Create Tag
-        run: git tag ${{ env.GIT_TAG }}
+        run: git tag ${{ inputs.tag }}
         if: ${{ inputs.push-tag }}
       - name: Push changes
         uses: ad-m/github-push-action@master
