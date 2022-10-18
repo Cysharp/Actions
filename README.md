@@ -106,7 +106,7 @@ jobs:
       - run: dotnet build Foo.sln -c Release -p:Version=${{ inputs.tag }}
       - run: dotnet pack Foo.sln -c Release --no-build -p:Version=${{ inputs.tag }} -o ./publish
       # Store artifacts.
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v3
         with:
           name: nuget
           path: ./publish/
@@ -133,7 +133,7 @@ jobs:
           targetPlatform: StandaloneLinux64
           buildMethod: PackageExporter.Export
           versioning: None
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: Foo.${{ inputs.tag }}.unitypackage
           path: ./src/Foo.Unity/Foo.${{ inputs.tag }}.unitypackage
