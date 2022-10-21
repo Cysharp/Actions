@@ -54,6 +54,22 @@ jobs:
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
         if: ${{ inputs.nuget-push }}
 
+      # Create Tag
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.push-tag && inputs.commit-id }}
+        if: ${{ inputs.push-tag }}
+      - name: Create Tag
+        run: git tag ${{ inputs.tag }}
+        if: ${{ inputs.push-tag }}
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+          tags: ${{ inputs.push-tag }}
+        if: ${{ !inputs.dry-run && inputs.push-tag }}
+
       # Download(All) Artifacts to current directory
       - uses: actions/download-artifact@v3
       - name: Show download aritifacts
@@ -73,7 +89,7 @@ jobs:
         if: ${{ !inputs.dry-run}}
 
       # Upload to NuGet
-      - run: dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://www.nuget.org/api/v2/package -k "${{ secrets.nuget-key }}"
+      - run: dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://www.nuget.org/api/v2/package -k "${{ secrets.NUGET_KEY }}"
         if: ${{ !inputs.dry-run && inputs.nuget-push }}
 
       # Upload to Releases(unitypackage)
