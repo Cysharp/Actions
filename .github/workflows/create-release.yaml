@@ -59,10 +59,6 @@ jobs:
       - name: Show download aritifacts
         run: ls -lR
 
-      # Upload to NuGet
-      - run: dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://www.nuget.org/api/v2/package -k "${{ secrets.nuget-key }}"
-        if: ${{ !inputs.dry-run && inputs.nuget-push }}
-
       # Create Releases
       - uses: actions/create-release@v1
         id: create_release
@@ -75,6 +71,10 @@ jobs:
           draft: true
           prerelease: false
         if: ${{ !inputs.dry-run}}
+
+      # Upload to NuGet
+      - run: dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://www.nuget.org/api/v2/package -k "${{ secrets.nuget-key }}"
+        if: ${{ !inputs.dry-run && inputs.nuget-push }}
 
       # Upload to Releases(unitypackage)
       - uses: actions/upload-release-asset@v1
