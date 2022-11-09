@@ -5,10 +5,10 @@ inputs:
     description: .NET SDK versions to install
     required: false
     default: "6.0"
-  include-prerelease:
-    description: "Whether prerelease versions should be matched with non-exact versions (for example 5.0.0-preview.6 being matched by 5, 5.0, 5.x or 5.0.x). Defaults to false if not provided."
+  dotnet-quality:
+    description: "Optional quality of the build. The possible values are: daily, signed, validated, preview, ga."
     required: false
-    default: "false"
+    default: "ga"
 
 runs:
   using: "composite"
@@ -17,7 +17,7 @@ runs:
     - uses: actions/setup-dotnet@v2
       with:
         dotnet-version: ${{ inputs.dotnet-version }}
-        include-prerelease: ${{ inputs.include-prerelease }}
+        dotnet-quality: ${{ inputs.dotnet-quality }}
 
     # see: https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-environment-variables
     - name: "Prepare Environment Variables (.NET SDK)"
