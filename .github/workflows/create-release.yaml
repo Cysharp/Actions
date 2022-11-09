@@ -57,7 +57,7 @@ jobs:
       # Create Tag
       - uses: actions/checkout@v3
         with:
-          ref: ${{ inputs.push-tag && inputs.commit-id }}
+          ref: ${{ inputs.commit-id }}
         if: ${{ inputs.push-tag }}
       - name: Create Tag
         run: git tag ${{ inputs.tag }}
