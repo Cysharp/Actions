@@ -30,6 +30,9 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Replace last 4 charactors of UNITY_SERIAL and mask it.
+      shell: bash
+      run: echo "::add-mask::"$(echo ${{ env.UNITY_SERIAL }} | sed 's/....$//')XXXX""
     # see: https://github.com/game-ci/unity-builder
     # see: https://game.ci/docs/github/builder/
     - name: Build Unity
