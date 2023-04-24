@@ -267,7 +267,8 @@ jobs:
           buildMethod: PackageExporter.Export
           versioning: None
 
-      - uses: Cysharp/Actions/.github/actions/check-metas@main # check meta files
+      - name: Check all .meta is comitted
+        uses: Cysharp/Actions/.github/actions/check-metas@main # check meta files
         with:
           directory: src/MyProject.Unity
 ```
