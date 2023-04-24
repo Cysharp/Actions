@@ -1,0 +1,51 @@
+# see: https://github.com/game-ci/unity-builder
+name: Unity Builder
+description: "Build Unity projects for different platforms."
+inputs:
+  targetPlatform:
+    required: true
+    default: ""
+    description: "Platform that the build should target."
+  unityVersion:
+    required: false
+    default: "auto"
+    description: 'Version of unity to use for building the project. Use "auto" to get from your ProjectSettings/ProjectVersion.txt'
+  projectPath:
+    required: true
+    default: ""
+    description: "Relative path to the project to be built."
+  buildMethod:
+    required: true
+    default: ""
+    description: "Path to a Namespace.Class.StaticMethod to run to perform the build."
+  customParameters:
+    required: false
+    default: ""
+    description: "Custom parameters to configure the build."
+  versioning:
+    required: false
+    default: "None"
+    description: "The versioning scheme to use when building the project"
+  unity-package-version:
+    required: false
+    default: "None"
+    description: "Unity Package's version. Build artifact contains this version."
+
+runs:
+  using: "composite"
+  steps:
+    # see: https://github.com/game-ci/unity-builder
+    # see: https://game.ci/docs/github/builder/
+    - name: Build Unity
+      uses: game-ci/unity-builder@v2
+      env:
+        UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+        UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        UNITY_PACKAGE_VERSION: ${{ inputs.unity-package-version }}
+      with:
+        projectPath: ${{ inputs.projectPath }}
+        unityVersion: ${{ inputs.unityVersion }}
+        targetPlatform: ${{ inputs.targetPlatform }}
+        buildMethod: ${{ inputs.buildMethod }}
+        versioning: ${{ inputs.versioning }}

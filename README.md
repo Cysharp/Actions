@@ -257,13 +257,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v3
-      # execute scripts/Export Package
-      # /opt/Unity/Editor/Unity -quit -batchmode -nographics -silent-crashes -logFile -projectPath . -executeMethod PackageExporter.Export
-      - name: Export unitypackage
-        uses: game-ci/unity-builder@v2
-        env:
-          UNITY_LICENSE: ${{ secrets[matrix.license] }}
+      - name: Build Unity (.unitypacakge)
+        uses: Cysharp/Actions/.github/actions/unity-builder@main
         with:
+          projectPath: src/MyProject.Unity
+          unityVersion: "${{ matrix.unity }}"
+          targetPlatform: StandaloneLinux64
           buildMethod: PackageExporter.Export
           versioning: None
 
@@ -300,4 +299,44 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+```
+
+## unity-builder
+
+> [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/unity-builder/action.yaml)
+
+Build Unity projects for different platforms.
+
+**Sample usage**
+
+```yaml
+name: build-debug
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  dotnet-build:
+    strategy:
+      matrix:
+        unity: ["2020.3.33f1"]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v3
+      # execute scripts/Export Package
+      # /opt/Unity/Editor/Unity -quit -batchmode -nographics -silent-crashes -logFile -projectPath . -executeMethod PackageExporter.Export
+      - name: Build Unity (.unitypacakge)
+        uses: Cysharp/Actions/.github/actions/unity-builder@main
+        with:
+          projectPath: src/MyProject.Unity
+          unityVersion: "${{ matrix.unity }}"
+          targetPlatform: StandaloneLinux64
+          buildMethod: PackageExporter.Export
+          versioning: None
 ```
