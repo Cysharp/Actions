@@ -1,4 +1,4 @@
-name: (R) create-release
+name: (R) Create Release
 
 on:
   workflow_call:
