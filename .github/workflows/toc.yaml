@@ -1,6 +1,7 @@
 name: TOC Generator
 
 on:
+  workflow_dispatch:
   push:
     branches: ["main"]
 
