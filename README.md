@@ -153,6 +153,28 @@ jobs:
       unitypackage-path: ./Foo.${{ inputs.tag }}.unitypackage/Foo.${{ inputs.tag }}.unitypackage
 ```
 
+## prevent-github-change.yaml
+
+> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/prevent-github-change.yaml)
+
+Prevent fork users to change files triggered by. Only Organization contributors can change these files.
+
+**Sample usage**
+
+```yaml
+name: Prevent github change
+on:
+  pull_request:
+    paths:
+      - ".github/**/*.yaml"
+      - ".github/**/*.yml"
+
+jobs:
+  detect:
+    uses: Cysharp/Actions/.github/workflows/prevent-github-change.yaml@main
+```
+
+
 ## stale-issue.yaml
 
 > [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/stale-issue.yaml)
