@@ -1,4 +1,4 @@
-name: (R) Prevent github workflow change
+name: Prevent github change
 on:
   workflow_call:
   pull_request:
