@@ -38,8 +38,9 @@ runs:
     - name: Build Unity
       uses: game-ci/unity-builder@v2
       with:
-        projectPath: ${{ inputs.projectPath }}
-        unityVersion: ${{ inputs.unityVersion }}
         targetPlatform: ${{ inputs.targetPlatform }}
+        unityVersion: ${{ inputs.unityVersion }}
+        projectPath: ${{ inputs.projectPath }}
         buildMethod: ${{ inputs.buildMethod }}
+        customParameters: ${{ inputs.customParameters }}
         versioning: ${{ inputs.versioning }}
