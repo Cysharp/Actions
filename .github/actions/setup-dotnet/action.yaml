@@ -4,7 +4,10 @@ inputs:
   dotnet-version:
     description: .NET SDK versions to install
     required: false
-    default: "6.0"
+    default: |
+      6.x
+      7.x
+      8.x
   dotnet-quality:
     description: "Optional quality of the build. The possible values are: daily, signed, validated, preview, ga."
     required: false
