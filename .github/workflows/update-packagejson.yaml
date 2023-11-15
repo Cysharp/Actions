@@ -51,7 +51,7 @@ jobs:
           echo "branch-name=${{ env.DRY_RUN_BRANCH_PREFIX }}-${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
           echo "is-branch-created=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Output package.json (Before)
         run: |

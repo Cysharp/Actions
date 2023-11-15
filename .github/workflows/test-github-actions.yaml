@@ -1,0 +1,19 @@
+name: Test GitHub Actions
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+jobs:
+  setup-dotnet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-dotnet
+      - name: dotnet build
+        run: dotnet build
+        working-directory: sandbox/

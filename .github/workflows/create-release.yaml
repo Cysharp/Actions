@@ -55,7 +55,7 @@ jobs:
         if: ${{ inputs.nuget-push }}
 
       # Create Tag
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.commit-id }}
         if: ${{ inputs.push-tag }}
