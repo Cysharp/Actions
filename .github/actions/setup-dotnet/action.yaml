@@ -11,7 +11,7 @@ inputs:
   dotnet-quality:
     description: "Optional quality of the build. The possible values are: daily, signed, validated, preview, ga."
     required: false
-    default: "ga"
+    default: ""
 
 runs:
   using: "composite"
