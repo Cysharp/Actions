@@ -12,6 +12,10 @@ inputs:
     description: "Optional quality of the build. The possible values are: daily, signed, validated, preview, ga."
     required: false
     default: ""
+  skip-env:
+    description: "Optional skip environment set."
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -39,6 +43,7 @@ runs:
           echo "MSBUILDDISABLENODEREUSE=1" | tee -a "$GITHUB_ENV"
           echo "TERM=xterm" | tee -a "$GITHUB_ENV"
         echo "::endgroup::"
+      if: ${{ inputs.skip-env == 'false' }}
 
     - name: dotnet version
       shell: bash
