@@ -66,7 +66,7 @@ jobs:
         if: ${{ inputs.push-tag }}
 
       # Download(All) Artifacts to current directory
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
       - name: Show download aritifacts
         run: ls -lR
 
