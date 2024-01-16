@@ -16,4 +16,12 @@ jobs:
       - uses: ./.github/actions/setup-dotnet
       - name: dotnet build
         run: dotnet build
-        working-directory: sandbox/
+        working-directory: ./Sandbox
+
+  update-packagejson:
+    uses: ./.github/workflows/update-packagejson.yaml
+    with:
+      file-path: ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+      tag: 2.0.0
+      dry-run: false
+      test-result: true
