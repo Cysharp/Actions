@@ -80,8 +80,11 @@ jobs:
             actual=$(cat "$file_path" | grep "version" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
             expected="${{ env.GIT_TAG }}"
             if [[ "$actual" != "$expected" ]]; then
-              echo "Expected $expected but got $actual"
+              echo "Failed. Expected $expected but got $actual"
               exit 1
+            else
+              echo "Success. Expected $expected and got $actual"
+            fi
             fi
           done <<< "${{ inputs.file-path }}"
 
