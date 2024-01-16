@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       file-path:
-        description: "package.json path to update. You can input multiline paths."
+        description: "path for package.json (Unity) or plugin.cfg (Godot). You can input multiline paths."
         required: true
         type: string
       tag:
@@ -84,7 +84,6 @@ jobs:
               exit 1
             else
               echo "Success. Expected $expected and got $actual"
-            fi
             fi
           done <<< "${{ inputs.file-path }}"
 
