@@ -116,3 +116,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ steps.configure.outputs.branch-name }}
           tags: false
+          force_with_lease: true
