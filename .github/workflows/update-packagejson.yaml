@@ -15,11 +15,11 @@ on:
         description: "true to simularate commit but not push change."
         required: true
         type: boolean
-      validate:
-        description: "true to validate updat is expected result."
+      skip-validate:
+        description: "true to skip validation."
         required: true
         type: boolean
-        default: true
+        default: false
       push-tag:
         description: "true = push tag. false = no push tag."
         required: false
@@ -75,7 +75,7 @@ jobs:
           done <<< "${{ inputs.file-path }}"
 
       - name: Validate pckage.json is updated as expected
-        if: ${{ inputs.validate }}
+        if: ${{ !inputs.skip-validate }}
         run: |
           while read -r file_path; do
             actual=$(cat "$file_path" | grep '"version": ' | cut -d ':' -f 2)

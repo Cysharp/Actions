@@ -24,4 +24,3 @@ jobs:
       file-path: ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
       tag: 2.0.0
       dry-run: false
-      test-result: true
