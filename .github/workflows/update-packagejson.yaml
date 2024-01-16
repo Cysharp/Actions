@@ -58,6 +58,8 @@ jobs:
       # "version": 1.2.3 -> "version": 2.0.0
       # plugin.cfg
       # version="1.2.3" -> version="2.0.0"
+      #
+      # TIPS: `grep -v "^$"` is used to remove empty line.
       - name: Update files to version ${{ steps.configure.outputs.git-tag }}
         run: |
           while read -r file_path; do
@@ -84,14 +86,16 @@ jobs:
             echo "::group::After"
               cat "$file_path"
             echo "::endgroup::"
-          done <<< "${{ inputs.file-path }}"
+          done <<< $(echo "${{ inputs.file-path }}" | grep -v "^$")
 
       - name: Validate pckage.json is updated as expected
         if: ${{ !inputs.skip-validate }}
         run: |
           expected="${{ steps.configure.outputs.git-tag }}"
           while read -r file_path; do
+            echo "Test $file_path"
             file_name=$(basename "$file_path")
+
             if [[ "${file_name}" == "package.json" ]]; then
               actual=$(grep "version" "$file_path" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
             elif [[ "${file_name}" == "plugin.cfg" ]]; then
@@ -104,7 +108,7 @@ jobs:
             else
               echo "Success. Path: $file_path, Expected: $expected, Actual: $actual"
             fi
-          done <<< "${{ inputs.file-path }}"
+          done <<< $(echo "${{ inputs.file-path }}" | grep -v "^$")
 
       - name: Check update
         id: check_update
