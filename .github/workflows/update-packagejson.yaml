@@ -110,7 +110,7 @@ jobs:
             fi
           done <<< $(echo "${{ inputs.file-path }}" | grep -v "^$")
 
-      - name: Check update
+      - name: Check update on git
         id: check_update
         run: git diff --exit-code || echo "changed=1" | tee -a "$GITHUB_OUTPUT"
 
