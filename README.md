@@ -22,55 +22,21 @@ Cysharp OSS repository uses and maintain for this purpose.
 
 # Reusable workflows
 
-## clean-packagejson-branch.yaml
+## clean-packagejson-branch
 
 > [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/clean-packagejson-branch.yaml)
 
-Clean up update-poackagejson job's dry-run branch.
-Mainly used for UPM release workflow.
+Clean up update-packagejson job's dry-run branch.
 
-**Sample usage**
+> [!TIP]
+> Use this workflow with update-packagejson workflow.
+> See [#update-packagejson](#update-packagejson) for sample usage.
 
-
-```yaml
-name: Build-Release
-
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "tag: git tag you want create. (sample 1.0.0)"
-        required: true
-      dry-run:
-        description: "dry_run: true will never create release/nuget."
-        required: true
-        default: false
-        type: boolean
-
-jobs:
-  update-packagejson:
-    uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
-    with:
-      file-path: ./src/Foo.Unity/Assets/Plugins/Foo/package.json
-      tag: ${{ inputs.tag }}
-      dry-run: ${{ inputs.dry-run }}
-
-  cleanup:
-    # you can trigger with update-packagejson.outputs.branch-created to determine branch created.
-    if: needs.update-packagejson.outputs.is-branch-created == 'true'
-    # if: inputs.dry-run == 'true' # or other trigger.
-    needs: [update-packagejson]
-    uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
-    with:
-      branch: ${{ needs.update-packagejson.outputs.branch-name }}
-```
-
-## create-release.yaml
+## create-release
 
 > [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/create-release.yaml)
 
-Create GitHub Release, upload NuGet and upload Unity AssetBundle to release assets.
-Mainly used for NuGet and Unity release workflow.
+Create GitHub Release, upload NuGet and upload Unity AssetBundle to release assets. Mainly used for NuGet and Unity release workflow.
 
 **Sample usage**
 
@@ -154,7 +120,7 @@ jobs:
       unitypackage-path: ./Foo.${{ inputs.tag }}.unitypackage/Foo.${{ inputs.tag }}.unitypackage
 ```
 
-## prevent-github-change.yaml
+## prevent-github-change
 
 > [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/prevent-github-change.yaml)
 
@@ -176,7 +142,7 @@ jobs:
 ```
 
 
-## stale-issue.yaml
+## stale-issue
 
 > [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/stale-issue.yaml)
 
@@ -198,12 +164,11 @@ jobs:
     uses: Cysharp/Actions/.github/workflows/stale-issue.yaml@main
 ```
 
-## update-packagejson.yaml
+## update-packagejson
 
 > [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/update-packagejson.yaml)
 
-Update specified Unity's package.json version with tag version.
-Mainly used for UPM release workflow.
+Update specified `Unity package.json` and `Godot plugin.cfg` version with tag version. Mainly used for UPM and Godot plugin release workflow.
 
 **Sample usage**
 
@@ -227,15 +192,15 @@ jobs:
   update-packagejson:
     uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
     with:
-      # you can write multi path
+      # you can write multi path.
       file-path: |
-        ./src/Foo.Unity/Assets/Plugins/Foo/package.json
-        ./src/Foo.Unity/Assets/Plugins/Bar/package.json
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Godot/addons/Foo/plguin.cfg
       tag: ${{ inputs.tag }}
       dry-run: ${{ inputs.dry-run }}
       push-tag: false # recommend push tag on create-release job.
 
-  # unity build
+  # any job using updated package.json or plugin.cfg
   build-unity:
     needs: [update-packagejson]
     runs-on: ubuntu-latest
@@ -244,6 +209,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.update-packagejson.outputs.sha }}  # use updated package.json
+      # do anything
+
+  # delete remote branches created by update-packagejson (dry-run only)
+  cleanup:
+    # you can trigger with update-packagejson.outputs.branch-created to determine branch created.
+    if: needs.update-packagejson.outputs.is-branch-created == 'true'
+    needs: [update-packagejson]
+    uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
+    with:
+      branch: ${{ needs.update-packagejson.outputs.branch-name }}
+
 ```
 
 # Actions
