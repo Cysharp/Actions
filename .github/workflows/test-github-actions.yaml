@@ -25,3 +25,9 @@ jobs:
       tag: 2.0.0
       dry-run: true
 
+  cleanup:
+    if: needs.update-packagejson.outputs.is-branch-created == 'true'
+    needs: [update-packagejson]
+    uses: ./.github/workflows/clean-packagejson-branch.yaml
+    with:
+      branch: ${{ needs.update-packagejson.outputs.branch-name }}
