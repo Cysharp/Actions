@@ -15,6 +15,11 @@ on:
         description: "true to simularate commit but not push change."
         required: true
         type: boolean
+      validate:
+        description: "true to validate updat is expected result."
+        required: true
+        type: boolean
+        default: true
       push-tag:
         description: "true = push tag. false = no push tag."
         required: false
@@ -55,24 +60,31 @@ jobs:
 
       - name: Update package.json to version ${{ env.GIT_TAG }}
         run: |
-          inputs="${{ inputs.file-path }}"
-          IFS=$'\n'
-          for file in $inputs; do
+          while read -r file_path; do
             echo "::group::Before"
-              cat "$file"
+              cat "$file_path"
             echo "::endgroup::"
-            echo "::group::Update"
-            echo "Updating package.json for $file"
-              sed -i -e "s/\(\"version\":\) \"\(.*\)\",/\1 \"${{ env.GIT_TAG }}\",/" ${file}
-            echo "::endgroup::"
-            echo "::group::After"
-              cat "$file"
-            echo "::endgroup::"
-          done
 
-      - name: Check update
-        id: check_update
-        run: git diff --exit-code || echo "changed=1" | tee -a "$GITHUB_OUTPUT"
+            echo "::group::Updating $file_path"
+              sed -i -e "s/\(\"version\":\) \"\(.*\)\",/\1 \"${{ env.GIT_TAG }}\",/" ${file_path}
+            echo "::endgroup::"
+
+            echo "::group::After"
+              cat "$file_path"
+            echo "::endgroup::"
+          done <<< "${{ inputs.file-path }}"
+
+      - name: Validate pckage.json is updated as expected
+        if: ${{ inputs.validate }}
+        run: |
+          while read -r file_path; do
+            actual=$(cat "$file_path" | grep '"version": ' | cut -d ':' -f 2)
+            expected='"${{ env.GIT_TAG }}"'
+            if [[ $actual != $expected ]]; then
+              echo "Expected $expected but got $actual"
+              exit 1
+            fi
+          done <<< "${{ inputs.file-path }}"
 
       - name: Commit files
         id: commit
