@@ -77,10 +77,10 @@ jobs:
             actual=$(grep "version" "$file_path" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
             expected="${{ steps.configure.outputs.git-tag }}"
             if [[ "$actual" != "$expected" ]]; then
-              echo "Failed. Expected $expected but got $actual"
+              echo "Failed. Expected $expected but got $actual. path: $file_path"
               exit 1
             else
-              echo "Success. Expected $expected and got $actual"
+              echo "Success. Expected $expected and got $actual. path: $file_path"
             fi
           done <<< "${{ inputs.file-path }}"
 
