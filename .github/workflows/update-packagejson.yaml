@@ -15,6 +15,10 @@ on:
         description: "true to simularate commit but not push change."
         required: true
         type: boolean
+      skip-validate:
+        description: "true to skip validation."
+        type: boolean
+        default: false
       push-tag:
         description: "true = push tag. false = no push tag."
         required: false
@@ -31,54 +35,54 @@ on:
         description: Indicate is Git branch created or not.
         value: ${{ jobs.update-packagejson.outputs.is-branch-created }}
 
-env:
-  DRY_RUN_BRANCH_PREFIX: "test_release"
-
 jobs:
   update-packagejson:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
-      branch-name: ${{ steps.env.outputs.branch-name }}
-      is-branch-created: ${{ steps.env.outputs.is-branch-created }}
+      branch-name: ${{ steps.configure.outputs.branch-name }}
+      is-branch-created: ${{ steps.configure.outputs.is-branch-created }}
     steps:
-      - name: Configure Environment Variables
-        id: env
+      - name: Configure Output variables
+        id: configure
         run: |
-          echo "GIT_TAG=${{ inputs.tag }}" | tee -a "$GITHUB_ENV"
-          echo "DRY_RUN=${{ inputs.dry-run }}" | tee -a "$GITHUB_ENV"
-          echo "branch-name=${{ env.DRY_RUN_BRANCH_PREFIX }}-${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
+          echo "git-tag=${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
+          echo "dry-run=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
+          echo "branch-name=test-release/${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
           echo "is-branch-created=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v4
 
-      - name: Output package.json (Before)
+      - name: Update package.json to version ${{ steps.configure.outputs.git-tag }}
         run: |
-          inputs="${{ inputs.file-path }}"
-          IFS=$'\n'
-          for file in $inputs; do
-            echo "Showing package.json for $file (Before)"
-            cat "$file"
-          done
+          while read -r file_path; do
+            echo "::group::Before"
+              cat "$file_path"
+            echo "::endgroup::"
 
-      - name: Update package.json to version ${{ env.GIT_TAG }}
-        run: |
-          inputs="${{ inputs.file-path }}"
-          IFS=$'\n'
-          for file in $inputs; do
-            echo "Updating package.json for $file"
-            sed -i -e "s/\(\"version\":\) \"\(.*\)\",/\1 \"${{ env.GIT_TAG }}\",/" ${file}
-          done
+            echo "::group::Updating $file_path"
+              sed -i -e "s/\(\"version\":\) \"\(.*\)\",/\1 \"${{ steps.configure.outputs.git-tag }}\",/" ${file_path}
+            echo "::endgroup::"
 
-      - name: Output package.json (After)
+            echo "::group::After"
+              cat "$file_path"
+            echo "::endgroup::"
+          done <<< "${{ inputs.file-path }}"
+
+      - name: Validate pckage.json is updated as expected
+        if: ${{ !inputs.skip-validate }}
         run: |
-          inputs="${{ inputs.file-path }}"
-          IFS=$'\n'
-          for line in $inputs; do
-            echo "Showing package.json for $line (After)"
-            cat "$line"
-          done
+          while read -r file_path; do
+            actual=$(grep "version" "$file_path" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
+            expected="${{ steps.configure.outputs.git-tag }}"
+            if [[ "$actual" != "$expected" ]]; then
+              echo "Failed. Path: $file_path, Expected: $expected, Actual: $actual"
+              exit 1
+            else
+              echo "Success. Path: $file_path, Expected: $expected, Actual: $actual"
+            fi
+          done <<< "${{ inputs.file-path }}"
 
       - name: Check update
         id: check_update
@@ -90,20 +94,15 @@ jobs:
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -m "feat: Update package.json to ${{ env.GIT_TAG }}" -a
+          git commit -m "feat: Update package.json to ${{ steps.configure.outputs.git-tag }}" -a
           echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
-
-      - name: Check sha
-        run: echo "SHA ${SHA}"
-        env:
-          SHA: ${{ steps.commit.outputs.sha }}
 
       - name: Create Tag
         if: ${{ steps.check_update.outputs.changed == '1' && inputs.push-tag }}
-        run: git tag ${{ env.GIT_TAG }}
+        run: git tag ${{ steps.configure.outputs.git-tag }}
 
       - name: Push changes
-        if: ${{ env.DRY_RUN == 'false' && steps.check_update.outputs.changed == '1' }}
+        if: ${{ steps.configure.outputs.dry-run == 'false' && steps.check_update.outputs.changed == '1' }}
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -111,9 +110,10 @@ jobs:
           tags: ${{ inputs.push-tag }}
 
       - name: Push changes (dry-run)
-        if: ${{ env.DRY_RUN == 'true' && steps.check_update.outputs.changed == '1' }}
+        if: ${{ steps.configure.outputs.dry-run == 'true' && steps.check_update.outputs.changed == '1' }}
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ steps.env.outputs.branch-name }}
+          branch: "refs/heads/${{ steps.configure.outputs.branch-name }}"
           tags: false
+          force: true
