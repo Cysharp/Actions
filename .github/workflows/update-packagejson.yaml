@@ -49,7 +49,7 @@ jobs:
         run: |
           echo "git-tag=${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
           echo "dry-run=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
-          echo "branch-name=test-release-${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
+          echo "branch-name=test-release/${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
           echo "is-branch-created=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v4
