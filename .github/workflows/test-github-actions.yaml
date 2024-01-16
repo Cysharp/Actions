@@ -21,7 +21,9 @@ jobs:
   update-packagejson:
     uses: ./.github/workflows/update-packagejson.yaml
     with:
-      file-path: ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+      file-path: |
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
       tag: 2.0.0
       dry-run: true
 

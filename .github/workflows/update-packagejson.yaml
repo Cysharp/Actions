@@ -54,15 +54,31 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - name: Update package.json to version ${{ steps.configure.outputs.git-tag }}
+      # package.json
+      # "version": 1.2.3 -> "version": 2.0.0
+      # plugin.cfg
+      # version="1.2.3" -> version="2.0.0"
+      - name: Update files to version ${{ steps.configure.outputs.git-tag }}
         run: |
           while read -r file_path; do
+            echo "Start $file_path"
+
             echo "::group::Before"
               cat "$file_path"
             echo "::endgroup::"
 
-            echo "::group::Updating $file_path"
-              sed -i -e "s/\(\"version\":\) \"\(.*\)\",/\1 \"${{ steps.configure.outputs.git-tag }}\",/" ${file_path}
+            echo "::group::Updating"
+              file_name=$(basename "$file_path")
+              if [[ "${file_name}" == "package.json" ]]; then
+                # Unity
+                sed -i -e "s/\(\"version\":\) \"\(.*\)\",/\1 \"${{ steps.configure.outputs.git-tag }}\",/" ${file_path}
+              elif [[ "${file_name}" == "plugin.cfg" ]]; then
+                # Godot
+                sed -i -e "s/\(version=\)\"\(.*\)\"/\1\"${{ steps.configure.outputs.git-tag }}\"/" ${file_path}
+              else
+                echo "Unknown file name ${file_name} is specified."
+                exit 1
+              fi
             echo "::endgroup::"
 
             echo "::group::After"
@@ -73,9 +89,15 @@ jobs:
       - name: Validate pckage.json is updated as expected
         if: ${{ !inputs.skip-validate }}
         run: |
+          expected="${{ steps.configure.outputs.git-tag }}"
           while read -r file_path; do
-            actual=$(grep "version" "$file_path" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
-            expected="${{ steps.configure.outputs.git-tag }}"
+            file_name=$(basename "$file_path")
+            if [[ "${file_name}" == "package.json" ]]; then
+              actual=$(grep "version" "$file_path" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
+            elif [[ "${file_name}" == "plugin.cfg" ]]; then
+              actual=$(grep "version=" "$file_path" | cut -d '=' -f 2 | tr -d '"')
+            fi
+
             if [[ "$actual" != "$expected" ]]; then
               echo "Failed. Path: $file_path, Expected: $expected, Actual: $actual"
               exit 1
