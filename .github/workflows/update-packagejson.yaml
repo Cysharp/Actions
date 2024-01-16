@@ -49,7 +49,7 @@ jobs:
         run: |
           echo "git-tag=${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
           echo "dry-run=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
-          echo "branch-name=refs/heads/test-release/${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
+          echo "branch-name=test-release/${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
           echo "is-branch-created=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v4
@@ -114,6 +114,6 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ steps.configure.outputs.branch-name }}
+          branch: "refs/heads/${{ steps.configure.outputs.branch-name }}"
           tags: false
           force: true
