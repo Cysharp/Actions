@@ -77,7 +77,7 @@ jobs:
         if: ${{ !inputs.skip-validate }}
         run: |
           while read -r file_path; do
-            actual=$(cat "$file_path" | grep "version" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
+            actual=$(grep "version" "$file_path" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
             expected="${{ env.GIT_TAG }}"
             if [[ "$actual" != "$expected" ]]; then
               echo "Failed. Expected $expected but got $actual"
