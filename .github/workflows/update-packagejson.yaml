@@ -17,7 +17,6 @@ on:
         type: boolean
       skip-validate:
         description: "true to skip validation."
-        required: true
         type: boolean
         default: false
       push-tag:
