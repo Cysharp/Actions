@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       commit-id:
-        description: "commit id to craete release, tag"
+        description: "commit id to create release, tag"
         required: true
         type: string
       tag:
@@ -70,6 +70,11 @@ jobs:
       - name: Show download aritifacts
         run: ls -lR
 
+      # Upload to NuGet
+      - name: Upload to NuGet (Duplicate is skipped)
+        run: dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://www.nuget.org/api/v2/package -k "${{ secrets.NUGET_KEY }}"
+        if: ${{ !inputs.dry-run && inputs.nuget-push }}
+
       # Create Releases
       - uses: actions/create-release@v1
         id: create_release
@@ -81,11 +86,7 @@ jobs:
           commitish: ${{ inputs.commit-id }}
           draft: true
           prerelease: false
-        if: ${{ !inputs.dry-run}}
-
-      # Upload to NuGet
-      - run: dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://www.nuget.org/api/v2/package -k "${{ secrets.NUGET_KEY }}"
-        if: ${{ !inputs.dry-run && inputs.nuget-push }}
+        if: ${{ !inputs.dry-run }}
 
       # Upload to Releases(unitypackage)
       - uses: actions/upload-release-asset@v1
