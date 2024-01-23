@@ -64,7 +64,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.commit-id }}
-        if: ${{ inputs.push-tag }}
 
       # Download(All) Artifacts to current directory
       - uses: actions/download-artifact@v3
