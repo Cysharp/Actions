@@ -11,12 +11,20 @@ jobs:
   setup-dotnet:
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    defaults:
+      run:
+        working-directory: ./Sandbox
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-dotnet
-      - name: dotnet build
-        run: dotnet build
-        working-directory: ./Sandbox
+      - name: dotnet restore
+        run: dotnet restore
+      - name: dotnet build (Debug)
+        run: dotnet build -c Debug
+      - name: dotnet build (Release)
+        run: dotnet build -c Release
+      - name: dotnet pack
+        run: dotnet pack -c Release --no-build
 
   create-release:
     needs: [update-packagejson]
