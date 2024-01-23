@@ -34,12 +34,12 @@ on:
         type: boolean
         default: false
       unitypackage-name:
-        description: "unitypackage name to uploaded."
-        required: true
+        description: "unitypackage name to upload."
+        required: false
         type: string
       unitypackage-path:
         description: "unitypackage path to upload."
-        required: true
+        required: false
         type: string
       dry-run:
         description: "true = no upload. false = dry run changes."
@@ -51,24 +51,41 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Validate inputs - unitypackage
+        shell: bash
+        if: ${{ inputs.unitypackage-upload && (inputs.unitypackage-name == '' || inputs.unitypackage-path == '') }}
+        run: |
+          echo "inputs validation error! Don't leave 'inputs.unitypackage-name' and 'inputs.unitypackage-path' blank when 'inputs.unitypackage-upload' is true."
+          exit 1
+
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
         if: ${{ inputs.nuget-push }}
 
-      # Create Tag
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.commit-id }}
-        if: ${{ inputs.push-tag }}
-      - name: Create Tag
-        run: |
-          git tag ${{ inputs.tag }}
-          git push origin ${{ inputs.tag }}
         if: ${{ inputs.push-tag }}
 
       # Download(All) Artifacts to current directory
       - uses: actions/download-artifact@v3
       - name: Show download aritifacts
         run: ls -lR
+      - name: Validate package exists in artifact - unitypackage
+        shell: bash
+        if: ${{ inputs.unitypackage-upload }}
+        run: |
+          if [ ! -f "${{ inputs.unitypackage-path }}" ]; then
+            echo "Specified .unitypackage not found. path: ${{ inputs.unitypackage-path }}"
+            exit 1
+          fi
+      - name: Validate package exists in artifact - NuGet
+        shell: bash
+        if: ${{ inputs.nuget-push }}
+        run: |
+          if [ ! -f "${{ inputs.nuget-path }}" ]; then
+            echo "Specified .nupkg not found. path: ${{ inputs.nuget-path }}"
+            exit 1
+          fi
 
       # Upload to NuGet
       - name: Upload to NuGet (Duplicate is skipped)
@@ -76,6 +93,11 @@ jobs:
         if: ${{ !inputs.dry-run && inputs.nuget-push }}
 
       # Create Releases
+      - name: Create Tag
+        run: |
+          git tag ${{ inputs.tag }}
+          git push origin ${{ inputs.tag }}
+        if: ${{ inputs.push-tag }}
       - uses: actions/create-release@v1
         id: create_release
         env:
