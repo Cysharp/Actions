@@ -19,12 +19,15 @@ jobs:
       - uses: ./.github/actions/setup-dotnet
       - name: dotnet restore
         run: dotnet restore
-      - name: dotnet build (Debug)
-        run: dotnet build -c Debug
-      - name: dotnet build (Release)
+      - name: dotnet build
         run: dotnet build -c Release
       - name: dotnet pack
         run: dotnet pack -c Release --no-build
+      - name: upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: nuget
+          path: ./Sandbox/ClassLibrary/bin/Release/*.nupkg
 
   create-release:
     needs: [update-packagejson]
@@ -33,6 +36,7 @@ jobs:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: "0.1.0"
       dry-run: true
+      nuget-push: true # dry-run なので pushはされない。
 
   update-packagejson:
     uses: ./.github/workflows/update-packagejson.yaml

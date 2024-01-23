@@ -89,14 +89,19 @@ jobs:
 
       # Upload to NuGet
       - name: Upload to NuGet (Duplicate is skipped)
-        run: dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://www.nuget.org/api/v2/package -k "${{ secrets.NUGET_KEY }}"
-        if: ${{ !inputs.dry-run && inputs.nuget-push }}
+        run:
+          if [[ "${{ inputs.dry-run }}" == "true" ]]; then
+            echo '(dry run) dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://www.nuget.org/api/v2/package -k "${{ secrets.NUGET_KEY }}"'
+          else
+            dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://www.nuget.org/api/v2/package -k "${{ secrets.NUGET_KEY }}"
+          fi
+        if: ${{ inputs.nuget-push }}
 
       # Create Releases
       - name: Create Tag
-        run: |
-          git tag ${{ inputs.tag }}
-          git push origin ${{ inputs.tag }}
+        run: git tag ${{ inputs.tag }}
+      - name: Push Tag
+        run: git push origin ${{ inputs.tag }}
         if: ${{ !inputs.dry-run && inputs.push-tag }}
       - uses: actions/create-release@v1
         id: create_release
