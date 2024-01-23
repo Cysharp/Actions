@@ -38,6 +38,18 @@ jobs:
       dry-run: true
       nuget-push: true # dry-run なので pushはされない。
 
+  # create-release で dry-run: true なので実行しない
+  delete-release:
+    if: ${{ false }}
+    needs: [create-release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Delete release for test
+        run: gh release delete "Ver.0.1.0" --repo ${{ github.repository }} --yes --cleanup-tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   update-packagejson:
     uses: ./.github/workflows/update-packagejson.yaml
     with:
