@@ -11,12 +11,44 @@ jobs:
   setup-dotnet:
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    defaults:
+      run:
+        working-directory: ./Sandbox
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-dotnet
+      - name: dotnet restore
+        run: dotnet restore
       - name: dotnet build
-        run: dotnet build
-        working-directory: ./Sandbox
+        run: dotnet build -c Release
+      - name: dotnet pack
+        run: dotnet pack -c Release --no-build
+      - name: upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: nuget
+          path: ./Sandbox/ClassLibrary/bin/Release/*.nupkg
+
+  create-release:
+    needs: [update-packagejson, setup-dotnet]
+    uses: ./.github/workflows/create-release.yaml
+    with:
+      commit-id: ${{ needs.update-packagejson.outputs.sha }}
+      tag: "0.1.0"
+      dry-run: true
+      nuget-push: true # dry-run なので pushはされない。
+
+  # create-release で dry-run: true なので実行しない
+  delete-release:
+    if: ${{ false }}
+    needs: [create-release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Delete release for test
+        run: gh release delete "Ver.0.1.0" --repo ${{ github.repository }} --yes --cleanup-tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   update-packagejson:
     uses: ./.github/workflows/update-packagejson.yaml
@@ -28,7 +60,7 @@ jobs:
       dry-run: true
 
   cleanup:
-    if: needs.update-packagejson.outputs.is-branch-created == 'true'
+    if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
     needs: [update-packagejson]
     uses: ./.github/workflows/clean-packagejson-branch.yaml
     with:
