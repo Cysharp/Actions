@@ -30,7 +30,7 @@ jobs:
           path: ./Sandbox/ClassLibrary/bin/Release/*.nupkg
 
   create-release:
-    needs: [update-packagejson]
+    needs: [update-packagejson, setup-dotnet]
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
