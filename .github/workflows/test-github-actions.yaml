@@ -18,6 +18,14 @@ jobs:
         run: dotnet build
         working-directory: ./Sandbox
 
+  create-release:
+    needs: [update-packagejson]
+    uses: ./.github/workflows/create-release.yaml
+    with:
+      commit-id: ${{ needs.update-packagejson.outputs.sha }}
+      tag: "0.1.0"
+      dry-run: true
+
   update-packagejson:
     uses: ./.github/workflows/update-packagejson.yaml
     with:
@@ -28,7 +36,7 @@ jobs:
       dry-run: true
 
   cleanup:
-    if: needs.update-packagejson.outputs.is-branch-created == 'true'
+    if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
     needs: [update-packagejson]
     uses: ./.github/workflows/clean-packagejson-branch.yaml
     with:

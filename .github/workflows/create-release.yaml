@@ -74,7 +74,7 @@ jobs:
         shell: bash
         if: ${{ inputs.unitypackage-upload }}
         run: |
-          if [ ! -f "${{ inputs.unitypackage-path }}" ]; then
+          if [[ ! -f "${{ inputs.unitypackage-path }}" ]]; then
             echo "Specified .unitypackage not found. path: ${{ inputs.unitypackage-path }}"
             exit 1
           fi
@@ -82,7 +82,7 @@ jobs:
         shell: bash
         if: ${{ inputs.nuget-push }}
         run: |
-          if [ ! -f "${{ inputs.nuget-path }}" ]; then
+          if ! ls -l "${{ inputs.nuget-path }}"; then
             echo "Specified .nupkg not found. path: ${{ inputs.nuget-path }}"
             exit 1
           fi
