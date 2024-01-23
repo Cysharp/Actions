@@ -97,7 +97,7 @@ jobs:
         run: |
           git tag ${{ inputs.tag }}
           git push origin ${{ inputs.tag }}
-        if: ${{ inputs.push-tag }}
+        if: ${{ !inputs.dry-run && inputs.push-tag }}
       - uses: actions/create-release@v1
         id: create_release
         env:
