@@ -80,7 +80,7 @@ jobs:
       - name: Validate package exists in artifact - NuGet
         if: ${{ inputs.nuget-push }}
         run: |
-          if ! ls -l "${{ inputs.nuget-path }}"; then
+          if ! ls -l ${{ inputs.nuget-path }}; then
             echo "Specified .nupkg not found. path: ${{ inputs.nuget-path }}"
             exit 1
           fi
