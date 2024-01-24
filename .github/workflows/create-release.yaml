@@ -11,7 +11,7 @@ on:
         description: "Git tag to create. (sample 1.0.0)"
         required: true
         type: string
-      push-tag:
+      push-tag: # todo: いらなくなったので消す
         description: "true = push tag. false = no push tag."
         required: false
         type: boolean
@@ -33,7 +33,7 @@ on:
         required: false
         type: boolean
         default: false
-      unitypackage-name:
+      unitypackage-name: # todo: いらなくなったので消す
         description: "unitypackage name to upload."
         required: false
         type: string
@@ -48,14 +48,17 @@ on:
 
 jobs:
   create-relase:
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Validate inputs - unitypackage
         shell: bash
-        if: ${{ inputs.unitypackage-upload && (inputs.unitypackage-name == '' || inputs.unitypackage-path == '') }}
+        if: ${{ inputs.unitypackage-upload && inputs.unitypackage-path == '' }}
         run: |
-          echo "inputs validation error! Don't leave 'inputs.unitypackage-name' and 'inputs.unitypackage-path' blank when 'inputs.unitypackage-upload' is true."
+          echo "Validation error! 'inputs.unitypackage-path' cannot be blank when 'inputs.unitypackage-upload' is true."
           exit 1
 
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
@@ -84,8 +87,19 @@ jobs:
             exit 1
           fi
 
+      # Create Releases
+      - name: Create Tag
+        run: |
+          git tag ${{ inputs.tag }}
+          git push origin ${{ inputs.tag }}
+      - name: Create Release
+        run: gh release create ${{ inputs.tag }} --draft --verify-tag --title "Ver.${{ inputs.tag }}" --generate-notes
+      - name: Upload .unitypacakge file to release
+        run: gh release upload ${{ inputs.tag }} ${{ inputs.unitypackage-path }}
+        if: ${{ inputs.unitypackage-upload }}
+
       # Upload to NuGet
-      - name: Upload to NuGet (Duplicate is skipped)
+      - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
         if: ${{ inputs.nuget-push }}
         run: |
           if [[ "${{ inputs.dry-run }}" == "true" ]]; then
@@ -94,31 +108,11 @@ jobs:
             dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://www.nuget.org/api/v2/package -k "${{ secrets.NUGET_KEY }}"
           fi
 
-      # Create Releases
-      - name: Create Tag
-        run: git tag ${{ inputs.tag }}
-      - name: Push Tag
-        run: git push origin ${{ inputs.tag }}
-        if: ${{ !inputs.dry-run && inputs.push-tag }}
-      - uses: actions/create-release@v1
-        id: create_release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ inputs.tag }}
-          release_name: Ver.${{ inputs.tag }}
-          commitish: ${{ inputs.commit-id }}
-          draft: true
-          prerelease: false
-        if: ${{ !inputs.dry-run }}
-
-      # Upload to Releases(unitypackage)
-      - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_name: ${{ inputs.unitypackage-name }}
-          asset_path: ${{ inputs.unitypackage-path }}
-          asset_content_type: application/octet-stream
-        if: ${{ !inputs.dry-run && inputs.unitypackage-upload }}
+      # Clean up
+      - name: Clean up (Wait 60s and delete releas)
+        if: ${{ inputs.dry-run || failure() }}
+        run: |
+          if gh release list | grep draft | grep ${{ inputs.tag }}; then
+            sleep 60
+            gh release delete ${{ inputs.tag }} --yes --cleanup-tag
+          fi
