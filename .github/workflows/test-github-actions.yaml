@@ -35,8 +35,10 @@ jobs:
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: "0.1.0"
-      dry-run: true
+      dry-run: true # Release作成後に60秒待って削除される。
       nuget-push: true # dry-run なので pushはされない。
+      unitypackage-upload: true # Releaseにアップロードされる。
+      unitypackage-path: "./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage"
 
   # create-release で dry-run: true なので実行しない
   delete-release:
