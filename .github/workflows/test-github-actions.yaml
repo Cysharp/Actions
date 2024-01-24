@@ -2,6 +2,11 @@ name: Test GitHub Actions
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: GitHub Tag to release. ex) 1.1.0"
+        required: true
+        default: ""
   pull_request:
     branches: ["main"]
   push:
@@ -34,23 +39,11 @@ jobs:
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
-      tag: "0.1.0"
+      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || '1.1.0' }}"
       dry-run: true # Release作成後に60秒待って削除される。
       nuget-push: true # dry-run なので pushはされない。
       unitypackage-upload: true # Releaseにアップロードされる。
       unitypackage-path: "./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage"
-
-  # create-release で dry-run: true なので実行しない
-  delete-release:
-    if: ${{ false }}
-    needs: [create-release]
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    steps:
-      - name: Delete release for test
-        run: gh release delete "Ver.0.1.0" --repo ${{ github.repository }} --yes --cleanup-tag
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   update-packagejson:
     uses: ./.github/workflows/update-packagejson.yaml
@@ -58,7 +51,7 @@ jobs:
       file-path: |
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
-      tag: 2.0.0
+      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || '1.1.0' }}"
       dry-run: true
 
   cleanup:
