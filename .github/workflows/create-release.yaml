@@ -109,7 +109,7 @@ jobs:
           fi
 
       # Clean up
-      - name: Clean up (Wait 60s and delete releas)
+      - name: Clean up. Wait 60s and delete releas if dry-run or failure. (dry-run=${{ inputs.dry-run }}})
         if: ${{ inputs.dry-run || failure() }}
         run: |
           if gh release list | grep Draft | grep ${{ inputs.tag }}; then
