@@ -103,9 +103,9 @@ jobs:
         if: ${{ inputs.nuget-push }}
         run: |
           if [[ "${{ inputs.dry-run }}" == "true" ]]; then
-            echo '(dry run) dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://www.nuget.org/api/v2/package -k "${{ secrets.NUGET_KEY }}"'
+            echo '(dry run) dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${{ secrets.NUGET_KEY }}"'
           else
-            dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://www.nuget.org/api/v2/package -k "${{ secrets.NUGET_KEY }}"
+            dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${{ secrets.NUGET_KEY }}"
           fi
 
       # Clean up
