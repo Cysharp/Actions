@@ -46,6 +46,22 @@ jobs:
           path: ./Sandbox/ClassLibrary/bin/Release/*.nupkg
           retention-days: 1
 
+  build-unity:
+    needs: [update-packagejson]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - run: echo ${{ needs.update-packagejson.outputs.sha }}
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.update-packagejson.outputs.sha }}
+      # Store artifacts.
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Sandbox.Unity.unitypackage
+          path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage
+          if-no-files-found: error
+
   create-release:
     needs: [update-packagejson, setup-dotnet]
     uses: ./.github/workflows/create-release.yaml
@@ -55,7 +71,7 @@ jobs:
       dry-run: true # Release作成後に60秒待って削除される。
       nuget-push: true # dry-run なので pushはされない。
       unitypackage-upload: true # Releaseにアップロードされる。
-      unitypackage-path: "./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage"
+      unitypackage-path: "./Sandbox.Unity.unitypackage/Sandbox.Unity.unitypackage"
 
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
