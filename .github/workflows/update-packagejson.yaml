@@ -111,10 +111,10 @@ jobs:
 
             if [[ "${{ inputs.use-upload }}" == "true" ]]; then
               echo "::group::Ready for Upload Artifact"
-                mkdir -p ../updated_files
-                echo "${file_name}" >> ../updated_files/file_list.txt
-                cp "${file_path}" "../updated_files/${file_name}"
-                cat ../updated_files/file_list.txt
+                mkdir -p ./bin/updated_files
+                echo "${file_path}" >> ./bin/updated_files/file_list.txt
+                cp "${file_path}" "./bin/updated_files/${file_name}"
+                cat ./bin/updated_files/file_list.txt
               echo "::endgroup::"
             fi
           done <<< $(echo "${{ inputs.file-path }}" | grep -v "^$")
@@ -124,7 +124,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: packagejson
-          path: ../updated_files
+          path: ${{ github.workspace }}/bin/updated_files
 
       - name: Check update on git
         id: check_update
