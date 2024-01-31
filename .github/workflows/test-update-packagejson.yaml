@@ -1,0 +1,30 @@
+name: Test update-packagejson
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: GitHub Tag to release. ex) 1.1.0"
+        required: true
+        default: ""
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+jobs:
+  update-packagejson:
+    uses: ./.github/workflows/update-packagejson.yaml
+    with:
+      file-path: |
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
+      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || '1.1.0' }}"
+      dry-run: true
+
+  cleanup:
+    if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
+    needs: [update-packagejson]
+    uses: ./.github/workflows/clean-packagejson-branch.yaml
+    with:
+      branch: ${{ needs.update-packagejson.outputs.branch-name }}
