@@ -138,7 +138,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ inputs.ref }}
-          tags: ${{ inputs.push-tag }}
+          tags: ${{ inputs.tag }}
 
       - name: Push changes (dry-run)
         if: ${{ inputs.dry-run && steps.check_update.outputs.changed == '1' }}

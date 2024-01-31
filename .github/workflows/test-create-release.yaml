@@ -23,7 +23,6 @@ jobs:
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
       tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}"
       dry-run: false
-      push-tag: false # tagはcreate-releaseでpushするのでコミットだけさせる。
 
   setup-dotnet:
     runs-on: ubuntu-latest
