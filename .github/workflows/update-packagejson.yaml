@@ -24,6 +24,11 @@ on:
         required: false
         type: boolean
         default: true
+      ref:
+        description: "checkout ref"
+        required: false
+        type: string
+        default: ${{ github.ref }}
     outputs:
       sha:
         description: "Git commit sha after package.json has changed."
@@ -47,12 +52,12 @@ jobs:
       - name: Configure Output variables
         id: configure
         run: |
-          echo "git-tag=${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
-          echo "dry-run=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
           echo "branch-name=test-release/${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
           echo "is-branch-created=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       # package.json
       # "version": 1.2.3 -> "version": 2.0.0
@@ -60,7 +65,7 @@ jobs:
       # version="1.2.3" -> version="2.0.0"
       #
       # TIPS: `grep -v "^$"` is used to remove empty line.
-      - name: Update files to version ${{ steps.configure.outputs.git-tag }}
+      - name: Update files to version ${{ inputs.tag }}
         run: |
           while read -r file_path; do
             echo "Start $file_path"
@@ -73,10 +78,10 @@ jobs:
               file_name=$(basename "$file_path")
               if [[ "${file_name}" == "package.json" ]]; then
                 # Unity
-                sed -i -e "s/\(\"version\":\) \"\(.*\)\",/\1 \"${{ steps.configure.outputs.git-tag }}\",/" ${file_path}
+                sed -i -e "s/\(\"version\":\) \"\(.*\)\",/\1 \"${{ inputs.tag }}\",/" ${file_path}
               elif [[ "${file_name}" == "plugin.cfg" ]]; then
                 # Godot
-                sed -i -e "s/\(version=\)\"\(.*\)\"/\1\"${{ steps.configure.outputs.git-tag }}\"/" ${file_path}
+                sed -i -e "s/\(version=\)\"\(.*\)\"/\1\"${{ inputs.tag }}\"/" ${file_path}
               else
                 echo "Unknown file name ${file_name} is specified."
                 exit 1
@@ -91,7 +96,7 @@ jobs:
       - name: Validate pckage.json is updated as expected
         if: ${{ !inputs.skip-validate }}
         run: |
-          expected="${{ steps.configure.outputs.git-tag }}"
+          expected="${{ inputs.tag }}"
           while read -r file_path; do
             echo "Test $file_path"
             file_name=$(basename "$file_path")
@@ -120,23 +125,23 @@ jobs:
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -m "feat: Update package.json to ${{ steps.configure.outputs.git-tag }}" -a
+          git commit -m "feat: Update package.json to ${{ inputs.tag }}" -a
           echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
 
       - name: Create Tag
         if: ${{ steps.check_update.outputs.changed == '1' && inputs.push-tag }}
-        run: git tag ${{ steps.configure.outputs.git-tag }}
+        run: git tag ${{ inputs.tag }}
 
       - name: Push changes
-        if: ${{ steps.configure.outputs.dry-run == 'false' && steps.check_update.outputs.changed == '1' }}
+        if: ${{ !inputs.dry-run && steps.check_update.outputs.changed == '1' }}
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+          branch: ${{ inputs.ref }}
           tags: ${{ inputs.push-tag }}
 
       - name: Push changes (dry-run)
-        if: ${{ steps.configure.outputs.dry-run == 'true' && steps.check_update.outputs.changed == '1' }}
+        if: ${{ inputs.dry-run && steps.check_update.outputs.changed == '1' }}
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

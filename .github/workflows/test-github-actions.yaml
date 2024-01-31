@@ -1,4 +1,4 @@
-name: Test GitHub Actions
+name: Test create-release
 
 on:
   workflow_dispatch:
@@ -13,6 +13,17 @@ on:
     branches: ["main"]
 
 jobs:
+  update-packagejson:
+    uses: ./.github/workflows/update-packagejson.yaml
+    with:
+      ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
+      file-path: |
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
+      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}"
+      dry-run: false
+      push-tag: false # tagはcreate-releaseでpushするのでコミットだけさせる。
+
   setup-dotnet:
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -33,26 +44,18 @@ jobs:
         with:
           name: nuget
           path: ./Sandbox/ClassLibrary/bin/Release/*.nupkg
+          retention-days: 1
 
   create-release:
     needs: [update-packagejson, setup-dotnet]
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
-      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || '1.1.0' }}"
+      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}"
       dry-run: true # Release作成後に60秒待って削除される。
       nuget-push: true # dry-run なので pushはされない。
       unitypackage-upload: true # Releaseにアップロードされる。
       unitypackage-path: "./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage"
-
-  update-packagejson:
-    uses: ./.github/workflows/update-packagejson.yaml
-    with:
-      file-path: |
-        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
-        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
-      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || '1.1.0' }}"
-      dry-run: true
 
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
