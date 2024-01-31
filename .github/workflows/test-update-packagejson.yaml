@@ -20,7 +20,7 @@ jobs:
       file-path: |
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
-      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.', github.run_id) }}"
+      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}"
       dry-run: true
 
   cleanup:
