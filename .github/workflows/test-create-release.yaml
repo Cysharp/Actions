@@ -14,6 +14,7 @@ on:
 
 jobs:
   update-packagejson:
+    if: ${{ github.actor != 'dependabot[bot]' }}
     uses: ./.github/workflows/update-packagejson.yaml
     with:
       ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
