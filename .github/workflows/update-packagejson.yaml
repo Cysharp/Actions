@@ -20,6 +20,11 @@ on:
         required: false
         type: boolean
         default: true
+      use-upload:
+        description: "true to upload changes by actions/upload-artifact instead of git push."
+        required: false
+        type: boolean
+        default: false
       ref:
         description: "checkout ref"
         required: false
@@ -103,7 +108,23 @@ jobs:
                 echo "Success. Path: $file_path, Expected: $expected, Actual: $actual"
               fi
             echo "::endgroup::"
+
+            if [[ "${{ inputs.use-upload }}" == "true" ]]; then
+              echo "::group::Ready for Upload Artifact"
+                mkdir -p ../updated_files
+                echo "${file_name}" >> ../updated_files/file_list.txt
+                cp "${file_path}" "../updated_files/${file_name}"
+                cat ../updated_files/file_list.txt
+              echo "::endgroup::"
+            fi
           done <<< $(echo "${{ inputs.file-path }}" | grep -v "^$")
+
+      - name: Upload Artifact
+        if: ${{ inputs.use-upload }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: packagejson
+          path: ../updated_files
 
       - name: Check update on git
         id: check_update
@@ -113,17 +134,21 @@ jobs:
         id: commit
         if: ${{ steps.check_update.outputs.changed == '1' }}
         run: |
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git commit -m "feat: Update package.json to ${{ inputs.tag }}" -a
-          echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
+          if [[ "${{ inputs.use-upload }}" == "false" ]]; then
+            git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config --local user.name "github-actions[bot]"
+            git commit -m "feat: Update package.json to ${{ inputs.tag }}" -a
+            echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo "sha=" | tee -a "$GITHUB_OUTPUT"
+          fi
 
       - name: Create Tag
         if: ${{ steps.check_update.outputs.changed == '1' && inputs.push-tag }}
         run: git tag ${{ inputs.tag }}
 
       - name: Push changes
-        if: ${{ !inputs.dry-run && steps.check_update.outputs.changed == '1' }}
+        if: ${{ !inputs.dry-run && steps.check_update.outputs.changed == '1' && !inputs.use-upload }}
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -131,7 +156,7 @@ jobs:
           tags: ${{ inputs.tag }}
 
       - name: Push changes (dry-run)
-        if: ${{ inputs.dry-run && steps.check_update.outputs.changed == '1' }}
+        if: ${{ inputs.dry-run && steps.check_update.outputs.changed == '1' && !inputs.use-upload }}
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
