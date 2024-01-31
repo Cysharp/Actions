@@ -16,6 +16,7 @@ jobs:
   update-packagejson:
     uses: ./.github/workflows/update-packagejson.yaml
     with:
+      ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
       file-path: |
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg

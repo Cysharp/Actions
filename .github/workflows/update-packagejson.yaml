@@ -24,6 +24,11 @@ on:
         required: false
         type: boolean
         default: true
+      ref:
+        description: "checkout ref"
+        required: false
+        type: string
+        default: ${{ github.ref }}
     outputs:
       sha:
         description: "Git commit sha after package.json has changed."
@@ -51,6 +56,8 @@ jobs:
           echo "is-branch-created=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       # package.json
       # "version": 1.2.3 -> "version": 2.0.0
