@@ -15,10 +15,6 @@ on:
         description: "true to simularate commit but not push change."
         required: true
         type: boolean
-      skip-validate:
-        description: "true to skip validation."
-        type: boolean
-        default: false
       push-tag:
         description: "true = push tag. false = no push tag."
         required: false
@@ -67,15 +63,16 @@ jobs:
       # TIPS: `grep -v "^$"` is used to remove empty line.
       - name: Update files to version ${{ inputs.tag }}
         run: |
+          expected="${{ inputs.tag }}"
           while read -r file_path; do
             echo "Start $file_path"
+            file_name=$(basename "$file_path")
 
             echo "::group::Before"
               cat "$file_path"
             echo "::endgroup::"
 
             echo "::group::Updating"
-              file_name=$(basename "$file_path")
               if [[ "${file_name}" == "package.json" ]]; then
                 # Unity
                 sed -i -e "s/\(\"version\":\) \"\(.*\)\",/\1 \"${{ inputs.tag }}\",/" ${file_path}
@@ -91,28 +88,21 @@ jobs:
             echo "::group::After"
               cat "$file_path"
             echo "::endgroup::"
-          done <<< $(echo "${{ inputs.file-path }}" | grep -v "^$")
 
-      - name: Validate pckage.json is updated as expected
-        if: ${{ !inputs.skip-validate }}
-        run: |
-          expected="${{ inputs.tag }}"
-          while read -r file_path; do
-            echo "Test $file_path"
-            file_name=$(basename "$file_path")
+            echo "::group::Validate Change"
+              if [[ "${file_name}" == "package.json" ]]; then
+                actual=$(grep "version" "$file_path" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
+              elif [[ "${file_name}" == "plugin.cfg" ]]; then
+                actual=$(grep "version=" "$file_path" | cut -d '=' -f 2 | tr -d '"')
+              fi
 
-            if [[ "${file_name}" == "package.json" ]]; then
-              actual=$(grep "version" "$file_path" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
-            elif [[ "${file_name}" == "plugin.cfg" ]]; then
-              actual=$(grep "version=" "$file_path" | cut -d '=' -f 2 | tr -d '"')
-            fi
-
-            if [[ "$actual" != "$expected" ]]; then
-              echo "Failed. Path: $file_path, Expected: $expected, Actual: $actual"
-              exit 1
-            else
-              echo "Success. Path: $file_path, Expected: $expected, Actual: $actual"
-            fi
+              if [[ "$actual" != "$expected" ]]; then
+                echo "Failed. Path: $file_path, Expected: $expected, Actual: $actual"
+                exit 1
+              else
+                echo "Success. Path: $file_path, Expected: $expected, Actual: $actual"
+              fi
+            echo "::endgroup::"
           done <<< $(echo "${{ inputs.file-path }}" | grep -v "^$")
 
       - name: Check update on git
