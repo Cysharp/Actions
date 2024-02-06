@@ -44,7 +44,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: nuget
-          path: ./publish
+          path: ./Sandbox/publish
           retention-days: 1
 
   build-unity:
