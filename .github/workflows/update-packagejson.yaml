@@ -117,7 +117,7 @@ jobs:
             git config --local user.name "github-actions[bot]"
             git commit -m "feat: Update package.json to ${{ inputs.tag }}" -a
             echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
-          elif [[ "${{ inputs.ref }}" != "" ]]
+          elif [[ "${{ inputs.ref }}" != "" ]]; then
             echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
           else
             echo "sha=" | tee -a "$GITHUB_OUTPUT"
