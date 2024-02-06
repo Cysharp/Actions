@@ -30,3 +30,32 @@ jobs:
     uses: ./.github/workflows/clean-packagejson-branch.yaml
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
+
+  update-packagejson2:
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    needs: [update-packagejson]
+    uses: ./.github/workflows/update-packagejson.yaml
+    with:
+      ref: ${{ needs.update-packagejson.outputs.sha }}
+      file-path: |
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
+      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}"
+      dry-run: true
+
+  test:
+    needs: [update-packagejson, update-packagejson2]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check update-packagejson with new version should update commit id
+        run: |
+          echo "DEBUG: github.sha         : ${{ github.sha }}"
+          echo "DEBUG: update-packagejson : ${{ needs.update-packagejson.outputs.sha }}"
+          echo "DEBUG: update-packagejson2: ${{ needs.update-packagejson2.outputs.sha }}"
+          echo -n "FACT: upodate-packagejson should be updated. "
+          [[ "${{ needs.update-packagejson.outputs.sha }}" == "${{ github.sha }}" ]] && echo "[X failed]" && exit 1 || echo "[O passed]"
+          echo -n "FACT: upodate-packagejson2 should be updated. "
+          [[ "${{ needs.update-packagejson2.outputs.sha }}" == "${{ github.sha }}" ]] && echo "[X failed]" && exit 1 || echo "[O passed]"
+          echo -n "FACT: upodate-packagejson and update-packagejson2 should have same commit id. "
+          [[ "${{ needs.update-packagejson.outputs.sha }}" != "${{ needs.update-packagejson2.outputs.sha }}" ]] && echo "[X failed]" && exit 1 || echo "[O passed]"

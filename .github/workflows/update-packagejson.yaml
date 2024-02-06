@@ -24,7 +24,7 @@ on:
         description: "checkout ref"
         required: false
         type: string
-        default: ${{ github.ref }}
+        default: ''
     outputs:
       sha:
         description: "Git commit sha after package.json has changed."
@@ -109,14 +109,20 @@ jobs:
         id: check_update
         run: git diff --exit-code || echo "changed=1" | tee -a "$GITHUB_OUTPUT"
 
-      - name: Commit files
+      - name: Commit files (updated? = ${{ steps.check_update.outputs.changed == '1' }})
         id: commit
-        if: ${{ steps.check_update.outputs.changed == '1' }}
         run: |
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git commit -m "feat: Update package.json to ${{ inputs.tag }}" -a
-          echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
+          if [[ "${{ steps.check_update.outputs.changed }}" == "1" ]]; then
+            git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config --local user.name "github-actions[bot]"
+            git commit -m "feat: Update package.json to ${{ inputs.tag }}" -a
+            echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
+          elif [[ "${{ inputs.ref }}" != "" ]]; then
+            echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo "sha=" | tee -a "$GITHUB_OUTPUT"
+          fi
+
 
       - name: Create Tag
         if: ${{ steps.check_update.outputs.changed == '1' && inputs.push-tag }}
