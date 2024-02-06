@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      sha: ${{ steps.commit.outputs.sha || '' }}
+      sha: ${{ steps.commit.outputs.sha || '' }} # Git commit sha after package.json has changed, or empty string = ref should be default.
       branch-name: ${{ steps.configure.outputs.branch-name }}
       is-branch-created: ${{ steps.configure.outputs.is-branch-created }}
     steps:
