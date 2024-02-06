@@ -30,7 +30,7 @@ on:
           ./nuget/*.nupkg
           ./nuget/*.snupkg
       # unity
-      unitypackage-upload:
+      unitypackage-upload: # todo: release-uploadで置き換えられるので消す
         description: "true = upload unitypackage. false = not upload"
         required: false
         type: boolean
@@ -39,8 +39,18 @@ on:
         description: "unitypackage name to upload."
         required: false
         type: string
-      unitypackage-path:
+      unitypackage-path: # todo: release-uploadで置き換えられるので消す
         description: "unitypackage path to upload."
+        required: false
+        type: string
+      # release assets
+      release-upload:
+        description: "true = upload assets. false = not upload"
+        required: false
+        type: boolean
+        default: false
+      release-asset-path:
+        description: "release assets path to upload."
         required: false
         type: string
       dry-run:
@@ -74,6 +84,16 @@ jobs:
       - uses: actions/download-artifact@v3
       - name: Show download aritifacts
         run: ls -lR
+      - name: Validate package exists in artifact - release assets
+        if: ${{ inputs.release-upload }}
+        run: |
+          while read -r asset_path; do
+            if [[ "${asset_path}" == "" ]]; then continue; fi
+            if [[ ! -f "${asset_path}" ]]; then
+              echo "Specified asset not found. path: ${asset_path}"
+              exit 1
+            fi
+          done <<< "${{ inputs.release-asset-path }}"
       - name: Validate package exists in artifact - unitypackage
         if: ${{ inputs.unitypackage-upload }}
         run: |
@@ -105,6 +125,13 @@ jobs:
           git push origin ${{ inputs.tag }}
       - name: Create Release
         run: gh release create ${{ inputs.tag }} --draft --verify-tag --title "Ver.${{ inputs.tag }}" --generate-notes
+      - name: Upload asset files to release
+        run: |
+          while read -r asset_path; do
+            if [[ "${asset_path}" == "" ]]; then continue; fi
+            gh release upload ${{ inputs.tag }} "${asset_path}"
+          done <<< "${{ inputs.release-asset-path }}"
+        if: ${{ inputs.release-upload }}
       - name: Upload .unitypacakge files to release
         run: |
           while read -r unitypackage_path; do
