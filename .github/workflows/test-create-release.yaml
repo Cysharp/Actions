@@ -39,12 +39,12 @@ jobs:
       - name: dotnet build
         run: dotnet build -c Release
       - name: dotnet pack
-        run: dotnet pack -c Release --no-build -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+        run: dotnet pack -c Release --no-build -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: nuget
-          path: ./Sandbox/ClassLibrary/bin/Release/*.nupkg
+          path: ./publish
           retention-days: 1
 
   build-unity:
