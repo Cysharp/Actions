@@ -24,7 +24,7 @@ on:
         description: "checkout ref"
         required: false
         type: string
-        default: ${{ github.ref }}
+        default: ''
     outputs:
       sha:
         description: "Git commit sha after package.json has changed."
@@ -117,7 +117,7 @@ jobs:
             git config --local user.name "github-actions[bot]"
             git commit -m "feat: Update package.json to ${{ inputs.tag }}" -a
             echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
-          else if [[ "${{ inputs.ref }}" != "${{ github.ref }}" ]]
+          elif [[ "${{ inputs.ref }}" != "" ]]
             echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
           else
             echo "sha=" | tee -a "$GITHUB_OUTPUT"
