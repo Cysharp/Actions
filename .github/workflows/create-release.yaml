@@ -77,10 +77,12 @@ jobs:
       - name: Validate package exists in artifact - unitypackage
         if: ${{ inputs.unitypackage-upload }}
         run: |
-          if [[ ! -f "${{ inputs.unitypackage-path }}" ]]; then
-            echo "Specified .unitypackage not found. path: ${{ inputs.unitypackage-path }}"
-            exit 1
-          fi
+          while read -r unitypackage_path; do
+            if [[ ! -f "${unitypackage_path}" ]]; then
+              echo "Specified .unitypackage not found. path: ${unitypackage_path}"
+              exit 1
+            fi
+          done <<< "${{ inputs.unitypackage-path }}"
       - name: Validate package exists in artifact - NuGet
         if: ${{ inputs.nuget-push }}
         run: |
