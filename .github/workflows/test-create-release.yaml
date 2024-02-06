@@ -38,9 +38,9 @@ jobs:
       - name: dotnet restore
         run: dotnet restore
       - name: dotnet build
-        run: dotnet build -c Release
+        run: dotnet build -c Release -p:Version=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}
       - name: dotnet pack
-        run: dotnet pack -c Release --no-build -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
+        run: dotnet pack --no-build -c Release -p:Version=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -81,6 +81,10 @@ jobs:
       unitypackage-path: |
         ./Sandbox.Unity.unitypackage/Sandbox.Unity.unitypackage
         ./Sandbox.Unity.Plugin.unitypackage/Sandbox.Unity.Plugin.unitypackage
+      release-upload: true
+      release-asset-path: |
+        ./nuget/ClassLibrary.${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}.nupkg
+        ./nuget/ClassLibrary.${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}.snupkg
 
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
