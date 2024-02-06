@@ -26,7 +26,9 @@ on:
         description: "nuget path to upload."
         required: false
         type: string
-        default: "./nuget/*.nupkg"
+        default: |
+          ./nuget/*.nupkg
+          ./nuget/*.snupkg
       # unity
       unitypackage-upload:
         description: "true = upload unitypackage. false = not upload"
@@ -102,11 +104,18 @@ jobs:
       - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
         if: ${{ inputs.nuget-push }}
         run: |
-          if [[ "${{ inputs.dry-run }}" == "true" ]]; then
-            echo '(dry run) dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${{ secrets.NUGET_KEY }}"'
-          else
-            dotnet nuget push "${{ inputs.nuget-path }}" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${{ secrets.NUGET_KEY }}"
-          fi
+          while read -r nuget_path; do
+            if [[ "$nuget_path" == "" ]]; then continue; fi
+            if ! ls $nuget_path >/dev/null 2>&1;then
+              echo "skipping nuget push, $nuget_path not found."
+              continue
+            fi
+            if [[ "${{ inputs.dry-run }}" == "true" ]]; then
+              echo (dry run) dotnet nuget push "${nuget_path}" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${{ secrets.NUGET_KEY }}"
+            else
+              dotnet nuget push "${nuget_path}" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${{ secrets.NUGET_KEY }}"
+            fi
+          done <<< "${{ inputs.nuget-path }}"
 
       # Clean up
       - name: Clean up. Wait 60s and delete releas if dry-run or failure. (dry-run=${{ inputs.dry-run }}})
