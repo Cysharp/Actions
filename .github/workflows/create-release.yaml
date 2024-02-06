@@ -108,6 +108,7 @@ jobs:
       - name: Upload .unitypacakge files to release
         run: |
           while read -r unitypackage_path; do
+            if [[ "${unitypackage_path}" == "" ]]; then continue; fi
             gh release upload ${{ inputs.tag }} "${unitypackage_path}"
           done <<< "${{ inputs.unitypackage-path }}"
         if: ${{ inputs.unitypackage-upload }}
