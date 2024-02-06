@@ -43,13 +43,12 @@ jobs:
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
       branch-name: ${{ steps.configure.outputs.branch-name }}
-      is-branch-created: ${{ steps.configure.outputs.is-branch-created }}
+      is-branch-created: ${{ steps.commit.outputs.is-branch-created }}
     steps:
       - name: Configure Output variables
         id: configure
         run: |
           echo "branch-name=test-release/${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
-          echo "is-branch-created=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v4
         with:
@@ -117,10 +116,13 @@ jobs:
             git config --local user.name "github-actions[bot]"
             git commit -m "feat: Update package.json to ${{ inputs.tag }}" -a
             echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
+            echo "is-branch-created=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
           elif [[ "${{ inputs.ref }}" != "" ]]; then
             echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
+            echo "is-branch-created=false" | tee -a "$GITHUB_OUTPUT"
           else
             echo "sha=" | tee -a "$GITHUB_OUTPUT"
+            echo "is-branch-created=false" | tee -a "$GITHUB_OUTPUT"
           fi
 
 
