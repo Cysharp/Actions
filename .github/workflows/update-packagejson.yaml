@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      sha: ${{ steps.commit.outputs.sha || '' }} # Git commit sha after package.json has changed, or empty string = ref should be default.
+      sha: ${{ steps.commit.outputs.sha }}
       branch-name: ${{ steps.configure.outputs.branch-name }}
       is-branch-created: ${{ steps.configure.outputs.is-branch-created }}
     steps:
@@ -111,12 +111,18 @@ jobs:
 
       - name: Commit files
         id: commit
-        if: ${{ steps.check_update.outputs.changed == '1' }}
         run: |
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git commit -m "feat: Update package.json to ${{ inputs.tag }}" -a
-          echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
+          if [[ "${{ steps.check_update.outputs.changed }}" == "1" ]]; then
+            git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config --local user.name "github-actions[bot]"
+            git commit -m "feat: Update package.json to ${{ inputs.tag }}" -a
+            echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
+          else if [[ "${{ inputs.ref }}" != "${{ github.ref }}" ]]
+            echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo "sha=" | tee -a "$GITHUB_OUTPUT"
+          fi
+
 
       - name: Create Tag
         if: ${{ steps.check_update.outputs.changed == '1' && inputs.push-tag }}
