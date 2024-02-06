@@ -78,6 +78,7 @@ jobs:
         if: ${{ inputs.unitypackage-upload }}
         run: |
           while read -r unitypackage_path; do
+            if [[ "${unitypackage_path}" == "" ]]; then continue; fi
             if [[ ! -f "${unitypackage_path}" ]]; then
               echo "Specified .unitypackage not found. path: ${unitypackage_path}"
               exit 1
@@ -87,6 +88,7 @@ jobs:
         if: ${{ inputs.nuget-push }}
         run: |
           while read -r nuget_path; do
+            if [[ "${nuget_path}" == "" ]]; then continue; fi
             if ! ls -l ${nuget_path}; then
               echo "Specified nuget package not found. path: $nuget_path"
               if [[ "${nuget_path}" == *.nupkg ]]; then
