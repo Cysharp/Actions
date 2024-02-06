@@ -20,6 +20,7 @@ jobs:
       ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
       file-path: |
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
       tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}"
       dry-run: true
@@ -39,6 +40,7 @@ jobs:
       ref: ${{ needs.update-packagejson.outputs.sha }}
       file-path: |
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
       tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}"
       dry-run: true

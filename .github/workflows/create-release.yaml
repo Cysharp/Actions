@@ -101,8 +101,11 @@ jobs:
           git push origin ${{ inputs.tag }}
       - name: Create Release
         run: gh release create ${{ inputs.tag }} --draft --verify-tag --title "Ver.${{ inputs.tag }}" --generate-notes
-      - name: Upload .unitypacakge file to release
-        run: gh release upload ${{ inputs.tag }} ${{ inputs.unitypackage-path }}
+      - name: Upload .unitypacakge files to release
+        run: |
+          while read -r unitypackage_path; do
+            gh release upload ${{ inputs.tag }} "${unitypackage_path}"
+          done <<< "${{ inputs.unitypackage-path }}"
         if: ${{ inputs.unitypackage-upload }}
 
       # Upload to NuGet

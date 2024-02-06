@@ -20,6 +20,7 @@ jobs:
       ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
       file-path: |
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
       tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}"
       dry-run: false
@@ -62,6 +63,11 @@ jobs:
           name: Sandbox.Unity.unitypackage
           path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage
           if-no-files-found: error
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Sandbox.Unity.Plugin.unitypackage
+          path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.Plugin.unitypackage
+          if-no-files-found: error
 
   create-release:
     needs: [update-packagejson, build-dotnet]
@@ -72,7 +78,9 @@ jobs:
       dry-run: true # Release作成後に60秒待って削除される。
       nuget-push: true # dry-run なので pushはされない。
       unitypackage-upload: true # Releaseにアップロードされる。
-      unitypackage-path: "./Sandbox.Unity.unitypackage/Sandbox.Unity.unitypackage"
+      unitypackage-path: |
+        ./Sandbox.Unity.unitypackage/Sandbox.Unity.unitypackage
+        ./Sandbox.Unity.Plugin.unitypackage/Sandbox.Unity.Plugin.unitypackage
 
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
