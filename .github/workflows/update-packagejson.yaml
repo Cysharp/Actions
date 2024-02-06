@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      sha: ${{ steps.commit.outputs.sha }}
+      sha: ${{ steps.commit.outputs.sha || '' }}
       branch-name: ${{ steps.configure.outputs.branch-name }}
       is-branch-created: ${{ steps.configure.outputs.is-branch-created }}
     steps:
