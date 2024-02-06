@@ -50,8 +50,11 @@ jobs:
     steps:
       - name: Check update-packagejson with new version should update commit id
         run: |
-          echo "update-packagejson: ${{ needs.update-packagejson.outputs.sha }}"
-          echo "update-packagejson2: ${{ needs.update-packagejson2.outputs.sha }}"
-          if [[ "${{ needs.update-packagejson.outputs.sha }}" == "${{ github.sha }}" ]]; then exit 1; fi
-          if [[ "${{ needs.update-packagejson2.outputs.sha }}" == "${{ github.sha }}" ]]; then exit 1; fi
-          if [[ "${{ needs.update-packagejson.outputs.sha }}" != "${{ needs.update-packagejson2.outputs.sha }}" ]]; then exit 1; fi
+          echo "DEBUG: update-packagejson : ${{ needs.update-packagejson.outputs.sha }}"
+          echo "DEBUG: update-packagejson2: ${{ needs.update-packagejson2.outputs.sha }}"
+          echo -n "FACT: upodate-packagejson should be updated."
+          [[ "${{ needs.update-packagejson.outputs.sha }}" == "${{ github.sha }}" ]] && echo "failed" && exit 1 || echo "passed"
+          echo -n "FACT: upodate-packagejson2 should be updated."
+          [[ "${{ needs.update-packagejson2.outputs.sha }}" == "${{ github.sha }}" ]] && echo "failed" && exit 1 || echo "passed"
+          echo -n "FACT: upodate-packagejson and update-packagejson2 should have same commit id"
+          [[ "${{ needs.update-packagejson.outputs.sha }}" != "${{ needs.update-packagejson2.outputs.sha }}" ]] && echo "failed" && exit 1 || echo "passed"

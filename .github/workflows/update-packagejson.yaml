@@ -109,7 +109,7 @@ jobs:
         id: check_update
         run: git diff --exit-code || echo "changed=1" | tee -a "$GITHUB_OUTPUT"
 
-      - name: Commit files
+      - name: Commit files (updated? = ${{ steps.check_update.outputs.changed == '1' }})
         id: commit
         run: |
           if [[ "${{ steps.check_update.outputs.changed }}" == "1" ]]; then
