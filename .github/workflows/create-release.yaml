@@ -84,10 +84,15 @@ jobs:
       - name: Validate package exists in artifact - NuGet
         if: ${{ inputs.nuget-push }}
         run: |
-          if ! ls -l ${{ inputs.nuget-path }}; then
-            echo "Specified .nupkg not found. path: ${{ inputs.nuget-path }}"
-            exit 1
-          fi
+          while read -r nuget_path; do
+            if ! ls -l ${nuget_path}; then
+              echo "Specified nuget package not found. path: $nuget_path"
+              if [[ "${nuget_path}" == *.nupkg ]]; then
+                echo ".nupkg must be included in the artifact."
+                exit 1
+              fi
+            fi
+          done <<< "${{ inputs.nuget-path }}"
 
       # Create Releases
       - name: Create Tag
@@ -106,10 +111,11 @@ jobs:
         run: |
           while read -r nuget_path; do
             if [[ "$nuget_path" == "" ]]; then continue; fi
-            if ! ls $nuget_path >/dev/null 2>&1;then
+            if ! ls -l $nuget_path >/dev/null 2>&1;then
               echo "skipping nuget push, $nuget_path not found."
               continue
             fi
+
             if [[ "${{ inputs.dry-run }}" == "true" ]]; then
               echo (dry run) dotnet nuget push "${nuget_path}" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${{ secrets.NUGET_KEY }}"
             else
