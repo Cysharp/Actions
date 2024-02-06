@@ -22,7 +22,7 @@ jobs:
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
-      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}"
+      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }}"
       dry-run: false
       push-tag: false # tagはcreate-releaseでpushするのでコミットだけさせる。
 
@@ -38,9 +38,9 @@ jobs:
       - name: dotnet restore
         run: dotnet restore
       - name: dotnet build
-        run: dotnet build -c Release -p:Version=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}
+        run: dotnet build -c Release -p:Version=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }}
       - name: dotnet pack
-        run: dotnet pack --no-build -c Release -p:Version=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
+        run: dotnet pack --no-build -c Release -p:Version=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -74,7 +74,7 @@ jobs:
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
-      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}"
+      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }}"
       dry-run: true # Release作成後に60秒待って削除される。
       nuget-push: true # dry-run なので pushはされない。
       unitypackage-upload: true # Releaseにアップロードされる。
@@ -83,8 +83,8 @@ jobs:
         ./Sandbox.Unity.Plugin.unitypackage/Sandbox.Unity.Plugin.unitypackage
       release-upload: true
       release-asset-path: |
-        ./nuget/ClassLibrary.${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}.nupkg
-        ./nuget/ClassLibrary.${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_id) }}.snupkg
+        ./nuget/ClassLibrary.${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }}.nupkg
+        ./nuget/ClassLibrary.${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }}.snupkg
 
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
