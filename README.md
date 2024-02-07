@@ -57,6 +57,12 @@ jobs:
 
 Create GitHub Release, upload NuGet and upload artifact to release assets. Mainly used for NuGet and Unity release workflow.
 
+Required secrets.
+
+| inputs | SecretKey | Description |
+| ---- | ---- | ---- |
+| `nuget-push: true` | NUGET_KEY | When `with.nuget-push` is true, this secret is required to push nupkg, snupkg to NuGet.org |
+
 **Sample usage**
 
 Create release only.
@@ -132,6 +138,7 @@ jobs:
       dry-run: ${{ inputs.dry-run }} # if true, delete tag after Release creation & 60s later.
       nuget-push: true
       release-upload: false
+    secrets: inherit                 # to allow workflow to access NUGET_KEY secret
 ```
 
 Build .NET and Unity, then create release. `create-release` will push nuget packages and upload unitypackage to release assets.
@@ -217,6 +224,7 @@ jobs:
         ./Sandbox.Unity.Plugin.unitypackage/Sandbox.Unity.Plugin.unitypackage
         ./nuget/ClassLibrary.${{ inputs.tag }}.nupkg
         ./nuget/ClassLibrary.${{ inputs.tag }}.snupkg
+    secrets: inherit                 # to allow workflow to access NUGET_KEY secret
 
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}

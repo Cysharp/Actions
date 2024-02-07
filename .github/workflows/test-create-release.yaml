@@ -7,6 +7,11 @@ on:
         description: "tag: GitHub Tag to release. ex) 1.1.0"
         required: true
         default: ""
+      dry-run:
+        description: "dry-run: true will never create release/nuget."
+        required: true
+        default: false
+        type: boolean
   pull_request:
     branches: ["main"]
   push:
@@ -35,7 +40,7 @@ jobs:
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
       tag: ${{ needs.set-tag.outputs.tag }}
-      dry-run: false
+      dry-run: ${{ inputs.dry-run || false }}
       push-tag: false # tagはcreate-releaseでpushするのでコミットだけさせる。
 
   build-dotnet:
@@ -88,8 +93,8 @@ jobs:
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: ${{ needs.set-tag.outputs.tag }}
-      dry-run: true # Release作成後に60秒待って削除される。
-      nuget-push: true # dry-run なので pushはされない。
+      dry-run: ${{ inputs.dry-run || true }} # true = Release作成後に60秒待って削除される。
+      nuget-push: ${{ github.event_name == 'workflow_dispatch' && false || true }} # dry-run=true, nuget-push=true, then nuget push is dry-run.
       unitypackage-upload: true # Releaseにアップロードされる。
       unitypackage-path: |
         ./Sandbox.Unity.unitypackage/Sandbox.Unity.unitypackage
