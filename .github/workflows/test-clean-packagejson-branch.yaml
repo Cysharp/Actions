@@ -31,7 +31,7 @@ jobs:
       - name: Test branch deleted
         run: |
           # list branch
-          gh api /repos/${{ github.repository }}/branches
+          gh api /repos/${{ github.repository }}/branches | jq
           echo ""
 
           # test
@@ -39,6 +39,6 @@ jobs:
           if ! gh api /repos/${{ github.repository }}/branches | jq -r '.[].name' | grep "test-branch-${{ github.run_id }}" >/dev/null; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
 
           echo -n "FACT: remote branch should not retrieve. "
-          if ! gh api /repos/${{ github.repository }}/branches/test-branch-${{ github.run_id }} >/dev/null; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if ! gh api /repos/${{ github.repository }}/branches/test-branch-${{ github.run_id }} >/dev/null 2>&1; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
     env:
       GH_TOKEN: ${{ github.token }}
