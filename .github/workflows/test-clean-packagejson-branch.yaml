@@ -39,3 +39,5 @@ jobs:
 
           echo -n "FACT: remote branch should not retrieve. "
           if ! gh api /repos/${{ github.repository }}/branches/test-branch-${{ github.run_id }}; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+    env:
+      GH_TOKEN: ${{ github.token }}
