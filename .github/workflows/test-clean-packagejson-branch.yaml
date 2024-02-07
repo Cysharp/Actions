@@ -56,9 +56,9 @@ jobs:
 
           # test
           echo -n "FACT: cleanup deleted branch. "
-          [[ "${{ needs.cleanup.outputs.branch-deleted }}" == "true" ]] echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          [[ "${{ needs.cleanup.outputs.branch-deleted }}" == "true" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
           echo -n "FACT: cleanup2 skip delete branch. "
-          [[ "${{ needs.cleanup2.outputs.branch-deleted }}" != "true" ]] echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          [[ "${{ needs.cleanup2.outputs.branch-deleted }}" != "true" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
 
           echo -n "FACT: remote branch should not exists. "
           if ! gh api /repos/${{ github.repository }}/branches | jq -r '.[].name' | grep "${{ needs.create-branch.outputs.branch-name }}" >/dev/null; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
