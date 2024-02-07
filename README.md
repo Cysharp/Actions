@@ -31,19 +31,112 @@ Cysharp OSS repository uses and maintained GitHub Actions "reusable workflows" a
 
 > [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/clean-packagejson-branch.yaml)
 
-Clean up update-packagejson job's dry-run branch.
+Delete specic github branch. Mainly used for cleanup branch created by [update-packagejson](#update-packagejson) workflow. Action has following limitation to prevent accidental deletion.
 
-> [!TIP]
-> Use this workflow with update-packagejson workflow.
-> See [#update-packagejson](#update-packagejson) for sample usage.
+1. Branch is NOT default branch.
+2. Branch is created & commited by github-actions[bot].
+
+**Sample usage**
+
+```yaml
+name: Build-Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
+    with:
+      branch: branch_name_to_delete
+```
 
 ## create-release
 
 > [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/create-release.yaml)
 
-Create GitHub Release, upload NuGet and upload Unity AssetBundle to release assets. Mainly used for NuGet and Unity release workflow.
+Create GitHub Release, upload NuGet and upload artifact to release assets. Mainly used for NuGet and Unity release workflow.
 
-**Complex sample**
+**Sample usage**
+
+Create release only.
+
+```yaml
+name: Build-Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: git tag you want create. (sample 1.0.0)"
+        required: true
+      dry-run:
+        description: "dry_run: true will never create release/nuget."
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  create-release:
+    uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
+    with:
+      commit-id: ''
+      tag: ${{ inputs.tag }}
+      dry-run: ${{ inputs.dry-run }} # if true, delete tag after Release creation & 60s later.
+      nuget-push: false
+      release-upload: false
+```
+
+Build .NET then create release. `create-release` will push nuget packages.
+
+```yaml
+name: Build-Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: git tag you want create. (sample 1.0.0)"
+        required: true
+      dry-run:
+        description: "dry_run: true will never create release/nuget."
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  build-dotnet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    defaults:
+      run:
+        working-directory: ./Sandbox
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+      - name: dotnet restore
+        run: dotnet restore
+      - name: dotnet build
+        run: dotnet build -c Release -p:Version=${{ inputs.tag }}
+      - name: dotnet pack
+        run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
+      - name: upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: nuget
+          path: ./Sandbox/publish
+          retention-days: 1
+
+  create-release:
+    needs: [build-dotnet]
+    uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
+    with:
+      commit-id: ''
+      tag: ${{ inputs.tag }}
+      dry-run: ${{ inputs.dry-run }} # if true, delete tag after Release creation & 60s later.
+      nuget-push: true
+      release-upload: false
+```
 
 Build .NET and Unity, then create release. `create-release` will push nuget packages and upload unitypackage to release assets.
 
@@ -141,58 +234,6 @@ jobs:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 ```
 
-**.NET Build only sample**
-
-Build .NET then create release. `create-release` will push nuget packages.
-
-```yaml
-name: Build-Release
-
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "tag: git tag you want create. (sample 1.0.0)"
-        required: true
-      dry-run:
-        description: "dry_run: true will never create release/nuget."
-        required: true
-        default: false
-        type: boolean
-
-jobs:
-  build-dotnet:
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    defaults:
-      run:
-        working-directory: ./Sandbox
-    steps:
-      - uses: actions/checkout@v4
-      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-      - name: dotnet restore
-        run: dotnet restore
-      - name: dotnet build
-        run: dotnet build -c Release -p:Version=${{ inputs.tag }}
-      - name: dotnet pack
-        run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
-      - name: upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: nuget
-          path: ./Sandbox/publish
-          retention-days: 1
-
-  create-release:
-    needs: [build-dotnet]
-    uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
-    with:
-      commit-id: ''
-      tag: ${{ inputs.tag }}
-      dry-run: ${{ inputs.dry-run }} # if true, delete tag after Release creation & 60s later.
-      nuget-push: true
-      release-upload: false
-```
 
 ## prevent-github-change
 
