@@ -318,12 +318,11 @@ jobs:
     needs: [update-packagejson]
     runs-on: ubuntu-latest
     steps:
-      - run: echo ${{ needs.update-packagejson.outputs.sha }}
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.update-packagejson.outputs.sha }}  # use updated package.json
 
-  # delete remote branches created by update-packagejson (dry-run only)
+  # use clean-packagejson-branch.yaml to delete dry-run branch.
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
     needs: [update-packagejson]
@@ -350,19 +349,10 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build-unity:
     name: "Build Unity package"
-    strategy:
-      matrix:
-        unity: ["2020.3.33f1"]
-        include:
-          - unity: 2020.3.33f1
-            license: UNITY_LICENSE_2020
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -393,9 +383,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   dotnet-build:
@@ -421,15 +408,9 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   dotnet-build:
-    strategy:
-      matrix:
-        unity: ["2020.3.33f1"]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -440,7 +421,7 @@ jobs:
         uses: Cysharp/Actions/.github/actions/unity-builder@main
         with:
           projectPath: src/MyProject.Unity
-          unityVersion: "${{ matrix.unity }}"
+          unityVersion: "2020.3.33f1"
           targetPlatform: StandaloneLinux64
           buildMethod: PackageExporter.Export
           versioning: None
