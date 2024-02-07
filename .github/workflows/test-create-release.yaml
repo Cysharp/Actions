@@ -13,7 +13,19 @@ on:
     branches: ["main"]
 
 jobs:
+  set-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.set-tag.outputs.tag }}
+    steps:
+      - name: Set tag
+        id: set-tag
+        run: |
+          tag=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }}
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
   update-packagejson:
+    needs: [set-tag]
     if: ${{ github.actor != 'dependabot[bot]' }}
     uses: ./.github/workflows/update-packagejson.yaml
     with:
@@ -22,11 +34,12 @@ jobs:
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
-      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }}"
+      tag: ${{ needs.set-tag.outputs.tag }}
       dry-run: false
       push-tag: false # tagはcreate-releaseでpushするのでコミットだけさせる。
 
   build-dotnet:
+    needs: [set-tag]
     runs-on: ubuntu-latest
     timeout-minutes: 3
     defaults:
@@ -38,9 +51,9 @@ jobs:
       - name: dotnet restore
         run: dotnet restore
       - name: dotnet build
-        run: dotnet build -c Release -p:Version=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }}
+        run: dotnet build -c Release -p:Version=${{ needs.set-tag.outputs.tag }}
       - name: dotnet pack
-        run: dotnet pack --no-build -c Release -p:Version=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
+        run: dotnet pack --no-build -c Release -p:Version=${{ needs.set-tag.outputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -70,11 +83,11 @@ jobs:
           if-no-files-found: error
 
   create-release:
-    needs: [update-packagejson, build-dotnet]
+    needs: [set-tag, update-packagejson, build-dotnet]
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
-      tag: "${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }}"
+      tag: ${{ needs.set-tag.outputs.tag }}
       dry-run: true # Release作成後に60秒待って削除される。
       nuget-push: true # dry-run なので pushはされない。
       unitypackage-upload: true # Releaseにアップロードされる。
@@ -83,8 +96,8 @@ jobs:
         ./Sandbox.Unity.Plugin.unitypackage/Sandbox.Unity.Plugin.unitypackage
       release-upload: true
       release-asset-path: |
-        ./nuget/ClassLibrary.${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }}.nupkg
-        ./nuget/ClassLibrary.${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }}.snupkg
+        ./nuget/ClassLibrary.${{ needs.set-tag.outputs.tag }}.nupkg
+        ./nuget/ClassLibrary.${{ needs.set-tag.outputs.tag }}.snupkg
 
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
