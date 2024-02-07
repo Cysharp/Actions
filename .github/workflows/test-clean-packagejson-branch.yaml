@@ -45,16 +45,13 @@ jobs:
     needs: [create-branch, cleanup, cleanup2]
     runs-on: ubuntu-latest
     steps:
+      - name: Branch list
+        run: gh api /repos/${{ github.repository }}/branches | jq
       - name: Test branch deleted
         run: |
-          # list branch
-          gh api /repos/${{ github.repository }}/branches | jq
-
-          # debug
           echo "DEBUG: cleanup : ${{ needs.cleanup.outputs.branch-deleted }}"
           echo "DEBUG: cleanup2: ${{ needs.cleanup2.outputs.branch-deleted }}"
 
-          # test
           echo -n "FACT: cleanup deleted branch. "
           [[ "${{ needs.cleanup.outputs.branch-deleted }}" == "true" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
           echo -n "FACT: cleanup2 skip delete branch. "
