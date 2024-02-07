@@ -114,12 +114,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-      - name: dotnet restore
-        run: dotnet restore
-      - name: dotnet build
-        run: dotnet build -c Release -p:Version=${{ inputs.tag }}
-      - name: dotnet pack
-        run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
+      - run: dotnet build -c Release -p:Version=${{ inputs.tag }}
+      - run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -177,12 +173,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-      - name: dotnet restore
-        run: dotnet restore
-      - name: dotnet build
-        run: dotnet build -c Release -p:Version=${{ inputs.tag }}
-      - name: dotnet pack
-        run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
+      - run: dotnet build -c Release -p:Version=${{ inputs.tag }}
+      - run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
