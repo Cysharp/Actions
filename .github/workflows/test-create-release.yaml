@@ -93,7 +93,7 @@ jobs:
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: ${{ needs.set-tag.outputs.tag }}
-      dry-run: ${{ inputs.dry-run || true }} # true = Release作成後に60秒待って削除される。
+      dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run || true }} # true = Release作成後に60秒待って削除される。
       nuget-push: ${{ github.event_name == 'workflow_dispatch' && false || true }} # dry-run=true, nuget-push=true, then nuget push is dry-run.
       unitypackage-upload: true # Releaseにアップロードされる。
       unitypackage-path: |
