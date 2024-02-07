@@ -17,7 +17,8 @@ jobs:
         with:
           directory: "Sandbox/Sandbox.Unity"
           exit-on-error: false
-      - name: create .meta
+      # Any actions that create .meta when it was not comitted.
+      - name: Unity Build
         run: touch ./Sandbox/Sandbox.Unity/Assets/Scene1.unity.meta
       - uses: ./.github/actions/check-metas
         id: check-metas2
