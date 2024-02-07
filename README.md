@@ -1,7 +1,12 @@
-Actions
+[![Test check-metas](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml)
+[![Test clean-packagejson-branch](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml)
+[![Test create-release](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml)
+[![Test setup-dotnet](https://github.com/Cysharp/Actions/actions/workflows/test-setup-dotnet.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-setup-dotnet.yaml)
+[![Test update-packagejson](https://github.com/Cysharp/Actions/actions/workflows/test-update-packagejson.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-update-packagejson.yaml)
 
-Cysharp GitHub Actions "reusable workflows" and "composite actions".
-Cysharp OSS repository uses and maintain for this purpose.
+# Actions
+
+Cysharp OSS repository uses and maintained GitHub Actions "reusable workflows" and "composite actions".
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -38,8 +43,9 @@ Clean up update-packagejson job's dry-run branch.
 
 Create GitHub Release, upload NuGet and upload Unity AssetBundle to release assets. Mainly used for NuGet and Unity release workflow.
 
-**Sample usage**
+**Complex sample**
 
+Build .NET and Unity, then create release. `create-release` will push nuget packages and upload unitypackage to release assets.
 
 ```yaml
 name: Build-Release
@@ -58,66 +64,134 @@ on:
 
 jobs:
   update-packagejson:
+    if: ${{ github.actor != 'dependabot[bot]' }}
     uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
     with:
-      file-path: ./src/Foo.Unity/Assets/Plugins/Foo/package.json
+      file-path: |
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
+        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
       tag: ${{ inputs.tag }}
-      dry-run: ${{ inputs.dry-run }}
-      push-tag: false # recommend push tag on create-release job.
+      dry-run: false
+      push-tag: false # tag push is done by create-release job
 
-  dotnet-build:
+  build-dotnet:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 3
+    defaults:
+      run:
+        working-directory: ./Sandbox
     steps:
       - uses: actions/checkout@v4
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-      - run: dotnet build Foo.sln -c Release -p:Version=${{ inputs.tag }}
-      - run: dotnet pack Foo.sln -c Release --no-build -p:Version=${{ inputs.tag }} -o ./publish
-      # Store artifacts.
-      - uses: actions/upload-artifact@v3
+      - name: dotnet restore
+        run: dotnet restore
+      - name: dotnet build
+        run: dotnet build -c Release -p:Version=${{ inputs.tag }}
+      - name: dotnet pack
+        run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
+      - name: upload artifacts
+        uses: actions/upload-artifact@v3
         with:
           name: nuget
-          path: ./publish/
+          path: ./Sandbox/publish
+          retention-days: 1
 
   build-unity:
-    name: "Build Unity package"
-    strategy:
-      matrix:
-        unity: ["2020.3.33f1"]
-        include:
-          - unity: 2020.3.33f1
-            license: UNITY_LICENSE_2020
+    needs: [update-packagejson]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - run: echo ${{ needs.update-packagejson.outputs.sha }}
       - uses: actions/checkout@v4
-      - name: Export unitypackage
-        uses: game-ci/unity-builder@v2
-        env:
-          UNITY_LICENSE: ${{ secrets[matrix.license] }}
         with:
-          projectPath: src/Foo.Unity
-          unityVersion: ${{ matrix.unity }}
-          targetPlatform: StandaloneLinux64
-          buildMethod: PackageExporter.Export
-          versioning: None
+          ref: ${{ needs.update-packagejson.outputs.sha }}
+      # Store artifacts.
       - uses: actions/upload-artifact@v3
         with:
-          name: Foo.${{ inputs.tag }}.unitypackage
-          path: ./src/Foo.Unity/Foo.${{ inputs.tag }}.unitypackage
+          name: Sandbox.Unity.unitypackage
+          path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Sandbox.Unity.Plugin.unitypackage
+          path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.Plugin.unitypackage
+          if-no-files-found: error
 
   create-release:
     needs: [update-packagejson, build-dotnet, build-unity]
     uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
     with:
-      dry-run: ${{ inputs.dry-run }}
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: ${{ inputs.tag }}
-      push-tag: true
+      dry-run: ${{ inputs.dry-run }} # if true, delete tag after Release creation & 60s later.
       nuget-push: true
-      unitypackage-upload: true
-      unitypackage-name: Foo.${{ inputs.tag }}.unitypackage
-      unitypackage-path: ./Foo.${{ inputs.tag }}.unitypackage/Foo.${{ inputs.tag }}.unitypackage
+      release-upload: true
+      release-asset-path: |
+        ./Sandbox.Unity.unitypackage/Sandbox.Unity.unitypackage
+        ./Sandbox.Unity.Plugin.unitypackage/Sandbox.Unity.Plugin.unitypackage
+        ./nuget/ClassLibrary.${{ inputs.tag }}.nupkg
+        ./nuget/ClassLibrary.${{ inputs.tag }}.snupkg
+
+  cleanup:
+    if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
+    needs: [update-packagejson]
+    uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
+    with:
+      branch: ${{ needs.update-packagejson.outputs.branch-name }}
+```
+
+**.NET Build only sample**
+
+Build .NET then create release. `create-release` will push nuget packages.
+
+```yaml
+name: Build-Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: git tag you want create. (sample 1.0.0)"
+        required: true
+      dry-run:
+        description: "dry_run: true will never create release/nuget."
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  build-dotnet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    defaults:
+      run:
+        working-directory: ./Sandbox
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+      - name: dotnet restore
+        run: dotnet restore
+      - name: dotnet build
+        run: dotnet build -c Release -p:Version=${{ inputs.tag }}
+      - name: dotnet pack
+        run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
+      - name: upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: nuget
+          path: ./Sandbox/publish
+          retention-days: 1
+
+  create-release:
+    needs: [build-dotnet]
+    uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
+    with:
+      commit-id: ''
+      tag: ${{ inputs.tag }}
+      dry-run: ${{ inputs.dry-run }} # if true, delete tag after Release creation & 60s later.
+      nuget-push: true
+      release-upload: false
 ```
 
 ## prevent-github-change
@@ -188,7 +262,6 @@ on:
         type: boolean
 
 jobs:
-  # reusable workflow caller
   update-packagejson:
     uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
     with:
@@ -200,7 +273,6 @@ jobs:
       dry-run: ${{ inputs.dry-run }}
       push-tag: false # recommend push tag on create-release job.
 
-  # any job using updated package.json or plugin.cfg
   build-unity:
     needs: [update-packagejson]
     runs-on: ubuntu-latest
@@ -209,17 +281,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.update-packagejson.outputs.sha }}  # use updated package.json
-      # do anything
 
   # delete remote branches created by update-packagejson (dry-run only)
   cleanup:
-    # you can trigger with update-packagejson.outputs.branch-created to determine branch created.
-    if: needs.update-packagejson.outputs.is-branch-created == 'true'
+    if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
     needs: [update-packagejson]
     uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
-
 ```
 
 # Actions
@@ -257,19 +326,13 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Build Unity (.unitypacakge)
-        uses: Cysharp/Actions/.github/actions/unity-builder@main
-        with:
-          projectPath: src/MyProject.Unity
-          unityVersion: "${{ matrix.unity }}"
-          targetPlatform: StandaloneLinux64
-          buildMethod: PackageExporter.Export
-          versioning: None
-
+      # Any actions that create .meta when it was not comitted.
+      - name: Unity Build
+        run: touch ./Sandbox/Sandbox.Unity/Assets/Scene1.unity.meta
       - name: Check all .meta is comitted
-        uses: Cysharp/Actions/.github/actions/check-metas@main # check meta files
+        uses: Cysharp/Actions/.github/actions/check-metas@main
         with:
-          directory: src/MyProject.Unity
+          directory: ./Sandbox/Sandbox.Unity
 ```
 
 
