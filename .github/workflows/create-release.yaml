@@ -109,6 +109,7 @@ jobs:
         run: |
           while read -r nuget_path; do
             if [[ "${nuget_path}" == "" ]]; then continue; fi
+            # shellcheck disable=SC2086
             if ! ls -l ${nuget_path}; then
               echo "Specified nuget package not found. path: $nuget_path"
               if [[ "${nuget_path}" == *.nupkg ]]; then
@@ -146,7 +147,8 @@ jobs:
         run: |
           while read -r nuget_path; do
             if [[ "$nuget_path" == "" ]]; then continue; fi
-            if ! ls -l $nuget_path >/dev/null 2>&1;then
+            # shellcheck disable=SC2086
+            if ! ls -l ${nuget_path} >/dev/null 2>&1;then
               echo "skipping nuget push, $nuget_path not found."
               continue
             fi
