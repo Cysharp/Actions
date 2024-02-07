@@ -83,7 +83,7 @@ jobs:
           if-no-files-found: error
 
   create-release:
-    needs: [set-tag, update-packagejson, build-dotnet]
+    needs: [set-tag, update-packagejson, build-dotnet, build-unity]
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
