@@ -4,17 +4,39 @@ on:
   workflow_call:
     inputs:
       branch:
-        description: "branch name to delete"
+        description: "branch name to delete. Only delete branches that are created by github-actions[bot] and are not the default branch."
         required: true
         type: string
 
 jobs:
   cleanup:
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Check branch is deletable
+        id: check-branch
+        run: |
+          # Check if the branch is the default branch
+          if [[ "$(gh api /repos/${{ github.repository }} | jq -r '.default_branch')" == "${{ inputs.branch }}" ]]; then
+            echo "Branch is default, you cannot delete this branch. branch: ${{ inputs.branch }}"
+            exit 1
+          fi
+
+          # Check if the branch is created by github-actions[bot]
+          if gh api /repos/${{ github.repository }}/branches | jq -r '.[].name' | grep "${{ inputs.branch }}"; then
+            if [[ "$(gh api /repos/${{ github.repository }}/branches/${{ inputs.branch }} | jq -r '.commit.author.login')" != "github-actions[bot]" ]]; then
+              echo "Branch is not created by github-actions[bot], you cannot delete this branch. branch: ${{ inputs.branch }}"
+              exit 1
+            fi
+
+            branch_deletable=true
+          else
+            branch_deletable=false
+          fi
+
+          echo "deletable=${branch_deletable}" | tee -a "${GITHUB_OUTPUT}"
       - name: Delete branch
-        uses: dawidd6/action-delete-branch@v3
-        with:
-          github_token: ${{ github.token }}
-          branches: ${{ inputs.branch }}
+        if: ${{ steps.check-branch.outputs.deletable == 'true' }}
+        run: gh api -X DELETE /repos/${{ github.repository }}/git/refs/heads/${{ inputs.branch }}
