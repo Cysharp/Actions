@@ -39,8 +39,8 @@ jobs:
           directory: "Sandbox/Sandbox.Unity"
           exit-on-error: true
         continue-on-error: true
-      - name: Test Exit on .meta found
-        if: failure()
+      - name: Test on .meta found exit 1
+        if: ${{ steps.check-metas3.outcome == 'failure' }}
         run: |
           echo "DEBUG: check-metas3: ${{ steps.check-metas3.outputs.meta-exists }}"
 
