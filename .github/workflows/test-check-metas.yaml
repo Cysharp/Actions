@@ -40,14 +40,12 @@ jobs:
           exit-on-error: true
         continue-on-error: true
       - name: Test on .meta found exit 1
-        if: ${{ steps.check-metas3.outcome == 'failure' }}
+        if: always()
         run: |
           echo "DEBUG: check-metas3: ${{ steps.check-metas3.outputs.meta-exists }}"
 
           echo -n "FACT: check-metas3 .meta exists. "
           if [[ "${{ steps.check-metas3.outputs.meta-exists }}" == "true" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
 
-          echo -n "FACT: check-metas3 successfully failed on .meta found. [O PASS]"
-      - name: Fail when not exit
-        if: ${{ steps.check-metas3.outcome != 'failure' }}
-        run: exit 1
+          echo -n "FACT: check-metas3 successfully failed (exit 1) on .meta found. "
+          if [[ "${{ steps.check-metas3.outcome }}" == "failure" ]]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
