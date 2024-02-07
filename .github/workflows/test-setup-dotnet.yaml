@@ -14,7 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-dotnet
-      - run: |
+      - name: Test
+        run: |
           dotnet --list-sdks | grep "6.0"
           dotnet --list-sdks | grep "7.0"
           dotnet --list-sdks | grep "8.0"
