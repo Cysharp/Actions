@@ -59,9 +59,9 @@ Create GitHub Release, upload NuGet and upload artifact to release assets. Mainl
 
 Required secrets.
 
-| inputs | SecretKey | Description |
+| SecretKey | When | Description |
 | ---- | ---- | ---- |
-| `nuget-push: true` | NUGET_KEY | When `with.nuget-push` is true, this secret is required to push nupkg, snupkg to NuGet.org |
+| `NUGET_KEY` | `with.nuget-push` is true | This secret is required to push nupkg, snupkg to NuGet.org |
 
 **Sample usage**
 
