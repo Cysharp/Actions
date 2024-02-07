@@ -1,6 +1,35 @@
 name: (R) Create Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      commit-id:
+        description: "CommitId to create release & tag."
+        required: true
+        type: string
+      tag:
+        description: "Git tag to create. (sample 1.0.0)"
+        required: true
+        type: string
+      nuget-push:
+        description: "true = upload nuget package. false = not upload"
+        required: false
+        type: boolean
+        default: false
+      unitypackage-upload: # todo: release-uploadで置き換えられるので消す
+        description: "[deprecated] true = upload unitypackage. false = not upload"
+        required: false
+        type: boolean
+        default: false
+      release-upload:
+        description: "true = upload assets. false = not upload"
+        required: false
+        type: boolean
+        default: false
+      dry-run:
+        description: "true = no upload. false = dry run changes && delete release after 60s."
+        required: true
+        type: boolean
   workflow_call:
     inputs:
       commit-id:
