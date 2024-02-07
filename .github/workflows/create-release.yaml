@@ -54,7 +54,7 @@ on:
         required: false
         type: string
       dry-run:
-        description: "true = no upload. false = dry run changes."
+        description: "true = no upload. false = dry run changes && delete release after 60s."
         required: true
         type: boolean
 
