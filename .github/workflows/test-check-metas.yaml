@@ -32,7 +32,7 @@ jobs:
           echo -n "FACT: check-metas .meta not exists. "
           [[ "${{ steps.check-metas.outputs.meta-exists }}" != "true" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
           echo -n "FACT: check-metas2 .meta exists. "
-          [[ "${{ steps.check-metas.outputs.meta-exists }}" == "true" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
+          [[ "${{ steps.check-metas2.outputs.meta-exists }}" == "true" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
       - uses: ./.github/actions/check-metas
         id: check-metas3
         with:
@@ -45,6 +45,6 @@ jobs:
           echo "DEBUG: check-metas3: ${{ steps.check-metas3.outputs.meta-exists }}"
 
           echo -n "FACT: check-metas3 .meta exists. "
-          [[ "${{ steps.check-metas.outputs.meta-exists }}" == "true" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
+          [[ "${{ steps.check-metas3.outputs.meta-exists }}" == "true" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
 
           echo -n "FACT: check-metas3 successfully failed on .meta found. [O PASS]"
