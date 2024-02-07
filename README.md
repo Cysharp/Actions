@@ -1,3 +1,4 @@
+[![Test check-metas](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml)
 [![Test clean-packagejson-branch](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml)
 [![Test create-release](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml)
 [![Test setup-dotnet](https://github.com/Cysharp/Actions/actions/workflows/test-setup-dotnet.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-setup-dotnet.yaml)
