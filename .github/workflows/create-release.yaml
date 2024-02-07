@@ -31,16 +31,16 @@ on:
           ./nuget/*.snupkg
       # unity
       unitypackage-upload: # todo: release-uploadで置き換えられるので消す
-        description: "true = upload unitypackage. false = not upload"
+        description: "[deprecated] true = upload unitypackage. false = not upload"
         required: false
         type: boolean
         default: false
       unitypackage-name: # todo: いらなくなったので消す
-        description: "unitypackage name to upload."
+        description: "[deprecated] unitypackage name to upload."
         required: false
         type: string
       unitypackage-path: # todo: release-uploadで置き換えられるので消す
-        description: "unitypackage path to upload."
+        description: "[deprecated] unitypackage path to upload."
         required: false
         type: string
       # release assets
