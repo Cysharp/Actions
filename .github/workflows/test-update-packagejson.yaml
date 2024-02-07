@@ -59,18 +59,18 @@ jobs:
           echo "DEBUG: update-packagejson2: ${{ needs.update-packagejson2.outputs.sha }}"
 
           echo -n "FACT: sha for update-packagejson should be updated. "
-          [[ "${{ needs.update-packagejson.outputs.sha }}" != "${{ github.sha }}" ]] && echo "[O passed]" || (echo "[X failed]" && exit 1)
+          [[ "${{ needs.update-packagejson.outputs.sha }}" != "${{ github.sha }}" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
           echo -n "FACT: sha for update-packagejson2 should be updated. "
-          [[ "${{ needs.update-packagejson2.outputs.sha }}" != "${{ github.sha }}" ]] && echo "[O passed]" || (echo "[X failed]" && exit 1)
+          [[ "${{ needs.update-packagejson2.outputs.sha }}" != "${{ github.sha }}" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
           echo -n "FACT: sha for update-packagejson and update-packagejson2 should have same commit id. "
-          [[ "${{ needs.update-packagejson.outputs.sha }}" == "${{ needs.update-packagejson2.outputs.sha }}" ]] && echo "[O passed]" || (echo "[X failed]" && exit 1)
+          [[ "${{ needs.update-packagejson.outputs.sha }}" == "${{ needs.update-packagejson2.outputs.sha }}" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
 
           echo -n "FACT: is-branch-created for update-packagejson should be created. "
-          [[ "${{ needs.update-packagejson.outputs.is-branch-created }}" == "true" ]] && echo "[O passed]" || (echo "[X failed]" && exit 1)
+          [[ "${{ needs.update-packagejson.outputs.is-branch-created }}" == "true" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
           echo -n "FACT: is-branch-created for update-packagejson2 should be not created. "
-          [[ "${{ needs.update-packagejson2.outputs.is-branch-created }}" == "false" ]] && echo "[O passed]" || (echo "[X failed]" && exit 1)
+          [[ "${{ needs.update-packagejson2.outputs.is-branch-created }}" == "false" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
 
           echo -n "FACT: branch-name for update-packagejson should be exists. "
-          [[ "${{ needs.update-packagejson.outputs.branch-name }}" == "test-release/${tag}" ]] && echo "[O passed]" || (echo "[X failed]" && exit 1)
+          [[ "${{ needs.update-packagejson.outputs.branch-name }}" == "test-release/${tag}" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
           echo -n "FACT: branch-name for update-packagejson2 should be exists. "
-          [[ "${{ needs.update-packagejson2.outputs.branch-name }}" == "test-release/${tag}" ]] && echo "[O passed]" || (echo "[X failed]" && exit 1)
+          [[ "${{ needs.update-packagejson2.outputs.branch-name }}" == "test-release/${tag}" ]] && echo "[O PASS]" || (echo "[X FAIL]" && exit 1)
