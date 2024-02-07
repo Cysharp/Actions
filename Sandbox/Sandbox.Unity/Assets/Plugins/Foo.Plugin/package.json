@@ -1,6 +1,6 @@
 {
   "name": "com.unity.plugin.example",
-  "version": "1.0.64",
+  "version": "1.0.65",
   "displayName": "Package Example Plugin",
   "description": "This is an example package",
   "unity": "2019.1",
