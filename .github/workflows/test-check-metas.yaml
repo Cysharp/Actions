@@ -48,3 +48,6 @@ jobs:
           if [[ "${{ steps.check-metas3.outputs.meta-exists }}" == "true" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
 
           echo -n "FACT: check-metas3 successfully failed on .meta found. [O PASS]"
+      - name: Fail when not exit
+        if: ${{ steps.check-metas3.outcome != 'failure' }}
+        run: exit 1
