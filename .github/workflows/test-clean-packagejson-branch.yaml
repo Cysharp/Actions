@@ -36,7 +36,7 @@ jobs:
       branch: ${{ needs.create-branch.outputs.branch-name }}
 
   cleanup2:
-    needs: [create-branch]
+    needs: [create-branch, cleanup]
     uses: ./.github/workflows/clean-packagejson-branch.yaml
     with:
       branch: ${{ needs.create-branch.outputs.branch-name }}
