@@ -7,6 +7,10 @@ on:
         description: "branch name to delete. Only delete branches that are created by github-actions[bot] and are not the default branch."
         required: true
         type: string
+    outputs:
+      branch-deleted:
+        description: "Indicate branch is deleted or not by boolean. true = branch deleted, false = branch not deleted."
+        value: ${{ jobs.cleanup.outputs.branch-deleted }}
 
 jobs:
   cleanup:
@@ -32,7 +36,6 @@ jobs:
 
             # Check info of the branch
             gh api /repos/${{ github.repository }}/branches/${{ inputs.branch }} | jq
-            echo ""
 
             if [[ "$(gh api /repos/${{ github.repository }}/branches/${{ inputs.branch }} | jq -r '.commit.author.login')" != "github-actions[bot]" ]]; then
               echo "Branch is not created by github-actions[bot], you cannot delete this branch. branch: ${{ inputs.branch }}"
