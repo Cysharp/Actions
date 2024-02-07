@@ -32,12 +32,13 @@ jobs:
         run: |
           # list branch
           gh api /repos/${{ github.repository }}/branches
+          echo ""
 
           # test
           echo -n "FACT: remote branch should not exists. "
-          if ! gh api /repos/${{ github.repository }}/branches | jq '.[] | select(.name == "test-branch-${{ github.run_id }}")'; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if ! gh api /repos/${{ github.repository }}/branches | jq -r '.[].name' | grep "test-branch-${{ github.run_id }}" >/dev/null; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
 
           echo -n "FACT: remote branch should not retrieve. "
-          if ! gh api /repos/${{ github.repository }}/branches/test-branch-${{ github.run_id }}; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if ! gh api /repos/${{ github.repository }}/branches/test-branch-${{ github.run_id }} >/dev/null; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
     env:
       GH_TOKEN: ${{ github.token }}
