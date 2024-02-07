@@ -25,15 +25,21 @@ jobs:
           fi
 
           # Check if the branch is created by github-actions[bot]
-          if gh api /repos/${{ github.repository }}/branches | jq -r '.[].name' | grep "${{ inputs.branch }}"; then
+          if gh api /repos/${{ github.repository }}/branches | jq -r '.[].name' | grep "${{ inputs.branch }}" >/dev/null; then
+            echo "branch exists."
+
+            # Check info of the branch
+            gh api /repos/${{ github.repository }}/branches/${{ inputs.branch }} | jq
+            echo ""
+
             if [[ "$(gh api /repos/${{ github.repository }}/branches/${{ inputs.branch }} | jq -r '.commit.author.login')" != "github-actions[bot]" ]]; then
               echo "Branch is not created by github-actions[bot], you cannot delete this branch. branch: ${{ inputs.branch }}"
-              gh api /repos/${{ github.repository }}/branches/${{ inputs.branch }} | jq
               exit 1
             fi
 
             branch_deletable=true
           else
+            echo "branch not exists."
             branch_deletable=false
           fi
 
