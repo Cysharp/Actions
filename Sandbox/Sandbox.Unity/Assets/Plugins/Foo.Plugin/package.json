@@ -1,13 +1,12 @@
 {
   "name": "com.unity.plugin.example",
-  "version": "1.0.65",
+  "version": "1.0.74",
   "displayName": "Package Example Plugin",
   "description": "This is an example package",
   "unity": "2019.1",
   "unityRelease": "0b5",
   "dependencies": {
-    "com.unity.some-package": "1.0.0",
-    "com.unity.other-package": "2.0.0"
+    "com.unity.example": "1.0.0"
  },
  "keywords": [
     "keyword1",
