@@ -116,7 +116,6 @@ jobs:
         if: ${{ inputs.dotnet-run-path != '' }}
       - name: Execute dotnet run with --version ${{ inputs.tag }}
         run: |
-          expected="${{ inputs.tag }}"
           while read -r file_path; do
             if [[ "$file_path" == "" ]]; then continue; fi
             echo "Start $file_path"
