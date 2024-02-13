@@ -15,6 +15,11 @@ on:
         description: "true to simularate commit but not push change."
         required: true
         type: boolean
+      dotnet-run-path:
+        description: "dotnet run path, executable should output desired change. (sample: src/Foo/Bar.csproj)"
+        required: false
+        type: string
+        default: ''
       push-tag:
         description: "true = push tag. false = no push tag."
         required: false
@@ -105,6 +110,21 @@ jobs:
               fi
             echo "::endgroup::"
           done <<< "${{ inputs.file-path }}"
+
+      # dotnet run
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        if: ${{ inputs.dotnet-run-path != '' }}
+      - name: Execute dotnet run with --version ${{ inputs.tag }}
+        run: |
+          expected="${{ inputs.tag }}"
+          while read -r file_path; do
+            if [[ "$file_path" == "" ]]; then continue; fi
+            echo "Start $file_path"
+            echo "::group::Execute"
+              dotnet run --project "$file_path" -- --version "${{ inputs.tag }}"
+            echo "::endgroup::"
+          done <<< "${{ inputs.dotnet-run-path }}"
+        if: ${{ inputs.dotnet-run-path != '' }}
 
       - name: Check update on git
         id: check_update
