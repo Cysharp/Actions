@@ -331,6 +331,41 @@ jobs:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 ```
 
+**Execute dotnet run**
+
+Use `dotnet-run-path` to run `dotnet run --project` after update package.json.
+
+```yaml
+name: Build-Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: git tag you want create. (sample 1.0.0)"
+        required: true
+      dry-run:
+        description: "dry_run: true will never create release/nuget."
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  update-packagejson:
+    uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
+    with:
+      # you can write multi path.
+      file-path: |
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+      # you can write multi path.
+      dotnet-run-path: |
+        ./Sandbox/Sandbox.Console/Sandbox.Console.csproj
+      tag: ${{ inputs.tag }}
+      dry-run: ${{ inputs.dry-run }}
+      push-tag: false # recommend push tag on create-release job.
+```
+
+
 # Actions
 
 ## check-metas

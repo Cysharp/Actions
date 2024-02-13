@@ -34,6 +34,8 @@ jobs:
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
+      dotnet-run-path:
+        ./Sandbox/VersionOutput/VersionOutput.csproj
       tag: ${{ needs.set-tag.outputs.tag }}
       dry-run: true
 
