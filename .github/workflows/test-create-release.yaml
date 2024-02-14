@@ -101,6 +101,15 @@ jobs:
         ./nuget/ClassLibrary.${{ needs.set-tag.outputs.tag }}.nupkg
         ./nuget/ClassLibrary.${{ needs.set-tag.outputs.tag }}.snupkg
 
+  create-release2:
+    needs: [set-tag, update-packagejson, build-dotnet, build-unity, create-release]
+    uses: ./.github/workflows/create-release.yaml
+    with:
+      commit-id: ${{ needs.update-packagejson.outputs.sha }}
+      tag: ${{ needs.set-tag.outputs.tag }}
+      dry-run: true # true = Release作成後に60秒待って削除される。
+      release-format: '{0}'
+
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
     needs: [update-packagejson]

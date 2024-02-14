@@ -45,6 +45,11 @@ on:
         required: false
         type: boolean
         default: false
+      release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
+        description: "Release format. (if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred.)"
+        required: false
+        type: string
+        default: 'Ver.{0}'
       # nuget
       nuget-push:
         description: "true = upload nuget package. false = not upload"
@@ -154,7 +159,13 @@ jobs:
           git tag ${{ inputs.tag }}
           git push origin ${{ inputs.tag }}
       - name: Create Release
-        run: gh release create ${{ inputs.tag }} --draft --verify-tag --title "Ver.${{ inputs.tag }}" --generate-notes
+        run: gh release create ${{ inputs.tag }} --draft --verify-tag --title "${{ format(inputs.release-format, inputs.tag) }}" --generate-notes
+      - name: Wait and Verify Release Name is expected
+        run: |
+          sleep 5s
+          actual=$(gh api /repos/${{ github.repository }}/releases --jq ".[] | select(.tag_name==\"${{ inputs.tag }}\") | .name")
+          expected="${{ format(inputs.release-format, inputs.tag) }}"
+          if [[ "$actual" != "$expected" ]]; then echo "Release name is not as expected. expected: $expected, actual: $actual"; exit 1; fi
       - name: Upload asset files to release
         run: |
           while read -r asset_path; do
