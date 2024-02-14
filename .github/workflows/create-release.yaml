@@ -11,6 +11,11 @@ on:
         description: "tag: Git tag to create. (sample 1.0.0)"
         required: true
         type: string
+      release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
+        description: "Release format. (if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred.)"
+        required: false
+        type: string
+        default: 'Ver.{0}'
       nuget-push:
         description: "nuget-push: true = upload nuget package. false = not upload"
         required: false
@@ -40,16 +45,16 @@ on:
         description: "Git tag to create. (sample 1.0.0)"
         required: true
         type: string
-      push-tag: # todo: いらなくなったので消す
-        description: "[depreated] true = push tag. false = no push tag."
-        required: false
-        type: boolean
-        default: false
       release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
         description: "Release format. (if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred.)"
         required: false
         type: string
         default: 'Ver.{0}'
+      push-tag: # todo: いらなくなったので消す
+        description: "[depreated] true = push tag. false = no push tag."
+        required: false
+        type: boolean
+        default: false
       # nuget
       nuget-push:
         description: "true = upload nuget package. false = not upload"

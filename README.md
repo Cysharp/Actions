@@ -93,6 +93,35 @@ jobs:
       release-upload: false
 ```
 
+Change release name not to use `Ver.` prefix.
+
+```yaml
+name: Build-Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: git tag you want create. (sample 1.0.0)"
+        required: true
+      dry-run:
+        description: "dry_run: true will never create release/nuget."
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  create-release:
+    uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
+    with:
+      commit-id: ''
+      tag: ${{ inputs.tag }}
+      dry-run: ${{ inputs.dry-run }} # if true, delete tag after Release creation & 60s later.
+      nuget-push: false
+      release-upload: false
+      release-format: '{0}'
+```
+
 Build .NET then create release. `create-release` will push nuget packages.
 
 ```yaml
