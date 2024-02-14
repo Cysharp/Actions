@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
-        description: "Release format. (if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred.)"
+        description: "release-format: if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred."
         required: false
         type: string
         default: 'Ver.{0}'
