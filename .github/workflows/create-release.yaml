@@ -45,6 +45,11 @@ on:
         required: false
         type: boolean
         default: false
+      release-prefix:
+        description: "Release prefix. (if 'Ver.' is specified, the release title will be 'Ver.1.0.0'. set '' if no prefix is preffered.)"
+        required: false
+        type: string
+        default: 'Ver.'
       # nuget
       nuget-push:
         description: "true = upload nuget package. false = not upload"
@@ -154,7 +159,7 @@ jobs:
           git tag ${{ inputs.tag }}
           git push origin ${{ inputs.tag }}
       - name: Create Release
-        run: gh release create ${{ inputs.tag }} --draft --verify-tag --title "Ver.${{ inputs.tag }}" --generate-notes
+        run: gh release create ${{ inputs.tag }} --draft --verify-tag --title "${{ inputs.release-prefix }}${{ inputs.tag }}" --generate-notes
       - name: Upload asset files to release
         run: |
           while read -r asset_path; do
