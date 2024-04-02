@@ -107,7 +107,7 @@ jobs:
                 # -P is for perl regex, only available in GNU grep
                 actual=$(grep -oP '<VersionPrefix>\K.*(?=</VersionPrefix>)' "$file_path")
               else
-                echo "Validation not implemented exception!. FileName: ${file_name}"
+                echo "Validation for ${file_name} is not implemented."
                 exit 1
               fi
 
