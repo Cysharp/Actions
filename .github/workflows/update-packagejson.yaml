@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       file-path:
-        description: "package.json path to update. You can input multiline paths."
+        description: "package.json path to update. You can input multiline paths. Supported files are `package.json`, `plugin.cfg` and `Directory.Build.props`"
         required: true
         type: string
       tag:
@@ -80,11 +80,14 @@ jobs:
 
             echo "::group::Updating"
               if [[ "${file_name}" == "package.json" ]]; then
-                # Unity
+                # Unity `"version": "VersionString",`
                 sed -i -e "s/\(\"version\":\) \"\(.*\)\",/\1 \"${{ inputs.tag }}\",/" "${file_path}"
               elif [[ "${file_name}" == "plugin.cfg" ]]; then
-                # Godot
+                # Godot `version="VersionString"`
                 sed -i -e "s/\(version=\)\"\(.*\)\"/\1\"${{ inputs.tag }}\"/" "${file_path}"
+              elif [[ "${file_name}" == "Directory.Build.props" ]]; then
+                # .NET `<VersionPrefix>VersionString</VersionPrefix>`
+                sed -i -e 's|<VersionPrefix>.*</VersionPrefix>|<VersionPrefix>${{ inputs.tag }}</VersionPrefix>|g' "${file_path}"
               else
                 echo "Unknown file name ${file_name} is specified."
                 exit 1
@@ -100,6 +103,12 @@ jobs:
                 actual=$(grep "version" "$file_path" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
               elif [[ "${file_name}" == "plugin.cfg" ]]; then
                 actual=$(grep "version=" "$file_path" | cut -d '=' -f 2 | tr -d '"')
+              elif [[ "${file_name}" == "Directory.Build.props" ]]; then
+                # -P is for perl regex, only available in GNU grep
+                actual=$(grep -oP '<VersionPrefix>\K.*(?=</VersionPrefix>)' "$file_path")
+              else
+                echo "Validation for ${file_name} is not implemented."
+                exit 1
               fi
 
               if [[ "$actual" != "$expected" ]]; then
