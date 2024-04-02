@@ -196,6 +196,7 @@ jobs:
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
+        ./Sandbox/Directory.build.props
       tag: ${{ inputs.tag }}
       dry-run: false
       push-tag: false # tag push is done by create-release job
@@ -339,6 +340,7 @@ jobs:
       file-path: |
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plguin.cfg
+        ./Sandbox/Directory.build.props
       tag: ${{ inputs.tag }}
       dry-run: ${{ inputs.dry-run }}
       push-tag: false # recommend push tag on create-release job.
