@@ -34,7 +34,7 @@ jobs:
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
-        ./Sandbox/Directory.build.props
+        ./Sandbox/Directory.Build.props
       dotnet-run-path:
         ./Sandbox/VersionOutput/VersionOutput.csproj
       tag: ${{ needs.set-tag.outputs.tag }}
@@ -57,7 +57,7 @@ jobs:
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
-        ./Sandbox/Directory.build.props
+        ./Sandbox/Directory.Build.props
       # can omit 'dotnet-run-path' if not needed
       tag: ${{ needs.set-tag.outputs.tag }}
       dry-run: true
