@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       file-path:
-        description: "package.json path to update. You can input multiline paths."
+        description: "package.json path to update. You can input multiline paths. Supported files are `package.json`, `plugin.cfg` and `Directory.Build.props`"
         required: true
         type: string
       tag:
@@ -85,6 +85,9 @@ jobs:
               elif [[ "${file_name}" == "plugin.cfg" ]]; then
                 # Godot
                 sed -i -e "s/\(version=\)\"\(.*\)\"/\1\"${{ inputs.tag }}\"/" "${file_path}"
+              elif [[ "${file_name}" == "Directory.Build.props" ]]; then
+                # .NET
+                sed -i -e 's|<VersionPrefix>.*</VersionPrefix>|<VersionPrefix>${{ inputs.tag }}</VersionPrefix>|g' "${file_path}"
               else
                 echo "Unknown file name ${file_name} is specified."
                 exit 1
