@@ -100,7 +100,7 @@ on:
 jobs:
   create-relase:
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # auto generated token
       GH_REPO: ${{ github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -112,12 +112,20 @@ jobs:
           echo "Validation error! 'inputs.unitypackage-path' cannot be blank when 'inputs.unitypackage-upload' is true."
           exit 1
 
-      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-        if: ${{ inputs.nuget-push }}
+      - name: Load secrets
+        id: op-load-secret
+        uses: 1password/load-secrets-action@v2
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
+          NUGET_KEY: "op://GitHubActionsPublic/NUGET_KEY/credential"
 
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.commit-id }}
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        if: ${{ inputs.nuget-push }}
 
       # Download(All) Artifacts to current directory
       - uses: actions/download-artifact@v3
@@ -199,9 +207,9 @@ jobs:
             fi
 
             if [[ "${{ inputs.dry-run }}" == "true" ]]; then
-              echo "(dry run) dotnet nuget push \"${nuget_path}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k \"${{ secrets.NUGET_KEY }}\""
+              echo "(dry run) dotnet nuget push \"${nuget_path}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k \"<reducted>\""
             else
-              dotnet nuget push "${nuget_path}" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${{ secrets.NUGET_KEY }}"
+              dotnet nuget push "${nuget_path}" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${{ steps.op-load-secret.outputs.NUGET_KEY }}"
             fi
           done <<< "${{ inputs.nuget-path }}"
 

@@ -164,7 +164,7 @@ jobs:
         if: ${{ !inputs.dry-run && steps.check_update.outputs.changed == '1' }}
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
           branch: ${{ inputs.ref }}
           tags: ${{ inputs.push-tag }}
 
@@ -172,7 +172,7 @@ jobs:
         if: ${{ inputs.dry-run && steps.check_update.outputs.changed == '1' }}
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
           branch: "refs/heads/${{ steps.configure.outputs.branch-name }}"
           tags: false
           force: true

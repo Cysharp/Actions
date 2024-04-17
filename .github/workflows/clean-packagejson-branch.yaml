@@ -15,7 +15,7 @@ on:
 jobs:
   cleanup:
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # auto generated token
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
