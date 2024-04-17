@@ -91,6 +91,7 @@ jobs:
       dry-run: ${{ inputs.dry-run }} # if true, delete tag after Release creation & 60s later.
       nuget-push: false
       release-upload: false
+    secrets: inherit
 ```
 
 Change release name not to use `Ver.` prefix.
@@ -120,6 +121,7 @@ jobs:
       nuget-push: false
       release-upload: false
       release-format: '{0}'
+    secrets: inherit
 ```
 
 Build .NET then create release. `create-release` will push nuget packages.
