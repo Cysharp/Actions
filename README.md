@@ -154,7 +154,7 @@ jobs:
       - run: dotnet build -c Release -p:Version=${{ inputs.tag }}
       - run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
       - name: upload artifacts
-        uses: ./github/actions/upload-artifact
+        uses: Cysharp/Actions/.github/actionsupload-artifact@main
         with:
           name: nuget
           path: ./Sandbox/publish
@@ -215,7 +215,7 @@ jobs:
       - run: dotnet build -c Release -p:Version=${{ inputs.tag }}
       - run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
       - name: upload artifacts
-        uses: ./github/actions/upload-artifact
+        uses: Cysharp/Actions/.github/actionsupload-artifact@main
         with:
           name: nuget
           path: ./Sandbox/publish
@@ -231,12 +231,12 @@ jobs:
         with:
           ref: ${{ needs.update-packagejson.outputs.sha }}
       # Store artifacts.
-      - uses: ./github/actions/upload-artifact
+      - uses: Cysharp/Actions/.github/actionsupload-artifact@main
         with:
           name: Sandbox.Unity.unitypackage
           path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage
           if-no-files-found: error
-      - uses: ./github/actions/upload-artifact
+      - uses: Cysharp/Actions/.github/actionsupload-artifact@main
         with:
           name: Sandbox.Unity.Plugin.unitypackage
           path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.Plugin.unitypackage
