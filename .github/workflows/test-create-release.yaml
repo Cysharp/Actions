@@ -57,8 +57,7 @@ jobs:
         run: dotnet build -c Release -p:Version=${{ needs.set-tag.outputs.tag }}
       - name: dotnet pack
         run: dotnet pack --no-build -c Release -p:Version=${{ needs.set-tag.outputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
-      - name: upload artifacts
-        uses: actions/upload-artifact@v3
+      - uses: ./github/actions/upload-artifact
         with:
           name: nuget
           path: ./Sandbox/publish
@@ -74,12 +73,12 @@ jobs:
         with:
           ref: ${{ needs.update-packagejson.outputs.sha }}
       # Store artifacts.
-      - uses: actions/upload-artifact@v3
+      - uses: ./github/actions/upload-artifact
         with:
           name: Sandbox.Unity.unitypackage
           path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage
           if-no-files-found: error
-      - uses: actions/upload-artifact@v3
+      - uses: ./github/actions/upload-artifact
         with:
           name: Sandbox.Unity.Plugin.unitypackage
           path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.Plugin.unitypackage
