@@ -37,10 +37,9 @@ runs:
   using: "composite"
   steps:
     - name: donload artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
-        # v4 inputs. Do not use it until all actions are updated to use this aciton.
-        # pattern: ${{ inputs.pattern }}
-        # merge-multiple: ${{ inputs.merge-multiple }}
+        pattern: ${{ inputs.pattern }} # v4+
+        merge-multiple: ${{ inputs.merge-multiple }} # v4+

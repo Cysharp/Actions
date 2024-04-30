@@ -16,7 +16,7 @@ inputs:
         warn: Output a warning but do not fail the action
         error: Fail the action with an error message
         ignore: Do not output any warnings or errors, the action does not fail
-    default: 'warn'
+    default: 'error' # default changed from warn.
   retention-days:
     description: >
       Duration after which artifact will expire in days. 0 means using default retention.
@@ -46,12 +46,11 @@ runs:
   using: "composite"
   steps:
     - name: upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
         if-no-files-found: ${{ inputs.if-no-files-found }}
         retention-days: ${{ inputs.retention-days }}
-        # v4 inputs. Do not use it until all actions are updated to use this aciton.
-        # compression-level: ${{ inputs.compression-level }}
-        # overwrite: ${{ inputs.overwrite }}
+        compression-level: ${{ inputs.compression-level }} # v4+
+        overwrite: ${{ inputs.overwrite }} # v4+
