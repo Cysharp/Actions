@@ -231,12 +231,12 @@ jobs:
         with:
           ref: ${{ needs.update-packagejson.outputs.sha }}
       # Store artifacts.
-      - uses: Cysharp/Actions/.github/actionsupload-artifact@main
+      - uses: Cysharp/Actions/.github/actions/upload-artifact@main
         with:
           name: Sandbox.Unity.unitypackage
           path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage
           if-no-files-found: error
-      - uses: Cysharp/Actions/.github/actionsupload-artifact@main
+      - uses: Cysharp/Actions/.github/actions/upload-artifact@main
         with:
           name: Sandbox.Unity.Plugin.unitypackage
           path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.Plugin.unitypackage
