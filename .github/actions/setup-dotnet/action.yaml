@@ -21,7 +21,7 @@ runs:
   using: "composite"
   steps:
     # see: https://github.com/actions/setup-dotnet
-    - uses: actions/setup-dotnet@v3
+    - uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ inputs.dotnet-version }}
         dotnet-quality: ${{ inputs.dotnet-quality }}
