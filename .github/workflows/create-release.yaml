@@ -98,7 +98,8 @@ on:
         type: boolean
 
 jobs:
-  create-relase:
+  create-release:
+    name: Create Release
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # auto generated token
       GH_REPO: ${{ github.repository }}
