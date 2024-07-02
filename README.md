@@ -19,6 +19,7 @@ Cysharp OSS repository uses and maintained GitHub Actions "reusable workflows" a
   - [stale-issue](#stale-issue)
   - [update-packagejson](#update-packagejson)
 - [Actions](#actions)
+  - [check-benchmarkable](#check-benchmarkable)
   - [check-metas](#check-metas)
   - [setup-dotnet](#setup-dotnet)
   - [unity-builder](#unity-builder)
