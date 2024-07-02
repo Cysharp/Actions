@@ -83,7 +83,7 @@ print "# Setup environment"
 IFS=';' read -ra env_array <<< "$env_settings"
 for item in "${env_array[@]}"; do
   if [ -n "$item" ]; then
-      export "$item"
+    export "$item"
   fi
 done
 export
@@ -103,7 +103,10 @@ ls "$clone_path"
 print "# git pull $branch"
 pushd "$clone_path"
   git switch "$branch"
-  git pull --no-rebase
+  git fetch
+  git reset --hard origin # reset to origin to avoid conflicts
+  git clean -fdx # clean all untracked files
+  git pull --no-rebase # pull latest changes
   git reset --hard HEAD
 popd
 
