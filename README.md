@@ -1,3 +1,4 @@
+[![Test check-benchmarkable](https://github.com/Cysharp/Actions/actions/workflows/test-check-benchmarkable.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-check-benchmarkable.yaml)
 [![Test check-metas](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml)
 [![Test clean-packagejson-branch](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml)
 [![Test create-release](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml)
@@ -425,11 +426,12 @@ jobs:
   verify:
     if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.comment.body, '/benchmark') }}
     outputs:
-      is-benchmarkable: ${{ steps.check_actor.outputs.authorized }} # true or false
+      is-benchmarkable: ${{ steps.is-benchmarkable.outputs.authorized }} # true or false
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Check actor is benchmarkable
+        id: is-benchmarkable
         uses: Cysharp/Actions/.github/actions/check-benchmarkable@main
         with:
           username: ${{ github.actor }}
