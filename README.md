@@ -408,6 +408,12 @@ jobs:
 Check if GitHub User is allow to run benchmark.
 Mainly used for benchmark CI workflow.
 
+> [!NOTE]
+> This action is workaround for current `github.event.comment.author_association` inconsistence behavior.
+> `github.event.comment.author_association` should return `OWNER`, `MEMBER` or `CORABORATOR` for organization member, however currently it returns `CONTRIBUTOR` even actor is Org member.
+> It means `github.event.comment.author_association` can't be used to check if actor is Org member == "benchmark command allowed user" or not.
+> This action checks if actor is Benchmark allowd by statically defined list, lol.
+
 **sample usage**
 
 ```yaml
