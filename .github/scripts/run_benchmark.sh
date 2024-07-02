@@ -102,11 +102,12 @@ ls "$clone_path"
 # git pull
 print "# git pull $branch"
 pushd "$clone_path"
+  git merge --abort || true
   git switch "$branch"
   git fetch
-  git reset --hard origin # reset to origin to avoid conflicts
+  git reset --hard "origin/$branch" # reset to origin to avoid conflicts
   git clean -fdx # clean all untracked files
-  git pull --no-rebase # pull latest changes
+  git pull --ff-only # pull latest changes, fast-forwad and error if not possible
   git reset --hard HEAD
 popd
 
