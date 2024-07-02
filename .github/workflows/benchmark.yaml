@@ -58,7 +58,6 @@ permissions:
 jobs:
   # is actor is benchmarkable
   verify:
-    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.comment.body, '/benchmark') }}
     outputs:
       is-benchmarkable: ${{ steps.is-benchmarkable.outputs.authorized }} # true or false
     runs-on: ubuntu-latest
