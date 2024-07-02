@@ -1,0 +1,224 @@
+name: (R) Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit-id:
+        description: "commit-id: CommitId to create release & tag."
+        required: false
+        type: string
+      tag:
+        description: "tag: Git tag to create. (sample 1.0.0)"
+        required: true
+        type: string
+      release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
+        description: "release-format: if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred."
+        required: false
+        type: string
+        default: 'Ver.{0}'
+      nuget-push:
+        description: "nuget-push: true = upload nuget package. false = not upload"
+        required: false
+        type: boolean
+        default: false
+      unitypackage-upload: # todo: release-uploadで置き換えられるので消す
+        description: "[deprecated] unitypackage-upload: true = upload unitypackage. false = not upload"
+        required: false
+        type: boolean
+        default: false
+      release-upload:
+        description: "release-upload: true = upload assets. false = not upload"
+        required: false
+        type: boolean
+        default: false
+      dry-run:
+        description: "dry-run: true = no upload. false = dry run changes && delete release after 60s."
+        required: true
+        type: boolean
+  workflow_call:
+    inputs:
+      commit-id:
+        description: "CommitId to create release & tag."
+        required: true
+        type: string
+      tag:
+        description: "Git tag to create. (sample 1.0.0)"
+        required: true
+        type: string
+      release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
+        description: "Release format. (if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred.)"
+        required: false
+        type: string
+        default: 'Ver.{0}'
+      push-tag: # todo: いらなくなったので消す
+        description: "[depreated] true = push tag. false = no push tag."
+        required: false
+        type: boolean
+        default: false
+      # nuget
+      nuget-push:
+        description: "true = upload nuget package. false = not upload"
+        required: false
+        type: boolean
+        default: false
+      nuget-path:
+        description: "nuget path to upload."
+        required: false
+        type: string
+        default: |
+          ./nuget/*.nupkg
+          ./nuget/*.snupkg
+      # unity
+      unitypackage-upload: # todo: release-uploadで置き換えられるので消す
+        description: "[deprecated] true = upload unitypackage. false = not upload"
+        required: false
+        type: boolean
+        default: false
+      unitypackage-name: # todo: いらなくなったので消す
+        description: "[deprecated] unitypackage name to upload."
+        required: false
+        type: string
+      unitypackage-path: # todo: release-uploadで置き換えられるので消す
+        description: "[deprecated] unitypackage path to upload."
+        required: false
+        type: string
+      # release assets
+      release-upload:
+        description: "true = upload assets. false = not upload"
+        required: false
+        type: boolean
+        default: false
+      release-asset-path:
+        description: "release assets path to upload."
+        required: false
+        type: string
+      dry-run:
+        description: "true = no upload. false = dry run changes && delete release after 60s."
+        required: true
+        type: boolean
+
+jobs:
+  create-release:
+    name: Create Release
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # auto generated token
+      GH_REPO: ${{ github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validate inputs - unitypackage
+        shell: bash
+        if: ${{ inputs.unitypackage-upload && inputs.unitypackage-path == '' }}
+        run: |
+          echo "Validation error! 'inputs.unitypackage-path' cannot be blank when 'inputs.unitypackage-upload' is true."
+          exit 1
+
+      - name: Load secrets
+        id: op-load-secret
+        uses: 1password/load-secrets-action@v2
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
+          NUGET_KEY: "op://GitHubActionsPublic/NUGET_KEY/credential"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit-id }}
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        if: ${{ inputs.nuget-push }}
+
+      # Download(All) Artifacts to current directory
+      - uses: Cysharp/Actions/.github/actions/download-artifact@main
+      - name: Show download aritifacts
+        run: ls -lR
+      - name: Validate package exists in artifact - release assets
+        if: ${{ inputs.release-upload }}
+        run: |
+          while read -r asset_path; do
+            if [[ "${asset_path}" == "" ]]; then continue; fi
+            if [[ ! -f "${asset_path}" ]]; then
+              echo "Specified asset not found. path: ${asset_path}"
+              exit 1
+            fi
+          done <<< "${{ inputs.release-asset-path }}"
+      - name: Validate package exists in artifact - unitypackage
+        if: ${{ inputs.unitypackage-upload }}
+        run: |
+          while read -r unitypackage_path; do
+            if [[ "${unitypackage_path}" == "" ]]; then continue; fi
+            if [[ ! -f "${unitypackage_path}" ]]; then
+              echo "Specified .unitypackage not found. path: ${unitypackage_path}"
+              exit 1
+            fi
+          done <<< "${{ inputs.unitypackage-path }}"
+      - name: Validate package exists in artifact - NuGet
+        if: ${{ inputs.nuget-push }}
+        run: |
+          while read -r nuget_path; do
+            if [[ "${nuget_path}" == "" ]]; then continue; fi
+            # shellcheck disable=SC2086
+            if ! ls -l ${nuget_path}; then
+              echo "Specified nuget package not found. path: $nuget_path"
+              if [[ "${nuget_path}" == *.nupkg ]]; then
+                echo ".nupkg must be included in the artifact."
+                exit 1
+              fi
+            fi
+          done <<< "${{ inputs.nuget-path }}"
+
+      # Create Releases
+      - name: Create Tag
+        run: |
+          git tag ${{ inputs.tag }}
+          git push origin ${{ inputs.tag }}
+      - name: Create Release
+        run: gh release create ${{ inputs.tag }} --draft --verify-tag --title "${{ format(inputs.release-format, inputs.tag) }}" --generate-notes
+      - name: Wait and Verify Release Name is expected
+        run: |
+          sleep 5s
+          actual=$(gh api /repos/${{ github.repository }}/releases --jq ".[] | select(.tag_name==\"${{ inputs.tag }}\") | .name")
+          expected="${{ format(inputs.release-format, inputs.tag) }}"
+          if [[ "$actual" != "$expected" ]]; then echo "Release name is not as expected. expected: $expected, actual: $actual"; exit 1; fi
+      - name: Upload asset files to release
+        run: |
+          while read -r asset_path; do
+            if [[ "${asset_path}" == "" ]]; then continue; fi
+            gh release upload ${{ inputs.tag }} "${asset_path}"
+          done <<< "${{ inputs.release-asset-path }}"
+        if: ${{ inputs.release-upload }}
+      - name: Upload .unitypacakge files to release
+        run: |
+          while read -r unitypackage_path; do
+            if [[ "${unitypackage_path}" == "" ]]; then continue; fi
+            gh release upload ${{ inputs.tag }} "${unitypackage_path}"
+          done <<< "${{ inputs.unitypackage-path }}"
+        if: ${{ inputs.unitypackage-upload }}
+
+      # Upload to NuGet
+      - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
+        if: ${{ inputs.nuget-push }}
+        run: |
+          while read -r nuget_path; do
+            if [[ "$nuget_path" == "" ]]; then continue; fi
+            # shellcheck disable=SC2086
+            if ! ls -l ${nuget_path} >/dev/null 2>&1;then
+              echo "skipping nuget push, $nuget_path not found."
+              continue
+            fi
+
+            if [[ "${{ inputs.dry-run }}" == "true" ]]; then
+              echo "(dry run) dotnet nuget push \"${nuget_path}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k \"${{ steps.op-load-secret.outputs.NUGET_KEY }}\""
+            else
+              dotnet nuget push "${nuget_path}" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${{ steps.op-load-secret.outputs.NUGET_KEY }}"
+            fi
+          done <<< "${{ inputs.nuget-path }}"
+
+      # Clean up
+      - name: Clean up. Wait 60s and delete releas if dry-run or failure. (dry-run=${{ inputs.dry-run }}})
+        if: ${{ inputs.dry-run || failure() }}
+        run: |
+          if gh release list | grep Draft | grep ${{ inputs.tag }}; then
+            sleep 60
+            gh release delete ${{ inputs.tag }} --yes --cleanup-tag
+          fi

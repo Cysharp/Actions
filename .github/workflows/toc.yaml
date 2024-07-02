@@ -1,0 +1,16 @@
+name: TOC Generator
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+jobs:
+  toc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: technote-space/toc-generator@v4
+        with:
+          TOC_TITLE: "# 📖 Table of Contents"
+          FOLDING: false

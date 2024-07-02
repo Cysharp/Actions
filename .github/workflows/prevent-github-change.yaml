@@ -1,0 +1,18 @@
+name: Prevent github change
+on:
+  workflow_call:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/**/*.yaml"
+      - ".github/**/*.yml"
+
+# prevent fork user to change
+jobs:
+  detect:
+    if: ${{ github.event.pull_request.head.repo.fork }} # detect if PR is from fork.
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: "Prevent file change"
+        run: exit 1

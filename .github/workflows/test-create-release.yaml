@@ -1,0 +1,120 @@
+name: Test create-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: GitHub Tag to release. ex) 1.1.0"
+        required: true
+        default: ""
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+jobs:
+  set-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.set-tag.outputs.tag }}
+    steps:
+      - name: Set tag
+        id: set-tag
+        run: |
+          tag=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.0.{0}', github.run_number) }}
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  update-packagejson:
+    needs: [set-tag]
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    uses: ./.github/workflows/update-packagejson.yaml
+    with:
+      ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
+      file-path: |
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
+        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
+        ./Sandbox/Directory.Build.props
+      dotnet-run-path:
+        ./Sandbox/VersionOutput/VersionOutput.csproj
+      tag: ${{ needs.set-tag.outputs.tag }}
+      dry-run: false
+      push-tag: false # tagはcreate-releaseでpushするのでコミットだけさせる。
+
+  build-dotnet:
+    needs: [set-tag]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    defaults:
+      run:
+        working-directory: ./Sandbox
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-dotnet
+      - name: dotnet restore
+        run: dotnet restore
+      - name: dotnet build
+        run: dotnet build -c Release -p:Version=${{ needs.set-tag.outputs.tag }}
+      - name: dotnet pack
+        run: dotnet pack --no-build -c Release -p:Version=${{ needs.set-tag.outputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
+      - uses: Cysharp/Actions/.github/actions/upload-artifact@main
+        with:
+          name: nuget
+          path: ./Sandbox/publish
+          retention-days: 1
+
+  build-unity:
+    needs: [update-packagejson]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - run: echo ${{ needs.update-packagejson.outputs.sha }}
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.update-packagejson.outputs.sha }}
+      # Store artifacts.
+      - uses: Cysharp/Actions/.github/actions/upload-artifact@main
+        with:
+          name: Sandbox.Unity.unitypackage
+          path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage
+          if-no-files-found: error
+      - uses: Cysharp/Actions/.github/actions/upload-artifact@main
+        with:
+          name: Sandbox.Unity.Plugin.unitypackage
+          path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.Plugin.unitypackage
+          if-no-files-found: error
+
+  create-release:
+    needs: [set-tag, update-packagejson, build-dotnet, build-unity]
+    uses: ./.github/workflows/create-release.yaml
+    with:
+      commit-id: ${{ needs.update-packagejson.outputs.sha }}
+      tag: ${{ needs.set-tag.outputs.tag }}
+      dry-run: true # true = Release作成後に60秒待って削除される。
+      nuget-push: true # dry-run=true, nuget-push=true なら nuget-pushは実行されない。
+      unitypackage-upload: true # Releaseにアップロードされる。
+      unitypackage-path: |
+        ./Sandbox.Unity.unitypackage/Sandbox.Unity.unitypackage
+        ./Sandbox.Unity.Plugin.unitypackage/Sandbox.Unity.Plugin.unitypackage
+      release-upload: true
+      release-asset-path: |
+        ./nuget/ClassLibrary.${{ needs.set-tag.outputs.tag }}.nupkg
+        ./nuget/ClassLibrary.${{ needs.set-tag.outputs.tag }}.snupkg
+    secrets: inherit
+
+  create-release2:
+    needs: [set-tag, update-packagejson, build-dotnet, build-unity, create-release]
+    uses: ./.github/workflows/create-release.yaml
+    with:
+      commit-id: ${{ needs.update-packagejson.outputs.sha }}
+      tag: ${{ needs.set-tag.outputs.tag }}
+      dry-run: true # true = Release作成後に60秒待って削除される。
+      release-format: '{0}'
+    secrets: inherit
+
+  cleanup:
+    if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
+    needs: [update-packagejson]
+    uses: ./.github/workflows/clean-packagejson-branch.yaml
+    with:
+      branch: ${{ needs.update-packagejson.outputs.branch-name }}
