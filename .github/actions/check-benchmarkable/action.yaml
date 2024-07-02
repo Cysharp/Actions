@@ -1,0 +1,32 @@
+name: Check Benchmarkable
+description: Check if a user is allow to execute benchmark
+inputs:
+  username:
+    description: Username to check
+    required: true
+outputs:
+  authorized:
+    description: If the user is a member of the benchmarkable
+    value: ${{ steps.check-benchmarkable.outputs.is-member }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check member is benchmarkable
+      id: check-benchmarkable
+      shell: bash
+      run: |
+        for user in $(echo "$ALLOWED_USERNAMES"); do
+          if [[ "${{ inputs.username}}" == "$user" ]]; then
+            echo "User is a benchmarkable."
+            echo "is-member=true" | tee -a "$GITHUB_OUTPUT"
+            exit 0
+          fi
+        done
+
+        echo "User is not benchmarkable."
+        echo "is-member=false" | tee -a "$GITHUB_OUTPUT"
+      env:
+        ALLOWED_USERNAMES: |
+          mayuki
+          guitarrapc

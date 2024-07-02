@@ -401,6 +401,49 @@ jobs:
 
 # Actions
 
+## check-benchmarkable
+
+> [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/check-benchmarkable/action.yaml)
+
+Check if GitHub User is allow to run benchmark.
+Mainly used for benchmark CI workflow.
+
+> [!NOTE]
+> This action is workaround for current `github.event.comment.author_association` inconsistence behavior.
+> `github.event.comment.author_association` should return `OWNER`, `MEMBER` or `CORABORATOR` for organization member, however currently it returns `CONTRIBUTOR` even actor is Org member.
+> It means `github.event.comment.author_association` can't be used to check if actor is Org member == "benchmark command allowed user" or not.
+> This action checks if actor is Benchmark allowd by statically defined list, lol.
+
+**sample usage**
+
+```yaml
+name: benchmark
+
+jobs:
+  # is actor is benchmarkable
+  verify:
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.comment.body, '/benchmark') }}
+    outputs:
+      is-benchmarkable: ${{ steps.check_actor.outputs.authorized }} # true or false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check actor is benchmarkable
+        uses: Cysharp/Actions/.github/actions/check-benchmarkable@main
+        with:
+          username: ${{ github.actor }}
+
+  # run benchmark
+  benchmark:
+    needs: [verify]
+    if: ${{ needs.verify.outputs.is-benchmarkable == 'true' }}
+    environment: benchmark # required for Azure login
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - run: echo "run benchmark"
+```
+
 ## check-metas
 
 > [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/check-metas/action.yaml)
