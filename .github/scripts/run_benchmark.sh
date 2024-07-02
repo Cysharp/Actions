@@ -103,7 +103,7 @@ ls "$clone_path"
 print "# git pull $branch"
 pushd "$clone_path"
   git switch "$branch"
-  git pull
+  git pull --no-rebase
   git reset --hard HEAD
 popd
 
