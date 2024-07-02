@@ -105,20 +105,20 @@ jobs:
       - name: Start Benchmark VM
         run: |
           for vm in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState!='VM running'].name" -o tsv); do
-            az vm start --name $vm  --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}"
+            az vm start --name "$vm" --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}"
           done
       - name: Setup .NET on Benchmark VM
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
             echo "::group::Install on $ip"
-              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@$ip 'bash -s -- --dotnet-version ${{ inputs.dotnet-version }}' < ./scripts/dotnet_install.sh
+              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --dotnet-version ${{ inputs.dotnet-version }}' < ./scripts/dotnet_install.sh
             echo "::endgroup::"
           done
         working-directory: ./.github
       - name: Run Benchmark Server
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_SERVER_NAME }}'].publicIps" -o tsv); do
-            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@$ip 'bash -s -- --args "${{ inputs.server-args }}" --branch "${{ inputs.branch }}" --build-csproj "${{ inputs.server-csproj }}" --env-settings "${{ inputs.server-env-settings }}" --owner "${{ github.repository_owner }}" --repo "${{ github.event.repository.name }}"' < ./scripts/run_benchmark.sh &
+            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --args "${{ inputs.server-args }}" --branch "${{ inputs.branch }}" --build-csproj "${{ inputs.server-csproj }}" --env-settings "${{ inputs.server-env-settings }}" --owner "${{ github.repository_owner }}" --repo "${{ github.event.repository.name }}"' < ./scripts/run_benchmark.sh &
           done
           # wait until server started
           sleep 120s
@@ -126,14 +126,14 @@ jobs:
       - name: Run Benchmark Client
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_CLIENT_NAME }}'].publicIps" -o tsv); do
-            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@$ip 'bash -s -- --args "${{ format(inputs.client-args-format, env.BENCHMARK_SERVER_NAME) }}" --branch "${{ inputs.branch }}" --build-csproj "${{ inputs.client-csproj }}" --env-settings "${{ inputs.client-env-settings }}" --owner "${{ github.repository_owner }}" --repo "${{ github.event.repository.name }}"' < ./scripts/run_benchmark.sh
+            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --args "${{ format(inputs.client-args-format, env.BENCHMARK_SERVER_NAME) }}" --branch "${{ inputs.branch }}" --build-csproj "${{ inputs.client-csproj }}" --env-settings "${{ inputs.client-env-settings }}" --owner "${{ github.repository_owner }}" --repo "${{ github.event.repository.name }}"' < ./scripts/run_benchmark.sh
           done
         working-directory: ./.github
       - name: Stop (Deallocate) Benchmark VM
         if: always()
         run: |
           for vm in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].name" -o tsv); do
-            az vm deallocate --name $vm  --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --no-wait
+            az vm deallocate --name "$vm" --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --no-wait
           done
       # TODO: Add a step to collect benchmark results
       # TODO: Add a step to post benchmark results to GitHub
