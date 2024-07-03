@@ -47,11 +47,6 @@ clone_path="$HOME/github/$repo"
 # show machine name
 print "MACHINE_NAME: $(hostname)"
 
-# is dotnet installed?
-print "# Show installed dotnet sdk versions"
-echo "dotnet sdk versions (list): $(dotnet --list-sdks)"
-echo "dotnet sdk version (default): $(dotnet --version)"
-
 # git clone cysharp repo
 print "# git clone $owner/$repo"
 if [[ -d "$clone_path" && ! -d "$clone_path/.git" ]]; then
