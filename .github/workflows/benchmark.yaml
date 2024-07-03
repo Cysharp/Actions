@@ -41,7 +41,7 @@ env:
   BUILD_CONFIG: Release
   BENCHMARK_SERVER_NAME: benchmark-server-vm
   BENCHMARK_CLIENT_NAME: benchmark-client-vm
-  BENCHMARK_RESOURCE_GROUP: BenchmarkTest
+  BENCHMARK_RESOURCE_GROUP: BenchmarkRG
 
 permissions:
   contents: read
