@@ -86,7 +86,6 @@ for item in "${env_array[@]}"; do
     export "$item"
   fi
 done
-export
 
 # git clone cysharp repo
 print "# git clone $owner/$repo"
