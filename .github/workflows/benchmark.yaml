@@ -77,6 +77,8 @@ jobs:
         with:
           repository: "Cysharp/Actions"
           path: Actions
+      - name: Current Repo
+        run: ls -l
       - name: Load secret
         id: op-load-secret
         uses: 1password/load-secrets-action@v2
