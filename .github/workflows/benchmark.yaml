@@ -21,6 +21,11 @@ on:
         required: false
         type: string
         default: "pulumi"
+      benchmark-definition-name:
+        description: "Benchmark catalog's definition name"
+        required: false
+        type: string
+        default: "Benchmark"
       benchmark-devcenter:
         description: "Benchmark devcenter name"
         required: false
@@ -33,9 +38,9 @@ on:
         default: "benchmark"
       benchmark-name:
         description: "Name of the benchamrk environment."
-        required: false
+        required: true
         type: string
-        default: "Benchmark"
+        default: ""
       benchmark-project:
         description: "Benchmark project name"
         required: false
@@ -135,7 +140,7 @@ jobs:
           az extension add --name devcenter --upgrade
           az provider register --namespace Microsoft.DevCenter
       - name: Start Benchmark Environment
-        run: bash ./scripts/create_benchmark_environment.sh --catalog-name '${{ inputs.benchmark-catalog }}' --dev-center-name '${{ inputs.benchmark-devcenter }}' --environment-definition-name '${{ inputs.benchmark-name }}' --environment-type '${{ inputs.benchmark-environment }}' --name '${{ inputs.benchmark-name }}' --project-name '${{ inputs.benchmark-project }}' --minutes "${{ inputs.benchmark-timeout }}" --dry-run false
+        run: bash ./scripts/create_benchmark_environment.sh --catalog-name '${{ inputs.benchmark-catalog }}' --dev-center-name '${{ inputs.benchmark-devcenter }}' --environment-definition-name '${{ inputs.benchmark-definition-name }}' --environment-type '${{ inputs.benchmark-environment }}' --name '${{ inputs.benchmark-name }}' --project-name '${{ inputs.benchmark-project }}' --minutes "${{ inputs.benchmark-timeout }}" --dry-run false
         working-directory: ./Actions/.github
       - name: Setup .NET on Benchmark VM
         run: |
