@@ -93,7 +93,9 @@ function main() {
   if [[ "$json" == "" ]]; then
     print "! No existing $name found, creating new Deployment Environment."
     create
-    return
+
+    print "Complete creating benchmark environment $name"
+    exit
   fi
 
   # EXISTING! -> reuse/expand or delete
@@ -122,6 +124,9 @@ function main() {
           print "Limit to expirationDate $time_diff is more than 300s, no action required. $input_time -> $expiration"
         fi
       fi
+
+      print "Complete creating benchmark environment $name"
+      exit
       ;;
     "Preparing" | "Creating" | "Updating")
       # Let's wait until succeeded
@@ -155,6 +160,9 @@ function main() {
 
         sleep 5
       done
+
+      print "Complete creating benchmark environment $name"
+      exit
       ;;
     "Failed")
       # Let's delete failed environment. We can do nothing.
@@ -175,7 +183,9 @@ function main() {
         if [[ "$deleted" == "" ]]; then
           # re-run
           print "$name succeessfully deleted, automatically re-run from beginning."
+          sleep 10 # sleep 10s to avoid Resource Group deletion error message when Create right after Deletion.
           main
+          exit 1
         else
           if current=$(show); then
             provisioningState=$(echo "$current" | jq -r ".provisioningState")
@@ -184,6 +194,7 @@ function main() {
               print "$name status is $provisioningState, automatically re-run from beginning"
               sleep 10 # sleep 10s to avoid Resource Group deletion error message when Create right after Deletion.
               main
+              exit 1
             fi
           fi
         fi
@@ -212,4 +223,3 @@ function main() {
 }
 
 main
-print "Complete creating benchmark encironment $name"
