@@ -136,9 +136,7 @@ jobs:
           tenant-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_TENANTID }}
           subscription-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_SUBSCRIPTIONID }}
       - name: Add Azure CLI devcenter extension
-        run: |
-          az extension add --name devcenter --upgrade
-          az provider register --namespace Microsoft.DevCenter
+        run: az extension add --name devcenter --upgrade
       - name: Start Benchmark Environment
         run: bash ./scripts/create_benchmark_environment.sh --catalog-name '${{ inputs.benchmark-catalog }}' --dev-center-name '${{ inputs.benchmark-devcenter }}' --environment-definition-name '${{ inputs.benchmark-definition-name }}' --environment-type '${{ inputs.benchmark-environment }}' --name '${{ inputs.benchmark-name }}' --project-name '${{ inputs.benchmark-project }}' --minutes "${{ inputs.benchmark-timeout }}" --dry-run false
         working-directory: ./Actions/.github
