@@ -107,6 +107,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.branch }}
           path: Repo
       - uses: actions/checkout@v4
         with:
