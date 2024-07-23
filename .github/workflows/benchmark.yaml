@@ -212,7 +212,7 @@ jobs:
             * client-args: ${{ inputs.client-benchmark-script-args }}
             * server-args: ${{ inputs.server-benchmark-script-args }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          state: "running"
+          state: "success"
           title: "Benchmark completed"
           update: "true"
       - name: Comment (Result - Benchmark failed)
@@ -220,7 +220,7 @@ jobs:
         with:
           comment: Benchmark failed.
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          state: "running"
+          state: "failed"
           title: "Benchmark failed"
           update: "true"
         if: ${{ github.event.issue.number && failure() }}
