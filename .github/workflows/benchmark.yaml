@@ -40,7 +40,6 @@ on:
         description: "Name of the benchamrk environment."
         required: true
         type: string
-        default: ""
       benchmark-project:
         description: "Benchmark project name"
         required: false
