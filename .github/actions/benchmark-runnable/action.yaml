@@ -1,4 +1,4 @@
-name: Check Benchmarkable
+name: Benchmark runnable
 description: Check if a user is allow to execute benchmark
 inputs:
   username:

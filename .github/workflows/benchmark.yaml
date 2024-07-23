@@ -95,24 +95,24 @@ jobs:
     steps:
       - name: Check actor is benchmarkable
         id: is-benchmarkable
-        uses: Cysharp/Actions/.github/actions/check-benchmarkable@main
+        uses: Cysharp/Actions/.github/actions/benchmark-runnable@main
         with:
           username: ${{ github.actor }}
-      - name: Comment to issue (Pgoress - Auth Complete)
-        run: |
-          body="#### :dash: Successfully start benchmark
-          See the progress on [CI Link](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-          Authorization complete, start creating benchmark environment."
-          gh issue comment ${{ github.event.issue.number }} --body "$body"
+      - name: Comment (Running - Auth OK)
+        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+        with:
+          state: "running"
+          title: "Successfully start benchmark"
+          comment: "Authorization complete, start creating benchmark environment."
+          update: "false"
         if: ${{ github.event.issue.number && steps.is-benchmarkable.outputs.authorized == 'true' }}
-      - name: Comment to issue (Failed - Auth)
-        run: |
-          body="#### :x: Failed to run benchmark
-          [CI Link](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-          You are not authorized to run benchmark."
-          gh issue comment ${{ github.event.issue.number }} --body "$body"
+      - name: Comment (Failed - Auth)
+        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+        with:
+          state: "failed"
+          title: "Failed to run benchmark"
+          comment: "Authorization failed, You are not authorized to run benchmark."
+          update: "false"
         if: ${{ github.event.issue.number && steps.is-benchmarkable.outputs.authorized == 'false' }}
 
   # run benchmark
@@ -159,13 +159,13 @@ jobs:
       - name: Create benchmark environment
         run: bash ./scripts/create_benchmark_environment.sh --catalog-name '${{ inputs.benchmark-catalog }}' --dev-center-name '${{ inputs.benchmark-devcenter }}' --environment-definition-name '${{ inputs.benchmark-definition-name }}' --environment-type '${{ inputs.benchmark-environment }}' --name '${{ inputs.benchmark-name }}' --project-name '${{ inputs.benchmark-project }}' --minutes "${{ inputs.benchmark-timeout }}" --dry-run false
         working-directory: ./Actions/.github
-      - name: Comment to issue (Pgoress - Create Deployment Environment)
-        run: |
-          body="#### :dash: Successfully start benchmark
-          See the progress on [CI Link](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-          Benchmark environment creation complete, start preparing server & client"
-          gh issue comment ${{ github.event.issue.number }} --edit-last --body "$body"
+      - name: Comment (Pgoress - Benchmark environment)
+        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+        with:
+          state: "running"
+          title: "Benchmark environment created"
+          comment: "Benchmark environment creation complete, start preparing server & client."
+          update: "true"
         if: ${{ github.event.issue.number }}
       - name: Setup .NET on Benchmark VM
         run: |
@@ -189,13 +189,13 @@ jobs:
             ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ inputs.server-benchmark-script-args }}' < ${{ inputs.server-benchmark-script-path}}
           done
         working-directory: ./Repo/
-      - name: Comment to issue (Pgoress - Run benchmark)
-        run: |
-          body="#### :dash: Successfully start benchmark
-          See the progress on [CI Link](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-          Server successfully started, starting benchmark."
-          gh issue comment ${{ github.event.issue.number }} --edit-last --body "$body"
+      - name: Comment (Progress - Benchmark begin)
+        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+        with:
+          state: "running"
+          title: "Benchmark begin"
+          comment: "Server successfully started, starting benchmark."
+          update: "true"
         if: ${{ github.event.issue.number }}
       - name: Run benchmark client on VM
         run: |
@@ -203,23 +203,24 @@ jobs:
             ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s --  ${{ inputs.client-benchmark-script-args }}' < ${{ inputs.client-benchmark-script-path}}
           done
         working-directory: ./Repo/
-      - name: Comment to issue (Result - Benchmark complete)
-        run: |
-          body="#### :dash: Benchmark completed!
-          See the result on [CI Link](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-          Benchmark complete!
-          * client-args: ${{ inputs.client-benchmark-script-args }}
-          * server-args: ${{ inputs.server-benchmark-script-args }}"
-          gh issue comment ${{ github.event.issue.number }} --edit-last --body "$body"
+      - name: Comment (Result - Benchmark complete)
+        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+        with:
+          state: "running"
+          title: "Benchmark completed"
+          comment: |
+            Benchmark complete!
+            * client-args: ${{ inputs.client-benchmark-script-args }}
+            * server-args: ${{ inputs.server-benchmark-script-args }}
+          update: "true"
         if: ${{ github.event.issue.number }}
-      - name: Comment to issue (Failed)
+      - name: Comment (Result - Benchmark failed)
+        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+        with:
+          state: "running"
+          title: "Benchmark failed"
+          comment: Benchmark failed.
+          update: "true"
         if: ${{ github.event.issue.number && failure() }}
-        run: |
-          body="#### :x: Benchmark failed!
-          See the result on [CI Link](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-          Benchmark failed."
-          gh issue comment ${{ github.event.issue.number }} --edit-last --body "$body"
       # TODO: Add a step to collect benchmark results
       # TODO: Add a step to post benchmark results to GitHub
