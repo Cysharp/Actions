@@ -1,14 +1,17 @@
 name: Benchmark progress comment
 description: Comment benchmark progtress to the PR or Issue
 inputs:
+  comment:
+    description: Comment to be posted
+    required: true
+  github-token:
+    description: GitHub token
+    required: true
   state:
     description: State of the benchmark (running|failed|success)
     required: true
   title:
     description: Title of the comment
-    required: true
-  comment:
-    description: Comment to be posted
     required: true
   update:
     description: Update comment or not (true|false)
@@ -25,3 +28,6 @@ runs:
 
         ${{ inputs.comment }}"
         gh issue comment ${{ github.event.issue.number }} --body "$body"
+      env:
+        GH_REPO: ${{ github.repository }}
+        GH_TOKEN: ${{ inputs.github-token }}
