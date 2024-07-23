@@ -74,7 +74,7 @@ print "  --environment-definition-name=${environment_definition_name="$_ENVIRONM
 print "  --environment-type=${environment_type="$_ENVIRONMENT_TYPE"}"
 print "  --name=${name="$_NAME"}"
 print "  --project-name=${project_name="$_PROJECT_NAME"}"
-print "  --minutes=${minutes="${_MINUTES:=15}"}"
+print "  --minutes=${minutes="${_MINUTES:=20}"}"
 print "  --dry-run=${_DRYRUN:=true}"
 
 dryrun=""
