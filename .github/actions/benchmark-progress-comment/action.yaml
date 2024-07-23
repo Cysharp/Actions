@@ -23,11 +23,11 @@ runs:
     - name: Comment benchamrk pgoress
       shell: bash
       run: |
-        body="#### ${{ inputs.state == 'running' && ':dash:' || (inputs.state == 'failed' && ':x:' || ':white_check_mark:') }} ${{ inputs.title }}
+        body="### ${{ inputs.state == 'running' && ':dash:' || (inputs.state == 'failed' && ':x:' || ':white_check_mark:') }} ${{ inputs.title }}
         See the detail on [CI Link](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
         ${{ inputs.comment }}"
-        gh issue comment ${{ github.event.issue.number }} --body "$body"
+        gh issue comment ${{ github.event.issue.number }} ${{ inputs.update == 'true' && '--edit-last' || '' }} --body "$body"
       env:
         GH_REPO: ${{ github.repository }}
         GH_TOKEN: ${{ inputs.github-token }}
