@@ -47,10 +47,10 @@ on:
         type: string
         default: "dve"
       benchmark-timeout:
-        description: "Benchmark timeout minutes"
+        description: "Benchmark timeout minutes, 10m (developer environment require) + clone time + benchmark time = 15~20 < N < 30"
         required: false
         type: string
-        default: "15"
+        default: "20"
       client-benchmark-script-path:
         description: "Path to the benchmark script."
         required: false
