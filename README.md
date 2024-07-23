@@ -1,4 +1,4 @@
-[![Test check-benchmarkable](https://github.com/Cysharp/Actions/actions/workflows/test-check-benchmarkable.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-check-benchmarkable.yaml)
+[![Test benchmark-runnable](https://github.com/Cysharp/Actions/actions/workflows/test-benchmark-runnable.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-benchmark-runnable.yaml)
 [![Test check-metas](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml)
 [![Test clean-packagejson-branch](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml)
 [![Test create-release](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml)
