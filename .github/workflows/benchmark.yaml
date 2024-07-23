@@ -100,17 +100,19 @@ jobs:
       - name: Comment (Running - Auth OK)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
+          comment: "Authorization complete, start creating benchmark environment."
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           state: "running"
           title: "Successfully start benchmark"
-          comment: "Authorization complete, start creating benchmark environment."
           update: "false"
         if: ${{ github.event.issue.number && steps.is-benchmarkable.outputs.authorized == 'true' }}
       - name: Comment (Failed - Auth)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
+          comment: "Authorization failed, You are not authorized to run benchmark."
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           state: "failed"
           title: "Failed to run benchmark"
-          comment: "Authorization failed, You are not authorized to run benchmark."
           update: "false"
         if: ${{ github.event.issue.number && steps.is-benchmarkable.outputs.authorized == 'false' }}
 
@@ -161,9 +163,10 @@ jobs:
       - name: Comment (Pgoress - Benchmark environment)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
+          comment: "Benchmark environment creation complete, start preparing server & client."
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           state: "running"
           title: "Benchmark environment created"
-          comment: "Benchmark environment creation complete, start preparing server & client."
           update: "true"
         if: ${{ github.event.issue.number }}
       - name: Setup .NET on Benchmark VM
@@ -191,9 +194,10 @@ jobs:
       - name: Comment (Progress - Benchmark begin)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
+          comment: "Server successfully started, starting benchmark."
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           state: "running"
           title: "Benchmark begin"
-          comment: "Server successfully started, starting benchmark."
           update: "true"
         if: ${{ github.event.issue.number }}
       - name: Run benchmark client on VM
@@ -205,20 +209,22 @@ jobs:
       - name: Comment (Result - Benchmark complete)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
-          state: "running"
-          title: "Benchmark completed"
           comment: |
             Benchmark complete!
             * client-args: ${{ inputs.client-benchmark-script-args }}
             * server-args: ${{ inputs.server-benchmark-script-args }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          state: "running"
+          title: "Benchmark completed"
           update: "true"
         if: ${{ github.event.issue.number }}
       - name: Comment (Result - Benchmark failed)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
+          comment: Benchmark failed.
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           state: "running"
           title: "Benchmark failed"
-          comment: Benchmark failed.
           update: "true"
         if: ${{ github.event.issue.number && failure() }}
       # TODO: Add a step to collect benchmark results
