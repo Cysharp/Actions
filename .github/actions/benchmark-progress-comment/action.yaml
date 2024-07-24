@@ -23,7 +23,7 @@ runs:
         comment=$(cat <<'EOF'
         ${{ inputs.comment }}
         EOF)
-        body=$(printf '### ${{ inputs.state == 'running' && ':zap:' || (inputs.state == 'failed' && ':x:' || ':white_check_mark:') }} ${{ inputs.title }}
+        body=$(printf '### ${{ inputs.state == 'running' && ':zap:' || (inputs.state == 'failed' && ':x:' || (inputs.state == 'cancelled' && ':warning:' || ':white_check_mark:')) }} ${{ inputs.title }}
         See the detail on [CI Link](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
         %s' "$comment")
