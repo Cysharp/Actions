@@ -76,8 +76,9 @@ function list() {
 function show() {
   az devcenter dev environment show --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name"
 }
-function devcenter_output() {
-  az devcenter dev environment show-outputs --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name"
+function show_error_outputs() {
+  az devcenter dev environment show-outputs --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" | jq -r ".outputs"
+  az devcenter dev environment list --dev-center-name "$dev_center_name" --project-name "$project_name" | jq -r ".[] | select(.name == \"$name\") | .error.message"
 }
 function github_output() {
   if [[ "${CI:=""}" != "" ]]; then
@@ -181,7 +182,8 @@ function main() {
         ;;
       "Failed")
         # Let's delete failed environment. We can do nothing.
-        print "! $name status is $provisioningState, deleting..."
+        print "! $name status is $provisioningState, showing error reason and delete existing..."
+        show_error_outputs
         delete
 
         # re-run
