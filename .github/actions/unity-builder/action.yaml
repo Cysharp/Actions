@@ -24,7 +24,7 @@ inputs:
     description: "Custom parameters to configure the build."
   versioning:
     required: false
-    default: "None"
+    default: "Semantic"
     description: "The versioning scheme to use when building the project"
 
 runs:
