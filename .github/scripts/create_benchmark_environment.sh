@@ -223,3 +223,7 @@ function main() {
 }
 
 main
+
+if [[ "$CI" != "" ]]; then
+  echo "expiration=$expiration" | tee -a "$GITHUB_OUTPUT"
+fi
