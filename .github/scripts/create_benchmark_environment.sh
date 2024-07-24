@@ -18,13 +18,16 @@ function usage {
     echo "  --project-name                string The name of the project."
     echo "Options:"
     echo "  --minutes                     int    The number of minutes until the environment expires. (default: 15)"
+    echo "  --debug                       bool   Show debug output pr not. (default: false)"
     echo "  --dry-run                     bool   Show the command that would be run, but do not run it. (default: true)"
     echo "  --help                               Show this help message"
     echo ""
     echo "Examples:"
     echo "  1. Dryrun create Benchmark Environment name foobar"
     echo "     bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'dve' --minutes 15 --dry-run true"
-    echo "  2. Create Benchmark Environment name foobar"
+    echo "  2. Dryrun create Benchmark Environment name foobar, with debug output"
+    echo "     bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'dve' --minutes 15 --dry-run true --debug true"
+    echo "  3. Create Benchmark Environment name foobar"
     echo "     bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'dve' --minutes 15 --dry-run false"
 }
 
@@ -40,6 +43,7 @@ while [ $# -gt 0 ]; do
     # optional
     --minutes) _MINUTES=$2; shift 2; ;;
     --dry-run) _DRYRUN=$2; shift 2; ;;
+    --debug) _DEBUG=$2; shift 2; ;;
     --help) usage; exit 1; ;;
     *) shift ;;
   esac
@@ -47,6 +51,11 @@ done
 
 function print() {
   echo "$*"
+}
+function debug() {
+  if [[ "${debug}" == "true" ]]; then
+    echo "DEBUG: $*"
+  fi
 }
 function create() {
   $dryrun az devcenter dev environment create --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" --catalog-name "$catalog_name" --environment-definition-name "$environment_definition_name" --environment-type "$environment_definition_name" --parameters "$(jq -c -n --arg n "$name" '{name: $n}')" --expiration-date "$new_expiration_time"
@@ -67,7 +76,7 @@ function list() {
 function show() {
   az devcenter dev environment show --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name"
 }
-function debug() {
+function devcenter_output() {
   az devcenter dev environment show-outputs --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name"
 }
 function github_output() {
@@ -84,6 +93,7 @@ print "  --environment-type=${environment_type="$_ENVIRONMENT_TYPE"}"
 print "  --name=${name="$_NAME"}"
 print "  --project-name=${project_name="$_PROJECT_NAME"}"
 print "  --minutes=${minutes="${_MINUTES:=20}"}"
+print "  --debug=${debug=${_DEBUG:=false}}"
 print "  --dry-run=${_DRYRUN:=true}"
 
 dryrun=""
@@ -93,8 +103,8 @@ fi
 
 function main() {
   # set expiration date from now
-  new_expiration_time=$(date -u -d "$minutes minutes" +"%Y-%m-%dT%H:%M:%SZ") # 2024-07-24T05:31:52Z
-  new_expiration_epoch=$(date -ud "$new_expiration_time" +%s)
+  new_expiration_time=$(date -ud "$minutes minutes" +"%Y-%m-%dT%H:%M:%SZ") # 2024-07-24T05:31:52Z
+  new_expiration_epoch=$(date -d "$new_expiration_time" +%s)
 
   print "Checking $name is already exists or not."
   json=$(list)
@@ -111,7 +121,7 @@ function main() {
     provisioningState=$(echo "$json" | jq -r ".provisioningState")
     name=$(echo "$json" | jq -r ".name")
     current_expiration_time=$(echo "$json" | jq -r ".expirationDate") # 2024-07-24T07:00:00+00:00
-    current_expiration_epoch=$(date -ud "$current_expiration_time" +%s)
+    current_expiration_epoch=$(date -d "$current_expiration_time" +%s)
     output_expiration=$current_expiration_time
 
     case "$provisioningState" in
@@ -122,14 +132,16 @@ function main() {
           print "! Expiration date is not set, setting $new_expiration_time"
           extend
         else
-          # Check expirationDate and expand if less than 300s
+          # Check expirationDate is shorter than requested timeout
           new_expiration_epoch=$(date -ud "$new_expiration_time" +%s)
-          time_diff=$((new_expiration_epoch - current_expiration_epoch))
-          if [[ "$time_diff" -le 300 ]]; then
-            print "! Limit to expirationDate $time_diff is less than 300s. Extending ${minutes}m, from $current_expiration_time to $new_expiration_time"
+          time_diff=$((current_expiration_epoch - new_expiration_epoch))
+          debug "current_expiration_time - new_expiration_time = $current_expiration_time - $new_expiration_time"
+          debug "current_expiration_epoch - new_expiration_epoch = $current_expiration_epoch - $new_expiration_epoch = $time_diff"
+          if [[ "$time_diff" -le 0 ]]; then
+            print "! Current expirationDate is shorter than requested timeout ${minutes}m, extending from $current_expiration_time to $new_expiration_time"
             extend
           else
-            print "Limit to expirationDate $time_diff is more than 300s, no action required. Expired at $current_expiration_time"
+            print "Current expirationDate is longer than requested timeout ${minutes}m, no action required. Expired at $current_expiration_time"
           fi
         fi
 
@@ -140,34 +152,32 @@ function main() {
         print "$name status is $provisioningState, waiting to be succeeded."
         SECONDS=0
         while true; do
+          # timeout
+          now_epoch=$(date -u +%s)
+          time_diff=$((new_expiration_epoch - now_epoch))
+          debug "new_expiration_epoch - now_epoch = $new_expiration_epoch - $now_epoch = $time_diff"
+          if [[ "$time_diff" -le 0 ]]; then
+            print "Timeout reached, quitting. Final provisioningState: $provisioningState"
+            exit 1 # no possibility of recover
+          fi
+
+          # watch
           current=$(show)
           provisioningState=$(echo "$current" | jq -r ".provisioningState")
 
           if [[ "$provisioningState" == "Succeeded" ]]; then
-            print "$name succeessfully created."
             break
           elif [[ "$provisioningState" == "Failed" ]]; then
-            # no possibility of recover
             print "$name creation was $provisioningState, quitting. There is no possibility of auto recover, should be Azure outage or Pulumi have pottential bug."
-            exit 1
+            exit 1 # no possibility of recover
           fi
 
           print "$name is still $provisioningState, waiting... (elpased ${SECONDS}sec)"
 
-          # timeout
-          now_epoch=$(date -u +%s)
-          time_diff=$((new_expiration_epoch - now_epoch))
-          if [[ "$time_diff" -le 0 ]]; then
-            # no possibility of recover
-            print "Timeout reached, quitting. Final provisioningState: $provisioningState"
-            exit 1
-          fi
-
           sleep 5
         done
 
-        print "Complete creating benchmark environment $name"
-        exit
+        print "$name successfully create."
         ;;
       "Failed")
         # Let's delete failed environment. We can do nothing.
@@ -182,14 +192,22 @@ function main() {
       "Deleting")
         # Let's wait until deletion complete. We can do nothing.
         print "$name status is $provisioningState, wait for deletion..."
+        SECONDS=0
         while true; do
-          deleted=$(list)
+          # timeout
+          now_epoch=$(date -u +%s)
+          time_diff=$((new_expiration_epoch - now_epoch))
+          debug "new_expiration_epoch - now_epoch = $new_expiration_epoch - $now_epoch = $time_diff"
+          if [[ "$time_diff" -le 0 ]]; then
+            print "Timeout reached, quitting. Final provisioningState: $provisioningState"
+            exit 1 # no possibility of recover
+          fi
 
+          # watch
+          deleted=$(list)
           if [[ "$deleted" == "" ]]; then
             # re-run
             print "$name succeessfully deleted, automatically re-run from beginning."
-            sleep 10 # sleep 10s to avoid Resource Group deletion error message when Create right after Deletion.
-            main
             break
           else
             if current=$(show); then
@@ -197,30 +215,22 @@ function main() {
               if [[ "$provisioningState" == "Failed" ]]; then
                 # re-run
                 print "$name status is $provisioningState, automatically re-run from beginning"
-                sleep 10 # sleep 10s to avoid Resource Group deletion error message when Create right after Deletion.
-                main
                 break
               fi
             fi
           fi
 
           print "$name is still $provisioningState, waiting... (elpased ${SECONDS}sec)"
-
-          # timeout
-          now_epoch=$(date -u +%s)
-          time_diff=$((new_expiration_epoch - now_epoch))
-          if [[ "$time_diff" -le 0 ]]; then
-            # no possibility of recover
-            print "Timeout reached, quitting. Final provisioningState: $provisioningState"
-            exit 1
-          fi
-
           sleep 5
         done
+
+        # re-run from beginning
+        sleep 10 # sleep 10s to avoid Resource Group deletion error message when Create right after Deletion.
+        main
         ;;
       *)
         print "provisioningState $provisioningState is not implemented, quitting, please check & delete on https://devportal.microsoft.com/ and re-run workflow to do benchmark..."
-        exit 1
+        exit 1 # no possibility of recover
         ;;
     esac
   fi
