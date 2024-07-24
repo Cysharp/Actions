@@ -111,19 +111,19 @@ jobs:
       - name: Comment (Running - Auth OK)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
-          comment: "Authorization complete, start creating benchmark environment."
+          comment: "Authorization complete, creating benchmark environment. :+1:"
           github-token: ${{ secrets.GITHUB_TOKEN }}
           state: "running"
-          title: "Successfully start benchmark"
+          title: "Successfully begin benchmark"
           update: "false"
         if: ${{ steps.is-benchmarkable.outputs.authorized == 'true' }}
-      - name: Comment (Failed - Auth)
+      - name: Comment (Failed - Auth NG)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
-          comment: "Authorization failed, You are not authorized to run benchmark."
+          comment: "Authorization failed, You are not authorized to run benchmark. :warning:"
           github-token: ${{ secrets.GITHUB_TOKEN }}
           state: "failed"
-          title: "Failed to run benchmark"
+          title: "Failed to begin benchmark"
           update: "false"
         if: ${{ steps.is-benchmarkable.outputs.authorized == 'false' }}
 
@@ -171,10 +171,10 @@ jobs:
       - name: Create benchmark environment
         run: bash ./scripts/create_benchmark_environment.sh --catalog-name '${{ inputs.benchmark-catalog }}' --dev-center-name '${{ inputs.benchmark-devcenter }}' --environment-definition-name '${{ inputs.benchmark-definition-name }}' --environment-type '${{ inputs.benchmark-environment }}' --name '${{ inputs.benchmark-name }}' --project-name '${{ inputs.benchmark-project }}' --minutes "${{ inputs.benchmark-timeout }}" --dry-run false
         working-directory: ./Actions/.github
-      - name: Comment (Pgoress - Benchmark environment)
+      - name: Comment (Progess - Benchmark environment)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
-          comment: "Benchmark environment creation complete, start preparing server & client."
+          comment: "Benchmark environment creation complete, start preparing server & client. :clock1:"
           github-token: ${{ secrets.GITHUB_TOKEN }}
           state: "running"
           title: "Benchmark environment created"
@@ -195,6 +195,14 @@ jobs:
             echo "::endgroup::"
           done
         working-directory: ./Actions/.github
+      - name: Comment (Progress - Server begin)
+        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+        with:
+          comment: "Repository successfully prepared, starting server. :clock3:"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          state: "running"
+          title: "Benchmark begin"
+          update: "true"
       - name: Run benchmark server on VM
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_SERVER_NAME }}'].publicIps" -o tsv); do
@@ -204,7 +212,7 @@ jobs:
       - name: Comment (Progress - Benchmark begin)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
-          comment: "Server successfully started, starting benchmark."
+          comment: "Server successfully started, starting benchmark. :clock6:"
           github-token: ${{ secrets.GITHUB_TOKEN }}
           state: "running"
           title: "Benchmark begin"
@@ -219,9 +227,11 @@ jobs:
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
           comment: |
-            Benchmark complete!
-            * client-args: ${{ inputs.client-benchmark-script-args }}
-            * server-args: ${{ inputs.server-benchmark-script-args }}
+            Successfully complete Benchmark. :rocket:
+            ```
+            client-args: ${{ inputs.client-benchmark-script-args }}
+            server-args: ${{ inputs.server-benchmark-script-args }}
+            ```
           github-token: ${{ secrets.GITHUB_TOKEN }}
           state: "success"
           title: "Benchmark completed"
@@ -229,7 +239,7 @@ jobs:
       - name: Comment (Result - Benchmark failed)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
-          comment: Benchmark failed.
+          comment: "Benchmark failed :warning:"
           github-token: ${{ secrets.GITHUB_TOKEN }}
           state: "failed"
           title: "Benchmark failed"
