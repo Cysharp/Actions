@@ -20,7 +20,7 @@ runs:
     - name: Comment benchamrk pgoress
       shell: bash
       run: |
-        comment=$(cat <<EOF
+        comment=$(cat <<'EOF'
         ${{ inputs.comment }}
         EOF)
         body=$(printf '### ${{ inputs.state == 'running' && ':zap:' || (inputs.state == 'failed' && ':x:' || ':white_check_mark:') }} ${{ inputs.title }}
