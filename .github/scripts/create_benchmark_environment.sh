@@ -49,13 +49,17 @@ function print() {
   echo "$*"
 }
 function create() {
-  $dryrun az devcenter dev environment create --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" --catalog-name "$catalog_name" --environment-definition-name "$environment_definition_name" --environment-type "$environment_definition_name" --parameters "$(jq -c -n --arg n "$name" '{name: $n}')" --expiration-date "$expiration"
+  $dryrun az devcenter dev environment create --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" --catalog-name "$catalog_name" --environment-definition-name "$environment_definition_name" --environment-type "$environment_definition_name" --parameters "$(jq -c -n --arg n "$name" '{name: $n}')" --expiration-date "$new_expiration_time"
+  output_expiration=$new_expiration_time
+  github_output
 }
 function delete() {
   $dryrun az devcenter dev environment delete --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" --yes
 }
 function extend() {
-  $dryrun az devcenter dev environment update-expiration-date --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" --expiration "$expiration"
+  $dryrun az devcenter dev environment update-expiration-date --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" --expiration "$new_expiration_time"
+  output_expiration=$new_expiration_time
+  github_output
 }
 function list() {
   az devcenter dev environment list --dev-center-name "$dev_center_name" --project-name "$project_name" | jq -c ".[] | select(.name == \"$name\")"
@@ -65,6 +69,11 @@ function show() {
 }
 function debug() {
   az devcenter dev environment show-outputs --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name"
+}
+function github_output() {
+  if [[ "${CI:=""}" != "" ]]; then
+    echo "expiration=$output_expiration" | tee -a "$GITHUB_OUTPUT"
+  fi
 }
 
 print "Arguments: "
@@ -84,7 +93,8 @@ fi
 
 function main() {
   # set expiration date from now
-  expiration=$(date -u -d "$minutes minutes" +"%Y-%m-%dT%H:%M:%SZ")
+  new_expiration_time=$(date -u -d "$minutes minutes" +"%Y-%m-%dT%H:%M:%SZ") # 2024-07-24T05:31:52Z
+  new_expiration_epoch=$(date -ud "$new_expiration_time" +%s)
 
   print "Checking $name is already exists or not."
   json=$(list)
@@ -95,135 +105,125 @@ function main() {
     create
 
     print "Complete creating benchmark environment $name"
-    exit
-  fi
+  else
+    # EXISTING! -> reuse/expand or delete
+    print "Existing $name found, checking status..."
+    provisioningState=$(echo "$json" | jq -r ".provisioningState")
+    name=$(echo "$json" | jq -r ".name")
+    current_expiration_time=$(echo "$json" | jq -r ".expirationDate") # 2024-07-24T07:00:00+00:00
+    current_expiration_epoch=$(date -ud "$current_expiration_time" +%s)
+    output_expiration=$current_expiration_time
 
-  # EXISTING! -> reuse/expand or delete
-  print "Existing $name found, checking status..."
-  provisioningState=$(echo "$json" | jq -r ".provisioningState")
-  name=$(echo "$json" | jq -r ".name")
-  input_time=$(echo "$json" | jq -r ".expirationDate")
-  current_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-  case "$provisioningState" in
-    "Succeeded")
-      # Let's reuse existing if possible. existing benchmark will process kill and re-run new bench.
-      print "$name status is $provisioningState, checking expiration limit status."
-      if [[ "$input_time" == "null" ]]; then
-        print "! Expiration date is not set, setting $expiration"
-        extend
-      else
-        # Check expirationDate and expand if less than 300s
-        current_epoch=$(date -ud "$current_time" +%s)
-        expiration_epoch=$(date -ud "$expiration" +%s)
-        time_diff=$((expiration_epoch - current_epoch))
-        if [[ "$time_diff" -le 300 ]]; then
-          print "! Limit to expirationDate $time_diff is less than 300s. Extending to ${minutes}m. $input_time -> $expiration"
+    case "$provisioningState" in
+      "Succeeded")
+        # Let's reuse existing if possible. existing benchmark will process kill and re-run new bench.
+        print "$name status is $provisioningState, checking expiration limit status."
+        if [[ "$current_expiration_time" == "null" ]]; then
+          print "! Expiration date is not set, setting $new_expiration_time"
           extend
         else
-          print "Limit to expirationDate $time_diff is more than 300s, no action required. $input_time -> $expiration"
-        fi
-      fi
-
-      print "Complete creating benchmark environment $name"
-      exit
-      ;;
-    "Preparing" | "Creating" | "Updating")
-      # Let's wait until succeeded
-      print "$name status is $provisioningState, waiting to be succeeded."
-      SECONDS=0
-      while true; do
-        current=$(show)
-        provisioningState=$(echo "$current" | jq -r ".provisioningState")
-
-        if [[ "$provisioningState" == "Succeeded" ]]; then
-          print "$name succeessfully created."
-          break
-        elif [[ "$provisioningState" == "Failed" ]]; then
-          # no possibility of recover
-          print "$name creation was $provisioningState, quitting. There is no possibility of auto recover, should be Azure outage or Pulumi have pottential bug."
-          exit 1
-        fi
-
-        print "$name is still $provisioningState, waiting... (elpased ${SECONDS}sec)"
-
-        # timeout
-        current_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-        current_epoch=$(date -ud "$current_time" +%s)
-        expiration_epoch=$(date -ud "$expiration" +%s)
-        time_diff=$((expiration_epoch - current_epoch))
-        if [[ "$time_diff" -le 0 ]]; then
-          # no possibility of recover
-          print "Timeout reached, quitting. Final provisioningState: $provisioningState"
-          exit 1
-        fi
-
-        sleep 5
-      done
-
-      print "Complete creating benchmark environment $name"
-      exit
-      ;;
-    "Failed")
-      # Let's delete failed environment. We can do nothing.
-      print "! $name status is $provisioningState, deleting..."
-      delete
-
-      # re-run
-      print "$name succeessfully deleted, automatically re-run from beginning."
-      sleep 10 # sleep 10s to avoid Resource Group deletion error message when Create right after Deletion.
-      main
-      ;;
-    "Deleting")
-      # Let's wait until deletion complete. We can do nothing.
-      print "$name status is $provisioningState, wait for deletion..."
-      while true; do
-        deleted=$(list)
-
-        if [[ "$deleted" == "" ]]; then
-          # re-run
-          print "$name succeessfully deleted, automatically re-run from beginning."
-          sleep 10 # sleep 10s to avoid Resource Group deletion error message when Create right after Deletion.
-          main
-          exit 1
-        else
-          if current=$(show); then
-            provisioningState=$(echo "$current" | jq -r ".provisioningState")
-            if [[ "$provisioningState" == "Failed" ]]; then
-              # re-run
-              print "$name status is $provisioningState, automatically re-run from beginning"
-              sleep 10 # sleep 10s to avoid Resource Group deletion error message when Create right after Deletion.
-              main
-              exit 1
-            fi
+          # Check expirationDate and expand if less than 300s
+          new_expiration_epoch=$(date -ud "$new_expiration_time" +%s)
+          time_diff=$((new_expiration_epoch - current_expiration_epoch))
+          if [[ "$time_diff" -le 300 ]]; then
+            print "! Limit to expirationDate $time_diff is less than 300s. Extending ${minutes}m, from $current_expiration_time to $new_expiration_time"
+            extend
+          else
+            print "Limit to expirationDate $time_diff is more than 300s, no action required. Expired at $current_expiration_time"
           fi
         fi
 
-        print "$name is still $provisioningState, waiting... (elpased ${SECONDS}sec)"
+        print "Complete creating benchmark environment $name"
+        ;;
+      "Preparing" | "Creating" | "Updating")
+        # Let's wait until succeeded
+        print "$name status is $provisioningState, waiting to be succeeded."
+        SECONDS=0
+        while true; do
+          current=$(show)
+          provisioningState=$(echo "$current" | jq -r ".provisioningState")
 
-        # timeout
-        current_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-        current_epoch=$(date -ud "$current_time" +%s)
-        expiration_epoch=$(date -ud "$expiration" +%s)
-        time_diff=$((expiration_epoch - current_epoch))
-        if [[ "$time_diff" -le 0 ]]; then
-          # no possibility of recover
-          print "Timeout reached, quitting. Final provisioningState: $provisioningState"
-          exit 1
-        fi
+          if [[ "$provisioningState" == "Succeeded" ]]; then
+            print "$name succeessfully created."
+            break
+          elif [[ "$provisioningState" == "Failed" ]]; then
+            # no possibility of recover
+            print "$name creation was $provisioningState, quitting. There is no possibility of auto recover, should be Azure outage or Pulumi have pottential bug."
+            exit 1
+          fi
 
-        sleep 5
-      done
-      ;;
-    *)
-      print "provisioningState $provisioningState is not implemented, quitting, please check & delete on https://devportal.microsoft.com/ and re-run workflow to do benchmark..."
-      exit 1
-      ;;
-  esac
+          print "$name is still $provisioningState, waiting... (elpased ${SECONDS}sec)"
+
+          # timeout
+          now_epoch=$(date -u +%s)
+          time_diff=$((new_expiration_epoch - now_epoch))
+          if [[ "$time_diff" -le 0 ]]; then
+            # no possibility of recover
+            print "Timeout reached, quitting. Final provisioningState: $provisioningState"
+            exit 1
+          fi
+
+          sleep 5
+        done
+
+        print "Complete creating benchmark environment $name"
+        exit
+        ;;
+      "Failed")
+        # Let's delete failed environment. We can do nothing.
+        print "! $name status is $provisioningState, deleting..."
+        delete
+
+        # re-run
+        print "$name succeessfully deleted, automatically re-run from beginning."
+        sleep 10 # sleep 10s to avoid Resource Group deletion error message when Create right after Deletion.
+        main
+        ;;
+      "Deleting")
+        # Let's wait until deletion complete. We can do nothing.
+        print "$name status is $provisioningState, wait for deletion..."
+        while true; do
+          deleted=$(list)
+
+          if [[ "$deleted" == "" ]]; then
+            # re-run
+            print "$name succeessfully deleted, automatically re-run from beginning."
+            sleep 10 # sleep 10s to avoid Resource Group deletion error message when Create right after Deletion.
+            main
+            break
+          else
+            if current=$(show); then
+              provisioningState=$(echo "$current" | jq -r ".provisioningState")
+              if [[ "$provisioningState" == "Failed" ]]; then
+                # re-run
+                print "$name status is $provisioningState, automatically re-run from beginning"
+                sleep 10 # sleep 10s to avoid Resource Group deletion error message when Create right after Deletion.
+                main
+                break
+              fi
+            fi
+          fi
+
+          print "$name is still $provisioningState, waiting... (elpased ${SECONDS}sec)"
+
+          # timeout
+          now_epoch=$(date -u +%s)
+          time_diff=$((new_expiration_epoch - now_epoch))
+          if [[ "$time_diff" -le 0 ]]; then
+            # no possibility of recover
+            print "Timeout reached, quitting. Final provisioningState: $provisioningState"
+            exit 1
+          fi
+
+          sleep 5
+        done
+        ;;
+      *)
+        print "provisioningState $provisioningState is not implemented, quitting, please check & delete on https://devportal.microsoft.com/ and re-run workflow to do benchmark..."
+        exit 1
+        ;;
+    esac
+  fi
 }
 
 main
-
-if [[ "$CI" != "" ]]; then
-  echo "expiration=$expiration" | tee -a "$GITHUB_OUTPUT"
-fi
