@@ -10,7 +10,8 @@ on:
 # prevent fork user to change
 jobs:
   detect:
-    if: ${{ github.event.pull_request.head.repo.fork }} # detect if PR is from fork.
+    # detect if PR is from fork.
+    if: ${{ github.event.pull_request.head.repo.fork }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
