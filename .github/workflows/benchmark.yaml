@@ -254,8 +254,6 @@ jobs:
           title: "Benchmark cancelled"
           update: "true"
         if: ${{ cancelled() }}
-      # TODO: Add a step to collect benchmark results
-      # TODO: Add a step to post benchmark results to GitHub
 
   # run benchmark
   cleanup:
