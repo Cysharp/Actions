@@ -256,3 +256,42 @@ jobs:
         if: ${{ cancelled() }}
       # TODO: Add a step to collect benchmark results
       # TODO: Add a step to post benchmark results to GitHub
+
+  # run benchmark
+  cleanup:
+    needs: [verify]
+    if: ${{ needs.verify.outputs.is-benchmarkable == 'true' }}
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify.outputs.branch }}
+          path: Repo
+      - uses: actions/checkout@v4
+        with:
+          repository: "Cysharp/Actions"
+          path: Actions
+      - name: List checkout repos
+        run: ls -l
+      - name: Load secret
+        id: op-load-secret
+        uses: 1password/load-secrets-action@v2
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
+          AZURE_OIDC_CLIENTID: "op://GitHubActionsPublic/BENCHMARK_AZURE_OIDC/clientId"
+          AZURE_OIDC_TENANTID: "op://GitHubActionsPublic/BENCHMARK_AZURE_OIDC/tenantId"
+          AZURE_OIDC_SUBSCRIPTIONID: "op://GitHubActionsPublic/BENCHMARK_AZURE_OIDC/subscriptionId"
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_CLIENTID }}
+          tenant-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_TENANTID }}
+          subscription-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_SUBSCRIPTIONID }}
+      - name: Add Azure CLI devcenter extension
+        run: az extension add --name devcenter --upgrade
+      - name: Cleanup benchmark environment
+        run: bash ./scripts/clean_benchmark_environment.sh --dev-center-name '${{ inputs.benchmark-devcenter }}' --project-name '${{ inputs.benchmark-project }}' --dry-run false
+        working-directory: ./Actions/.github
