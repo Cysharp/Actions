@@ -118,7 +118,7 @@ jobs:
           state: "running"
           title: "Successfully begin benchmark"
           update: "false"
-        if: ${{ github.event.issue.number && steps.is-benchmarkable.outputs.authorized == 'true' }}
+        if: ${{ steps.is-benchmarkable.outputs.authorized == 'true' }}
       - name: Comment (Failed - Auth NG)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
@@ -126,7 +126,7 @@ jobs:
           state: "failed"
           title: "Failed to begin benchmark"
           update: "false"
-        if: ${{ github.event.issue.number && steps.is-benchmarkable.outputs.authorized == 'false' }}
+        if: ${{ steps.is-benchmarkable.outputs.authorized == 'false' }}
 
   # run benchmark
   benchmark:
@@ -245,7 +245,7 @@ jobs:
           state: "failed"
           title: "Benchmark failed"
           update: "true"
-        if: ${{ github.event.issue.number && failure() }}
+        if: ${{ failure() }}
       - name: Comment (Result - Benchmark cancelled)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
@@ -253,6 +253,6 @@ jobs:
           state: "cancelled"
           title: "Benchmark cancelled"
           update: "true"
-        if: ${{ github.event.issue.number && cancelled() }}
+        if: ${{ cancelled() }}
       # TODO: Add a step to collect benchmark results
       # TODO: Add a step to post benchmark results to GitHub
