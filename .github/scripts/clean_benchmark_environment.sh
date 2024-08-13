@@ -46,7 +46,7 @@ function debug() {
   fi
 }
 function delete() {
-  $dryrun az devcenter dev environment delete --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" --yes
+  $dryrun az devcenter dev environment delete --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" --yes --no-wait
 }
 function list() {
   az devcenter dev environment list --dev-center-name "$dev_center_name" --project-name "$project_name" | jq -c ".[] | select(.provisioningState == \"Failed\")"
