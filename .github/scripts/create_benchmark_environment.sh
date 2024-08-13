@@ -57,6 +57,11 @@ function debug() {
     echo "DEBUG: $*"
   fi
 }
+function reset_expiration_date() {
+  # reset expiration date from now
+  new_expiration_time=$(date -ud "$minutes minutes" +"%Y-%m-%dT%H:%M:%SZ") # 2024-07-24T05:31:52Z
+  new_expiration_epoch=$(date -d "$new_expiration_time" +%s)
+}
 function create() {
   $dryrun az devcenter dev environment create --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" --catalog-name "$catalog_name" --environment-definition-name "$environment_definition_name" --environment-type "$environment_definition_name" --parameters "$(jq -c -n --arg n "$name" '{name: $n}')" --expiration-date "$new_expiration_time"
   output_expiration=$new_expiration_time
@@ -104,8 +109,7 @@ fi
 
 function main() {
   # set expiration date from now
-  new_expiration_time=$(date -ud "$minutes minutes" +"%Y-%m-%dT%H:%M:%SZ") # 2024-07-24T05:31:52Z
-  new_expiration_epoch=$(date -d "$new_expiration_time" +%s)
+  reset_expiration_date
 
   print "Checking $name is already exists or not."
   json=$(list)
@@ -114,8 +118,12 @@ function main() {
   if [[ "$json" == "" ]]; then
     print "! No existing $name found, creating new Deployment Environment."
     create
+    reset_expiration_date
 
-    print "Complete creating benchmark environment $name"
+    echo "Extending expire time to $new_expiration_time"
+    extend
+
+    print "Complete creating benchmark environment $name, expire at $new_expiration_time"
   else
     # EXISTING! -> reuse/expand or delete
     print "Existing $name found, checking status..."
@@ -178,7 +186,11 @@ function main() {
           sleep 5
         done
 
-        print "$name successfully create."
+        reset_expiration_date
+        extend
+
+        print "$name successfully create, expiration date is $new_expiration_time."
+        extend
         ;;
       "Failed")
         # Let's delete failed environment. We can do nothing.
@@ -209,14 +221,14 @@ function main() {
           deleted=$(list)
           if [[ "$deleted" == "" ]]; then
             # re-run
-            print "$name succeessfully deleted, automatically re-run from beginning."
+            print "$name succeessfully deleted, automatically challenging recreation."
             break
           else
             if current=$(show); then
               provisioningState=$(echo "$current" | jq -r ".provisioningState")
               if [[ "$provisioningState" == "Failed" ]]; then
                 # re-run
-                print "$name status is $provisioningState, automatically re-run from beginning"
+                print "$name status is $provisioningState, automatically challenging recreation."
                 break
               fi
             fi
