@@ -1,0 +1,24 @@
+name: Validate Tag
+description: Validate tag is not reverting to old version.
+inputs:
+  tag:
+    description: tag to check
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    # allow override draft and pre-release. sort by version number.
+    - name: Check tag is not reverting
+      shell: bash
+      run: |
+        release_latest=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest | jq -c -r ".[] | select(.isLatest == true) | .tagName")
+        compared=$(echo -e "${latest}\n${{ inputs.tag }}" | sort -V | tail -n 1)
+        if [[ "$compared" == "$release_latest" ]]; then
+          echo "Tag is reverting to old version. Please bump the version. tag: ${{ inputs.tag }}, latest: $release_latest"
+          exit 1
+        else
+          echo "Great, tag is not reverting to old version. tag: ${{ inputs.tag }}, latest: $release_latest"
+        fi
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
