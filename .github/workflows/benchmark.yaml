@@ -219,7 +219,7 @@ jobs:
       - name: Run benchmark client on VM
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_CLIENT_NAME }}'].publicIps" -o tsv); do
-            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s --  ${{ inputs.client-benchmark-script-args }}' < ${{ inputs.client-benchmark-script-path}}
+            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ inputs.client-benchmark-script-args }}' < ${{ inputs.client-benchmark-script-path}}
           done
         working-directory: ./Repo/
       - name: Comment (Result - Benchmark complete)
