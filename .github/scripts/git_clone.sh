@@ -65,8 +65,8 @@ ls "$clone_path"
 print "# git pull $branch"
 pushd "$clone_path"
   git merge --abort || true
+  git fetch # get remote info first
   git switch "$branch"
-  git fetch
   git reset --hard "origin/$branch" # reset to origin to avoid conflicts
   git clean -fdx # clean all untracked files
   git pull --ff-only # pull latest changes, fast-forwad and error if not possible
