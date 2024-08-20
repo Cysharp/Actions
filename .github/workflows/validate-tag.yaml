@@ -3,8 +3,8 @@ name: (R) Validate Tag
 on:
   workflow_call:
     inputs:
-      fail-on-invalid:
-        description: "fail-on-invalid: allow old tag or not"
+      require-validation:
+        description: "require-validation: true disallow old tag or any invalid tag. false keep going even validate failed."
         required: false
         default: false
         type: boolean
@@ -21,8 +21,8 @@ on:
         value: ${{ jobs.validate.outputs.validated }}
   workflow_dispatch:
     inputs:
-      fail-on-invalid:
-        description: "fail-on-invalid: allow old tag or not"
+      require-validation:
+        description: "require-validation: allow old tag or not"
         required: false
         default: false
         type: boolean
@@ -59,7 +59,7 @@ jobs:
             echo "Tag is reverting to old version. Please bump the version. tag: ${{ inputs.tag }}, latest: $release_latest"
             echo "validated=false" | tee -a "$GITHUB_OUTPUT"
 
-            if [[ "${{ inputs.fail-on-invalid }}" == "true" ]]; then
+            if [[ "${{ inputs.require-validation }}" == "true" ]]; then
               exit 1
             fi
           else

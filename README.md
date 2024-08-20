@@ -418,13 +418,18 @@ on:
       tag:
         description: "tag: git tag you want create. (sample 1.0.0)"
         required: true
+      require-validation:
+        description: "require-validation: true require validation must pass, false to keep going even validation failed."
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   validate:
     uses: Cysharp/Actions/.github/workflows/validate-tag.yaml@main
     with:
       tag: ${{ inputs.tag }}
-      fail-on-invalid: true # exit 1 if tag is older than current release
+      require-validation: ${{ inputs.require-validation }} # true = exit 1 if tag is older than current release. false = keep going even failed.
 
   test:
     needs: [validate]

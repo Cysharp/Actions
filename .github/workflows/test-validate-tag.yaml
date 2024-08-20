@@ -18,7 +18,7 @@ jobs:
     uses: ./.github/workflows/validate-tag.yaml
     with:
       tag: "1.10.0"
-      fail-on-invalid: true
+      require-validation: true
     secrets: inherit
 
   validate2:
@@ -26,7 +26,7 @@ jobs:
     uses: ./.github/workflows/validate-tag.yaml
     with:
       tag: "1.0.0"
-      fail-on-invalid: false
+      require-validation: false
     secrets: inherit
 
   test:

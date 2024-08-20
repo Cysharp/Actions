@@ -7,6 +7,11 @@ on:
         description: "commit-id: CommitId to create release & tag."
         required: false
         type: string
+      require-validation:
+        description: "require-validation: true require validation must pass, false to keep going even validation failed."
+        required: false
+        type: boolean
+        default: true
       tag:
         description: "tag: Git tag to create. (sample 1.0.0)"
         required: true
@@ -41,6 +46,11 @@ on:
         description: "CommitId to create release & tag."
         required: true
         type: string
+      require-validation:
+        description: "true require validation must pass, false to keep going even validation failed."
+        required: false
+        type: boolean
+        default: true
       tag:
         description: "Git tag to create. (sample 1.0.0)"
         required: true
@@ -102,7 +112,7 @@ jobs:
     uses: Cysharp/Actions/.github/workflows/validate-tag.yaml@main
     with:
       tag: ${{ inputs.tag }}
-      fail-on-invalid: true
+      require-validation: ${{ inputs.require-validation }}
     secrets: inherit
 
   create-release:

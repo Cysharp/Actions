@@ -7,6 +7,11 @@ on:
         description: "package.json path to update. You can input multiline paths. Supported files are `package.json`, `plugin.cfg` and `Directory.Build.props`"
         required: true
         type: string
+      require-validation:
+        description: "true require validation must pass, false to keep going even validation failed."
+        required: false
+        type: boolean
+        default: true
       tag:
         description: "git tag you want create. (sample 1.0.0)"
         required: true
@@ -46,7 +51,7 @@ jobs:
     uses: Cysharp/Actions/.github/workflows/validate-tag.yaml@main
     with:
       tag: ${{ inputs.tag }}
-      fail-on-invalid: true
+      require-validation: ${{ inputs.require-validation }}
     secrets: inherit
 
   update-packagejson:
