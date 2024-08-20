@@ -39,8 +39,8 @@ jobs:
           echo "DEBUG: validate: ${{ needs.validate.outputs.success }} (${{ needs.validate.outputs.tag }})"
           echo "DEBUG: validate2: ${{ needs.validate2.outputs.success }} (${{ needs.validate2.outputs.tag }})"
 
-          echo -n "FACT: tag is newer then current release"
+          echo -n "FACT: tag is newer then current release. "
           if [[ "${{ needs.validate.outputs.success }}" == "true" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
 
-          echo -n "FACT: tag is old then current release"
+          echo -n "FACT: tag is old then current release. "
           if [[ "${{ needs.validate2.outputs.success }}" == "false" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
