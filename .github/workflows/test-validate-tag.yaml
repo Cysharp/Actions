@@ -1,0 +1,46 @@
+name: Test validate-tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: GitHub Tag to release. ex) 1.1.0"
+        required: true
+        default: ""
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+jobs:
+  validate:
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    uses: ./.github/workflows/validate-tag.yaml
+    with:
+      tag: "1.10.0"
+      fail-on-invalid: true
+    secrets: inherit
+
+  validate2:
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    uses: ./.github/workflows/validate-tag.yaml
+    with:
+      tag: "1.0.0"
+      fail-on-invalid: false
+    secrets: inherit
+
+  test:
+    needs: [validate, validate2]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Test
+        run: |
+          echo "DEBUG: validate: ${{ needs.validate.outputs.validated }} (${{ needs.validate.outputs.tag }})"
+          echo "DEBUG: validate2: ${{ needs.validate2.outputs.validated }} (${{ needs.validate2.outputs.tag }})"
+
+          echo -n "FACT: tag is newer then current release. "
+          if [[ "${{ needs.validate.outputs.validated }}" == "true" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+
+          echo -n "FACT: tag is old then current release. "
+          if [[ "${{ needs.validate2.outputs.validated }}" == "false" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
