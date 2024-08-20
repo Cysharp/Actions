@@ -13,9 +13,9 @@ on:
         required: true
         type: string
     outputs:
-      result:
+      success:
         description: result of the validation
-        value: ${{ jobs.validate.outputs.result }}
+        value: ${{ jobs.validate.outputs.success }}
   workflow_dispatch:
     inputs:
       no-fail-on-error:
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      result: ${{ steps.validate.outputs.result }}
+      success: ${{ steps.validate.outputs.success }}
     steps:
       # Only check released tag, allow override draft and pre-release. Old to new sort by version number.
       - name: Validate tag is not reverting
@@ -48,14 +48,14 @@ jobs:
           sorted_latest=$(echo -e "${release_latest}\n${{ inputs.tag }}" | sort -V | tail -n 1)
           if [[ "$sorted_latest" == "$release_latest" ]]; then
             echo "Tag is reverting to old version. Please bump the version. tag: ${{ inputs.tag }}, latest: $release_latest"
-            echo "result=failed" | tee -a "$GITHUB_OUTPUT"
+            echo "success=false" | tee -a "$GITHUB_OUTPUT"
 
             if [[ "${{ inputs.no-fail-on-error }}" == "false" ]]; then
               exit 1
             fi
           else
             echo "Great, tag is latest. tag: ${{ inputs.tag }}, latest: $release_latest"
-            echo "result=success" | tee -a "$GITHUB_OUTPUT"
+            echo "success=true" | tee -a "$GITHUB_OUTPUT"
           fi
         env:
           GH_REPO: ${{ github.repository }}
