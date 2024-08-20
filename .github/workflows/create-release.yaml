@@ -98,6 +98,13 @@ on:
         type: boolean
 
 jobs:
+  validate:
+    uses: Cysharp/Actions/.github/workflows/validate-tag@main
+    with:
+      tag: ${{ inputs.tag }}
+      fail-on-invalid: true
+    secrets: inherit
+
   create-release:
     name: Create Release
     env:

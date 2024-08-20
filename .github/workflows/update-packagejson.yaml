@@ -42,7 +42,15 @@ on:
         value: ${{ jobs.update-packagejson.outputs.is-branch-created }}
 
 jobs:
+  validate:
+    uses: Cysharp/Actions/.github/workflows/validate-tag@main
+    with:
+      tag: ${{ inputs.tag }}
+      fail-on-invalid: true
+    secrets: inherit
+
   update-packagejson:
+    needs: [validate]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
