@@ -41,46 +41,48 @@ function print() {
   echo "$*"
 }
 function debug() {
-  if [[ "${debug}" == "true" ]]; then
+  if [[ "${_DEBUG}" == "true" ]]; then
     echo "DEBUG: $*"
   fi
 }
-function reset_expiration_date() {
-  # reset expiration date from now
-  new_expiration_time=$(date -ud "1 minutes" +"%Y-%m-%dT%H:%M:%SZ") # 2024-07-24T05:31:52Z
+function enable_debug_mode {
+  if [[ "${_DEBUG}" == "true" ]]; then
+    set -x
+  fi
 }
+# reset expiration date from now
+function reset_expiration_date {
+  local minutes=$1
+  new_expiration_time=$(date -ud "$minutes minutes" +"%Y-%m-%dT%H:%M:%SZ") # 2024-07-24T05:31:52Z
+}
+# delete environment
 function delete() {
-  $dryrun az devcenter dev environment delete --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" --yes --no-wait
+  local n=$1
+  $dryrun az devcenter dev environment delete --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" --yes --no-wait
 }
+# extend environment expiration date to requested time
 function extend() {
-  $dryrun az devcenter dev environment update-expiration-date --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" --expiration "$new_expiration_time"
+  local n=$1
+  $dryrun az devcenter dev environment update-expiration-date --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" --expiration "$new_expiration_time"
   output_expiration=$new_expiration_time
   github_output
 }
+# list environment
 function list() {
-  az devcenter dev environment list --dev-center-name "$dev_center_name" --project-name "$project_name" | jq -c ".[] | select(.provisioningState == \"Failed\")"
+  az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c ".[] | select(.provisioningState == \"Failed\")"
 }
+# show environment error detail
 function show_error_outputs() {
-  az devcenter dev environment show-outputs --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" | jq -r ".outputs"
-  az devcenter dev environment list --dev-center-name "$dev_center_name" --project-name "$project_name" | jq -r ".[] | select(.name == \"$name\") | .error"
+  local n=$1
+  az devcenter dev environment show-outputs --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" | jq -r ".outputs"
+  az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -r ".[] | select(.name == \"$n\") | .error"
 }
+# output expiration date to GitHub Actions output
 function github_output() {
   if [[ "${CI:=""}" != "" ]]; then
     echo "expiration=$output_expiration" | tee -a "$GITHUB_OUTPUT"
   fi
 }
-
-print "Arguments: "
-print "  --dev-center-name=${dev_center_name="$_DEVCENTER_NAME"}"
-print "  --project-name=${project_name="$_PROJECT_NAME"}"
-print "  --debug=${debug=${_DEBUG:=false}}"
-print "  --dry-run=${_DRYRUN:=true}"
-
-dryrun=""
-if [[ "$_DRYRUN" == "true" ]]; then
-  dryrun="echo (dryrun) "
-fi
-
 function main() {
   print "Checking Failed environments are exists or not."
   readarray -t jsons < <(list)
@@ -97,12 +99,24 @@ function main() {
     name=$(echo "$environment" | jq -r ".name")
 
     print "! $name status is $provisioningState, showing error reason, set auto-expire and delete existing..."
-    show_error_outputs
-    reset_expiration_date
-    extend
-    delete
-
+    show_error_outputs "$name"
+    reset_expiration_date "1"
+    extend "$name"
+    delete "$name"
   done
 }
+
+print "Arguments: "
+print "  --dev-center-name=${_DEVCENTER_NAME}"
+print "  --project-name=${_PROJECT_NAME}"
+print "  --debug=${_DEBUG:=false}"
+print "  --dry-run=${_DRYRUN:=true}"
+
+enable_debug_mode
+
+dryrun=""
+if [[ "$_DRYRUN" == "true" ]]; then
+  dryrun="echo (dryrun) "
+fi
 
 main
