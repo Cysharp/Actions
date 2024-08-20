@@ -19,6 +19,7 @@ Cysharp OSS repository uses and maintained GitHub Actions "reusable workflows" a
   - [prevent-github-change](#prevent-github-change)
   - [stale-issue](#stale-issue)
   - [update-packagejson](#update-packagejson)
+  - [validate-tag](#validate-tag)
 - [Actions](#actions)
   - [check-benchmarkable](#check-benchmarkable)
   - [check-metas](#check-metas)
