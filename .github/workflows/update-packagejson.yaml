@@ -50,6 +50,10 @@ jobs:
       branch-name: ${{ steps.configure.outputs.branch-name }}
       is-branch-created: ${{ steps.commit.outputs.is-branch-created }}
     steps:
+      - uses: Cysharp/Actions/.github/actions/validate-tag@main
+        with:
+          tag: ${{ inputs.tag }}
+
       - name: Configure Output variables
         id: configure
         run: |

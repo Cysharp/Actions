@@ -106,6 +106,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: Cysharp/Actions/.github/actions/validate-tag@main
+        with:
+          tag: ${{ inputs.tag }}
+
       - name: Validate inputs - unitypackage
         shell: bash
         if: ${{ inputs.unitypackage-upload && inputs.unitypackage-path == '' }}
