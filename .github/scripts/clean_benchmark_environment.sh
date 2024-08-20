@@ -45,8 +45,17 @@ function debug() {
     echo "DEBUG: $*"
   fi
 }
+function reset_expiration_date() {
+  # reset expiration date from now
+  new_expiration_time=$(date -ud "1 minutes" +"%Y-%m-%dT%H:%M:%SZ") # 2024-07-24T05:31:52Z
+}
 function delete() {
   $dryrun az devcenter dev environment delete --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" --yes --no-wait
+}
+function extend() {
+  $dryrun az devcenter dev environment update-expiration-date --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" --expiration "$new_expiration_time"
+  output_expiration=$new_expiration_time
+  github_output
 }
 function list() {
   az devcenter dev environment list --dev-center-name "$dev_center_name" --project-name "$project_name" | jq -c ".[] | select(.provisioningState == \"Failed\")"
@@ -54,6 +63,11 @@ function list() {
 function show_error_outputs() {
   az devcenter dev environment show-outputs --dev-center-name "$dev_center_name" --project-name "$project_name" --name "$name" | jq -r ".outputs"
   az devcenter dev environment list --dev-center-name "$dev_center_name" --project-name "$project_name" | jq -r ".[] | select(.name == \"$name\") | .error"
+}
+function github_output() {
+  if [[ "${CI:=""}" != "" ]]; then
+    echo "expiration=$output_expiration" | tee -a "$GITHUB_OUTPUT"
+  fi
 }
 
 print "Arguments: "
@@ -82,8 +96,10 @@ function main() {
     provisioningState=$(echo "$environment" | jq -r ".provisioningState")
     name=$(echo "$environment" | jq -r ".name")
 
-    print "! $name status is $provisioningState, showing error reason and delete existing..."
+    print "! $name status is $provisioningState, showing error reason, set auto-expire and delete existing..."
     show_error_outputs
+    reset_expiration_date
+    extend
     delete
 
   done
