@@ -46,23 +46,28 @@ on:
         required: false
         type: string
         default: "20"
-      client-benchmark-script-path:
-        description: "Path to the benchmark script."
+      benchmark-client-run-script-path:
+        description: "Path to the benchmark client script."
         required: false
         type: string
-        default: ".github/scripts/run_benchmark.sh"
-      client-benchmark-script-args:
-        description: "Arguments to the client benchmark script."
+        default: ".github/scripts/benchmark-client-run.sh"
+      benchmark-client-run-script-args:
+        description: "Arguments to the benchmark client script."
         required: false
         type: string
         default: ""
-      server-benchmark-script-path:
-        description: "Path to the benchmark script."
+      benchmark-server-run-script-path:
+        description: "Path to the benchmark server script."
         required: false
         type: string
-        default: ".github/scripts/run_benchmark.sh"
-      server-benchmark-script-args:
-        description: "Arguments to the server benchmark script."
+        default: ".github/scripts/benchmark-server-run.sh"
+      benchmark-server-run-script-args:
+        description: "Arguments to the benchmark server script."
+        required: false
+        type: string
+        default: ""
+      benchmark-server-stop-script-path:
+        description: "Path to the stop server script."
         required: false
         type: string
         default: ""
@@ -206,7 +211,7 @@ jobs:
       - name: Run benchmark server on VM
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_SERVER_NAME }}'].publicIps" -o tsv); do
-            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ inputs.server-benchmark-script-args }}' < ${{ inputs.server-benchmark-script-path}}
+            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ inputs.benchmark-server-run-script-args }}' < ${{ inputs.benchmark-server-run-script-path }}
           done
         working-directory: ./Repo/
       - name: Comment (Progress - Benchmark begin)
@@ -219,7 +224,14 @@ jobs:
       - name: Run benchmark client on VM
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_CLIENT_NAME }}'].publicIps" -o tsv); do
-            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ inputs.client-benchmark-script-args }}' < ${{ inputs.client-benchmark-script-path}}
+            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ inputs.benchmark-client-run-script-args }}' < ${{ inputs.benchmark-client-run-script-path }}
+          done
+        working-directory: ./Repo/
+      - name: Stop benchmark server on VM
+        if: ${{ inputs.benchmark-server-stop-script-path != '' }}
+        run: |
+          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_SERVER_NAME }}'].publicIps" -o tsv); do
+            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ inputs.benchmark-server-run-script-args }}' < ${{ inputs.benchmark-server-stop-script-path }}
           done
         working-directory: ./Repo/
       - name: Comment (Result - Benchmark complete)
@@ -230,8 +242,8 @@ jobs:
 
             Benchmark settings:
             ```
-            client-args: ${{ inputs.client-benchmark-script-args }}
-            server-args: ${{ inputs.server-benchmark-script-args }}
+            client-args: ${{ inputs.benchmark-client-run-script-args }}
+            server-args: ${{ inputs.benchmark-server-run-script-args }}
             ```
 
             Benchmark environment expiration: ${{ inputs.benchmark-expire-min}}min (Until ${{ steps.create-benchmark.outputs.expiration }} UTC)
@@ -254,42 +266,3 @@ jobs:
           title: "Benchmark cancelled"
           update: "true"
         if: ${{ cancelled() }}
-
-  # run benchmark
-  cleanup:
-    needs: [verify]
-    if: ${{ needs.verify.outputs.is-benchmarkable == 'true' }}
-    environment: ${{ inputs.environment }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.verify.outputs.branch }}
-          path: Repo
-      - uses: actions/checkout@v4
-        with:
-          repository: "Cysharp/Actions"
-          path: Actions
-      - name: List checkout repos
-        run: ls -l
-      - name: Load secret
-        id: op-load-secret
-        uses: 1password/load-secrets-action@v2
-        with:
-          export-env: false
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
-          AZURE_OIDC_CLIENTID: "op://GitHubActionsPublic/BENCHMARK_AZURE_OIDC/clientId"
-          AZURE_OIDC_TENANTID: "op://GitHubActionsPublic/BENCHMARK_AZURE_OIDC/tenantId"
-          AZURE_OIDC_SUBSCRIPTIONID: "op://GitHubActionsPublic/BENCHMARK_AZURE_OIDC/subscriptionId"
-      - uses: azure/login@v2
-        with:
-          client-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_CLIENTID }}
-          tenant-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_TENANTID }}
-          subscription-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_SUBSCRIPTIONID }}
-      - name: Add Azure CLI devcenter extension
-        run: az extension add --name devcenter --upgrade
-      - name: Cleanup benchmark environment
-        run: bash ./scripts/clean_benchmark_environment.sh --dev-center-name '${{ inputs.benchmark-devcenter }}' --project-name '${{ inputs.benchmark-project }}' --dry-run false
-        working-directory: ./Actions/.github
