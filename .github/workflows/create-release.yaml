@@ -99,7 +99,7 @@ on:
 
 jobs:
   validate:
-    uses: Cysharp/Actions/.github/workflows/validate-tag@main
+    uses: Cysharp/Actions/.github/workflows/validate-tag.yaml@main
     with:
       tag: ${{ inputs.tag }}
       fail-on-invalid: true
