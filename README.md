@@ -400,6 +400,38 @@ jobs:
       push-tag: false # recommend push tag on create-release job.
 ```
 
+## validate-tag
+
+> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/validate-tag.yaml)
+
+Validate tag is newer than latest release tag.
+
+**Sample usage**
+
+```yaml
+name: "Validate release tag"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: git tag you want create. (sample 1.0.0)"
+        required: true
+
+jobs:
+  validate:
+    uses: Cysharp/Actions/.github/workflows/validate-tag.yaml@main
+    with:
+      tag: ${{ inputs.tag }}
+      fail-on-invalid: true # exit 1 if tag is older than current release
+
+  test:
+    needs: [validate]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ needs.validate.outputs.validated }}" # true or false
+
+```
 
 # Actions
 
