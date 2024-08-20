@@ -1,24 +1,39 @@
 name: Validate Tag
 description: Validate tag is not reverting to old version.
 inputs:
+  no-fail-on-error:
+    description: allow old tag or not
+    required: true
+    default: "false"
   tag:
     description: tag to check
     required: true
+outputs:
+  result:
+    description: result of the validation
+    value: ${{ steps.validate.outputs.result }}
 
 runs:
   using: "composite"
   steps:
-    # allow override draft and pre-release. sort by version number.
-    - name: Check tag is not reverting
+    # Only check released tag, allow override draft and pre-release. Old to new sort by version number.
+    - name: Validate tag is not reverting
       shell: bash
+      id: validate
       run: |
         release_latest=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest | jq -c -r ".[] | select(.isLatest == true) | .tagName")
-        compared=$(echo -e "${latest}\n${{ inputs.tag }}" | sort -V | tail -n 1)
-        if [[ "$compared" == "$release_latest" ]]; then
+        sorted_latest=$(echo -e "${release_latest}\n${{ inputs.tag }}" | sort -V | tail -n 1)
+        if [[ "$sorted_latest" == "$release_latest" ]]; then
           echo "Tag is reverting to old version. Please bump the version. tag: ${{ inputs.tag }}, latest: $release_latest"
-          exit 1
+          echo "result=failed" | tee -a "$GITHUB_OUTPUT"
+
+          if [[ "${{ inputs.no-fail-on-error }}" == "false" ]]; then
+            exit 1
+          fi
         else
-          echo "Great, tag is not reverting to old version. tag: ${{ inputs.tag }}, latest: $release_latest"
+          echo "Great, tag is latest. tag: ${{ inputs.tag }}, latest: $release_latest"
+          echo "result=success" | tee -a "$GITHUB_OUTPUT"
         fi
       env:
+        GH_REPO: ${{ github.repository }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
