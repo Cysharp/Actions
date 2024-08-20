@@ -3,10 +3,10 @@ name: (R) Validate Tag
 on:
   workflow_call:
     inputs:
-      no-fail-on-error:
+      fail-on-error:
         description: allow old tag or not
         required: false
-        default: false
+        default: true
         type: boolean
       tag:
         description: tag to check
@@ -14,8 +14,11 @@ on:
         type: string
     outputs:
       success:
-        description: result of the validation
+        description: result of the validation is success?
         value: ${{ jobs.validate.outputs.success }}
+      tag:
+        description: input tag
+        value: ${{ jobs.validate.outputs.tag }}
   workflow_dispatch:
     inputs:
       no-fail-on-error:
@@ -38,19 +41,22 @@ jobs:
     timeout-minutes: 5
     outputs:
       success: ${{ steps.validate.outputs.success }}
+      tag: ${{ steps.validate.outputs.tag }}
     steps:
       # Only check released tag, allow override draft and pre-release. Old to new sort by version number.
       - name: Validate tag is not reverting
         shell: bash
         id: validate
         run: |
+          echo "tag=${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
+
           release_latest=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest | jq -c -r ".[] | select(.isLatest == true) | .tagName")
           sorted_latest=$(echo -e "${release_latest}\n${{ inputs.tag }}" | sort -V | tail -n 1)
           if [[ "$sorted_latest" == "$release_latest" ]]; then
             echo "Tag is reverting to old version. Please bump the version. tag: ${{ inputs.tag }}, latest: $release_latest"
             echo "success=false" | tee -a "$GITHUB_OUTPUT"
 
-            if [[ "${{ inputs.no-fail-on-error }}" == "false" ]]; then
+            if [[ "${{ inputs.fail-on-error }}" == "true" ]]; then
               exit 1
             fi
           else
