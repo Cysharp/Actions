@@ -22,7 +22,7 @@ on:
         description: "Datadog Event additional tags. space separeted tag. example: 'tag1:value1 tag2:value2'"
         required: false
         type: string
-        default: "pr_number:${{ github.event.pull_reqest.number }} event:pr-merged"
+        default: "pr_number:${{ github.event.pull_request.number }} event:pr-merged"
       alert-type:
         description: "Datadog Event alert type, you can use error,warning,info,success,user_update,recommendation,snapshot"
         required: false
