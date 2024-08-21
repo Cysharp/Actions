@@ -1,0 +1,76 @@
+name: Datadog Event Post
+
+on:
+  workflow_call:
+    inputs:
+      title:
+        description: "Datadog Event title"
+        required: false
+        type: string
+        default: "Pull Request Merged"
+      text:
+        description: "Datadog Event text"
+        required: false
+        type: string
+        default: "A pull request was merged for the ${{ github.repository}} #${{ github.event.pull_request.number }}"
+      event:
+        description: "Datadog Event type"
+        required: false
+        type: string
+        default: "pr-merged"
+      additional-tags:
+        description: "Datadog Event additional tags. space separeted tag. example: 'tag1:value1 tag2:value2'"
+        required: false
+        type: string
+        default: "pr_number:${{ github.event.pull_reqest.number }} event:pr-merged"
+      alert-type:
+        description: "Datadog Event alert type, you can use error,warning,info,success,user_update,recommendation,snapshot"
+        required: false
+        type: string
+        default: "info"
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Load secret
+        id: op-load-secret
+        uses: 1password/load-secrets-action@v2
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
+          DD_API_KEY: "op://GitHubActionsPublic/DATADOG/credential"
+      - name: Post to Datadog Event
+        run: |
+          echo "::group::Create JSON"
+            aggregation_key="${_REPOSITORY}/${_BRANCH}/${_EVENT}"
+            json_tag_array=$(echo -n "repository:$_REPOSITORY branch:$_BRANCH $_ADDITIONAL_TAGS" | jq -R -s 'split(" ")')
+            json=$(jq -cn --arg title "${_TITLE}" --arg text "${_TEXT}" --arg alert_type "${_ALERT_TYPE}" --arg source_type_name "${_SOURCE_TYPE_NAME}" --arg aggregation_key "${aggregation_key}" --argjson tags "$json_tag_array" '{
+              "title": $title,
+              "text": $text,
+              "alert_type": $alert_type,
+              "source_type_name": $source_type_name,
+              "aggregation_key": $aggregation_key,
+              "tags": $tags
+            }')
+            echo "$json"
+          echo "::endgroup::"
+
+          echo "::group::post to datadog"
+            curl -X POST "https://api.datadoghq.com/api/v1/events" \
+              -H "Accept: application/json" \
+              -H "Content-Type: application/json" \
+              -H "DD-API-KEY: ${{ steps.op-load-secret.outputs.DD_API_KEY }}" \
+              -d "${json}"
+          echo "::endgroup::"
+        env:
+          _TITLE: ${{ inputs.title }}
+          _TEXT:  ${{ inputs.text }}
+          _REPOSITORY: ${{ github.repository}}
+          _BRANCH: ${{ github.base_ref }}
+          _EVENT: ${{ inputs.event }}
+          _ADDITIONAL_TAGS: ${{ inputs.additional-tags }}
+          _ALERT_TYPE: ${{ inputs.alert-type }}
+          _SOURCE_TYPE_NAME: github
