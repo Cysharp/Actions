@@ -7,12 +7,12 @@ on:
         description: "Datadog Event title"
         required: false
         type: string
-        default: "A Pull Reequest has been merged. ${{ github.repository }} #${{ github.event.pull_request.number }}"
+        default: "A Pull Request has been merged. ${{ github.repository }} #${{ github.event.pull_request.number }}"
       text:
         description: "Datadog Event text"
         required: false
         type: string
-        default: "A pull request was merged from ${{ github.head_ref }} to ${{ github.base_ref }}@${{ github.repository }} #${{ github.event.pull_request.number }}"
+        default: "A pull request was merged from ${{ github.head_ref }} to ${{ github.base_ref }}@${{ github.repository }} #${{ github.event.pull_request.number }} ${{ github.event.pull_request.html_url }}"
       event:
         description: "Datadog Event type"
         required: false
