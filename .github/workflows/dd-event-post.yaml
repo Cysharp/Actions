@@ -59,7 +59,7 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::post to datadog"
-            curl -X POST "https://api.datadoghq.com/api/v1/events" \
+            curl -sSf -X POST "https://api.datadoghq.com/api/v1/events" \
               -H "Accept: application/json" \
               -H "Content-Type: application/json" \
               -H "DD-API-KEY: ${{ steps.op-load-secret.outputs.DD_API_KEY }}" \
