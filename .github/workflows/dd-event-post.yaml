@@ -7,12 +7,12 @@ on:
         description: "Datadog Event title"
         required: false
         type: string
-        default: "Pull Request Merged"
+        default: "${{ github.repository }}/head:${{ github.head_ref }}/base:${{ github.base_ref }} is Merged"
       text:
         description: "Datadog Event text"
         required: false
         type: string
-        default: "A pull request was merged for the ${{ github.repository}} #${{ github.event.pull_request.number }}"
+        default: "A pull request was merged from ${{ github.head_ref }} to ${{ github.base_ref }}@${{ github.repository }} #${{ github.event.pull_request.number }}"
       event:
         description: "Datadog Event type"
         required: false
@@ -68,7 +68,7 @@ jobs:
         env:
           _TITLE: ${{ inputs.title }}
           _TEXT:  ${{ inputs.text }}
-          _REPOSITORY: ${{ github.repository}}
+          _REPOSITORY: ${{ github.repository }}
           _BRANCH: ${{ github.base_ref }}
           _EVENT: ${{ inputs.event }}
           _ADDITIONAL_TAGS: ${{ inputs.additional-tags }}
