@@ -73,4 +73,4 @@ jobs:
           _EVENT: ${{ inputs.event }}
           _ADDITIONAL_TAGS: ${{ inputs.additional-tags }}
           _ALERT_TYPE: ${{ inputs.alert-type }}
-          _SOURCE_TYPE_NAME: github
+          _SOURCE_TYPE_NAME: git
