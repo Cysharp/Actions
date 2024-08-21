@@ -270,6 +270,30 @@ jobs:
 ```
 
 
+## dd-event-post
+
+> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/dd-event-post.yaml)
+
+Post Datadog event.
+
+1. Use for Pull Request Merge event.
+
+**Sample usage**
+
+```yaml
+name: PR Merged
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  post:
+    if: ${{ github.event.pull_request.merged == true }}
+    uses: Cysharp/Actions/.github/workflows/dd-event-post@main
+    secrets: inherit
+```
+
 ## prevent-github-change
 
 > [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/prevent-github-change.yaml)
