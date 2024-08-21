@@ -291,7 +291,7 @@ on:
 jobs:
   post:
     if: ${{ github.event.pull_request.merged == true }}
-    uses: Cysharp/Actions/.github/workflows/dd-event-post@main
+    uses: Cysharp/Actions/.github/workflows/dd-event-post.yaml@main
     secrets: inherit
 ```
 
