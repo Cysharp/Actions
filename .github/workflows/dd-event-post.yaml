@@ -7,7 +7,7 @@ on:
         description: "Datadog Event title"
         required: false
         type: string
-        default: "${{ github.repository }}/head:${{ github.head_ref }}/base:${{ github.base_ref }} is Merged"
+        default: "A Pull Reequest has been merged. ${{ github.repository }} #${{ github.event.pull_request.number }}"
       text:
         description: "Datadog Event text"
         required: false
