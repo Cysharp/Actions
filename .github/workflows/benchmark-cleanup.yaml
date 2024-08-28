@@ -1,4 +1,4 @@
-name: Benchmark
+name: Benchmark Cleanup Failed
 
 on:
   workflow_call:
@@ -58,6 +58,6 @@ jobs:
           subscription-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_SUBSCRIPTIONID }}
       - name: Add Azure CLI devcenter extension
         run: az extension add --name devcenter --upgrade
-      - name: Cleanup benchmark environment
+      - name: Cleanup failed benchmark environment
         run: bash ./scripts/clean_benchmark_environment.sh --dev-center-name '${{ inputs.benchmark-devcenter }}' --project-name '${{ inputs.benchmark-project }}' --dry-run false
         working-directory: ./Actions/.github
