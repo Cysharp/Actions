@@ -8,20 +8,23 @@ set -euo pipefail
 #
 
 function usage {
-    echo "usage: $(basename $0) [options]"
-    echo "Required:"
-    echo "  --dev-center-name             string The name of the dev center."
-    echo "  --project-name                string The name of the project."
-    echo "Options:"
-    echo "  --debug                       bool   Show debug output pr not. (default: false)"
-    echo "  --dry-run                     bool   Show the command that would be run, but do not run it. (default: true)"
-    echo "  --help                               Show this help message"
-    echo ""
-    echo "Examples:"
-    echo "  1. Dryrun clean up Benchmark Environment"
-    echo "     bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --dry-run true"
-    echo "  3. Clean up Benchmark Environment"
-    echo "     bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --dry-run false"
+  cat <<EOF
+usage: $(basename $0) [options]
+Required:
+  --dev-center-name             string The name of the dev center.
+  --project-name                string The name of the project.
+Options:
+  --state                       string State of the environment. (default: Failed)
+  --debug                       bool   Show debug output pr not. (default: false)
+  --dry-run                     bool   Show the command that would be run, but do not run it. (default: true)
+  --help                               Show this help message
+
+Examples:
+  1. Dryrun clean up Benchmark Environment
+      bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --state Failed --dry-run true
+  3. Clean up Benchmark Environment
+      bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --state Failed --dry-run false
+EOF
 }
 
 while [ $# -gt 0 ]; do
@@ -30,6 +33,7 @@ while [ $# -gt 0 ]; do
     --dev-center-name) _DEVCENTER_NAME=$2; shift 2; ;;
     --project-name) _PROJECT_NAME=$2; shift 2; ;;
     # optional
+    --state) _STATE=$2; shift 2; ;; # Failed, Succeeded
     --dry-run) _DRYRUN=$2; shift 2; ;;
     --debug) _DEBUG=$2; shift 2; ;;
     --help) usage; exit 1; ;;
@@ -69,7 +73,7 @@ function extend() {
 }
 # list environment
 function list() {
-  az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c ".[] | select(.provisioningState == \"Failed\")"
+  az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c ".[] | select(.provisioningState == \"${_STATE}\")"
 }
 # show environment error detail
 function show_error_outputs() {
@@ -109,8 +113,9 @@ function main() {
 print "Arguments: "
 print "  --dev-center-name=${_DEVCENTER_NAME}"
 print "  --project-name=${_PROJECT_NAME}"
-print "  --debug=${_DEBUG:=false}"
-print "  --dry-run=${_DRYRUN:=true}"
+print "  --state=${_STATE:="Failed"}"
+print "  --debug=${_DEBUG:="false"}"
+print "  --dry-run=${_DRYRUN:="true"}"
 
 enable_debug_mode
 
