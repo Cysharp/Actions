@@ -108,7 +108,7 @@ function main {
   # NEW! -> create
   if [[ "$json" == "" ]]; then
     print "! $_NAME not found, creating new Deployment Environment. (expiration: ${_MINUTES}min)"
-    reset_expiration_date "10" # 10 minutes for creation
+    reset_expiration_date "15" # 15 minutes for creation
     create
 
     reset_expiration_date "$_MINUTES"
