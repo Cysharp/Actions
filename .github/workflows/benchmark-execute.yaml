@@ -1,4 +1,4 @@
-name: Benchmark
+name: (R) Benchmark Execute
 
 on:
   workflow_call:

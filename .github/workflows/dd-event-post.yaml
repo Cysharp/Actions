@@ -1,4 +1,4 @@
-name: Datadog Event Post
+name: (R) Datadog Event Post
 
 on:
   workflow_call:
