@@ -33,7 +33,7 @@ while [ $# -gt 0 ]; do
     --dev-center-name) _DEVCENTER_NAME=$2; shift 2; ;;
     --project-name) _PROJECT_NAME=$2; shift 2; ;;
     # optional
-    --state) _STATE=$2; shift 2; ;; # Failed, Succeeded
+    --state) _STATE=$2; shift 2; ;; # Failed, Succeeded, All
     --dry-run) _DRYRUN=$2; shift 2; ;;
     --debug) _DEBUG=$2; shift 2; ;;
     --help) usage; exit 1; ;;
@@ -73,7 +73,11 @@ function extend() {
 }
 # list environment
 function list() {
-  az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c ".[] | select(.provisioningState == \"${_STATE}\")"
+  if [[ "${_STATE}" == "All" ]]; then
+    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c ".[]"
+  else
+    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c ".[] | select(.provisioningState == \"${_STATE}\")"
+  fi
 }
 # show environment error detail
 function show_error_outputs() {
