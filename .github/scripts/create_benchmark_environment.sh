@@ -108,7 +108,7 @@ function main {
   # NEW! -> create
   if [[ "$json" == "" ]]; then
     print "! $_NAME not found, creating new Deployment Environment. (expiration: ${_MINUTES}min)"
-    reset_expiration_date "15" # 15 minutes for creation
+    reset_expiration_date "${create_timeout}" # 15 minutes for creation
     create
 
     reset_expiration_date "$_MINUTES"
@@ -152,7 +152,7 @@ function main {
     "Preparing" | "Creating" | "Updating")
       # Let's wait until succeeded
       print "! $_NAME status is $provisioningState, extend and wait to be succeeded. (expiration: ${_MINUTES}min)"
-      reset_expiration_date "10"
+      reset_expiration_date "${create_timeout}"
       extend
 
       SECONDS=0
@@ -201,7 +201,7 @@ function main {
     "Deleting")
       # Let's wait until deletion complete. We can do nothing.
       print "$_NAME status is $provisioningState, wait for deletion..."
-      reset_expiration_date "10" # wait 10 minutes for deletion
+      reset_expiration_date "${delete_timeout}" # wait 10 minutes for deletion
       SECONDS=0
       while true; do
         # timeout
@@ -255,6 +255,9 @@ print "  --project-name=${_PROJECT_NAME}"
 print "  --expire-min=${_MINUTES:=20}"
 print "  --debug=${_DEBUG:=false}"
 print "  --dry-run=${_DRYRUN:=true}"
+
+create_timeout=15
+delete_timeout=10
 
 enable_debug_mode
 
