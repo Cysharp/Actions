@@ -3,20 +3,21 @@ name: (R) Benchmark Execute
 on:
   workflow_call:
     inputs:
-      dotnet-version:
-        description: ".NET SDK Version to use"
+      # required
+      benchmark-name:
+        description: "Name of the benchamrk environment."
         required: true
         type: string
+      benchmark-config-path:
+        description: "Benchmark config yaml file path"
+        required: true
+        type: string
+      # optional
       environment:
         description: "Environment to run benchmark."
         required: false
         type: string
         default: "benchmark"
-      comment-behavior:
-        description: "'new' to create new comment, 'update' to update existing comment."
-        required: false
-        type: string
-        default: "new"
       benchmark-catalog:
         description: "Benchmark catalog name"
         required: false
@@ -37,45 +38,11 @@ on:
         required: false
         type: string
         default: "benchmark"
-      benchmark-name:
-        description: "Name of the benchamrk environment."
-        required: true
-        type: string
       benchmark-project:
         description: "Benchmark project name"
         required: false
         type: string
         default: "dve"
-      benchmark-expire-min:
-        description: "Benchmark expire minutes, 10m (developer environment require) + clone time + benchmark time = 15~20 < N < 30"
-        required: false
-        type: string
-        default: "20"
-      benchmark-client-run-script-path:
-        description: "Path to the benchmark client script."
-        required: false
-        type: string
-        default: ".github/scripts/benchmark-client-run.sh"
-      benchmark-client-run-script-args:
-        description: "Arguments to the benchmark client script."
-        required: false
-        type: string
-        default: ""
-      benchmark-server-run-script-path:
-        description: "Path to the benchmark server script."
-        required: false
-        type: string
-        default: ".github/scripts/benchmark-server-run.sh"
-      benchmark-server-run-script-args:
-        description: "Arguments to the benchmark server script."
-        required: false
-        type: string
-        default: ""
-      benchmark-server-stop-script-path:
-        description: "Path to the stop server script."
-        required: false
-        type: string
-        default: ""
 
 env:
   BUILD_CONFIG: Release
@@ -127,19 +94,49 @@ jobs:
           comment: ${{ steps.is-benchmarkable.outputs.authorized == 'true' && 'Benchmark request accepted, creating benchmark environment. :clock1:' || 'Benchmark request rejected, you are not authorized to run benchmark. :warning:'}}
           state: ${{ steps.is-benchmarkable.outputs.authorized == 'true' && 'running' || 'failed' }}
           title: ${{ steps.is-benchmarkable.outputs.authorized == 'true' && 'Successfully begin benchmark' || 'Failed to begin benchmark' }}
-          update: ${{ inputs.comment-behavior == 'update' }}
+          update: "false"
+
+  config_to_matrix:
+    needs: [verify]
+    if: ${{ needs.verify.outputs.is-benchmarkable == 'true' }}
+    outputs:
+      branch: ${{ needs.verify.outputs.branch }}
+      matrix: ${{ steps.config2matrix.outputs.matrix }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify.outputs.branch }}
+          path: Repo
+      - uses: actions/checkout@v4
+        with:
+          repository: "Cysharp/Actions"
+          path: Actions
+      - name: Generate Matrix json from config
+        id: config2matrix
+        run: bash ./.github/scripts/benchmark_config2matrix.sh --benchmark-config-path "${{ inputs.benchmark-config-path }}"
+        working-directory: ./Repo/
+      - name: Comment (Running - Config loaded)
+        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+        with:
+          comment: "Benchmark config successfully loaded and start matrix. :clock1:"
+          state: "running"
+          title: "Benchmark config loaded"
+          update: "true"
 
   # run benchmark
   benchmark:
-    needs: [verify]
-    if: ${{ needs.verify.outputs.is-benchmarkable == 'true' }}
+    needs: [config_to_matrix]
+    strategy:
+      matrix: ${{ fromJson(needs.config_to_matrix.outputs.matrix) }}
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.verify.outputs.branch }}
+          ref: ${{ needs.config_to_matrix.outputs.branch }}
           path: Repo
       - uses: actions/checkout@v4
         with:
@@ -172,7 +169,7 @@ jobs:
         run: az extension add --name devcenter --upgrade
       - name: Create benchmark environment
         id: create-benchmark
-        run: bash ./scripts/create_benchmark_environment.sh --catalog-name '${{ inputs.benchmark-catalog }}' --dev-center-name '${{ inputs.benchmark-devcenter }}' --environment-definition-name '${{ inputs.benchmark-definition-name }}' --environment-type '${{ inputs.benchmark-environment }}' --name '${{ inputs.benchmark-name }}' --project-name '${{ inputs.benchmark-project }}' --expire-min "${{ inputs.benchmark-expire-min }}" --dry-run false
+        run: bash ./scripts/create_benchmark_environment.sh --catalog-name '${{ inputs.benchmark-catalog }}' --dev-center-name '${{ inputs.benchmark-devcenter }}' --environment-definition-name '${{ inputs.benchmark-definition-name }}' --environment-type '${{ inputs.benchmark-environment }}' --name '${{ inputs.benchmark-name }}' --project-name '${{ inputs.benchmark-project }}' --expire-min "${{ matrix.benchmark-expire-min }}" --dry-run false
         working-directory: ./Actions/.github
       - name: Comment (Progess - Benchmark environment)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
@@ -185,7 +182,7 @@ jobs:
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
             echo "::group::Install on $ip"
-              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --dotnet-version ${{ inputs.dotnet-version }}' < ./scripts/dotnet_install.sh
+              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --dotnet-version ${{ matrix.dotnet-version }}' < ./scripts/dotnet_install.sh
             echo "::endgroup::"
           done
         working-directory: ./Actions/.github
@@ -193,7 +190,7 @@ jobs:
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
             echo "::group::Install on $ip"
-              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --branch "${{ needs.verify.outputs.branch }}" --owner "${{ github.repository_owner }}" --repo "${{ github.event.repository.name }}"' < ./scripts/git_clone.sh
+              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --branch "${{ needs.config_to_matrix.outputs.branch }}" --owner "${{ github.repository_owner }}" --repo "${{ github.event.repository.name }}"' < ./scripts/git_clone.sh
             echo "::endgroup::"
           done
         working-directory: ./Actions/.github
@@ -207,7 +204,7 @@ jobs:
       - name: Run benchmark server on VM
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_SERVER_NAME }}'].publicIps" -o tsv); do
-            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ inputs.benchmark-server-run-script-args }}' < ${{ inputs.benchmark-server-run-script-path }}
+            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-server-run-script-args }}' < ${{ matrix.benchmark-server-run-script-path }}
           done
         working-directory: ./Repo/
       - name: Comment (Progress - Benchmark begin)
@@ -220,14 +217,14 @@ jobs:
       - name: Run benchmark client on VM
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_CLIENT_NAME }}'].publicIps" -o tsv); do
-            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ inputs.benchmark-client-run-script-args }}' < ${{ inputs.benchmark-client-run-script-path }}
+            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-client-run-script-args }}' < ${{ matrix.benchmark-client-run-script-path }}
           done
         working-directory: ./Repo/
       - name: Stop benchmark server on VM
-        if: ${{ inputs.benchmark-server-stop-script-path != '' }}
+        if: ${{ matrix.benchmark-server-stop-script-path != '' }}
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_SERVER_NAME }}'].publicIps" -o tsv); do
-            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ inputs.benchmark-server-run-script-args }}' < ${{ inputs.benchmark-server-stop-script-path }}
+            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-server-run-script-args }}' < ${{ matrix.benchmark-server-stop-script-path }}
           done
         working-directory: ./Repo/
       - name: Comment (Result - Benchmark complete)
@@ -238,11 +235,11 @@ jobs:
 
             Benchmark settings:
             ```
-            client-args: ${{ inputs.benchmark-client-run-script-args }}
-            server-args: ${{ inputs.benchmark-server-run-script-args }}
+            client-args: ${{ matrix.benchmark-client-run-script-args }}
+            server-args: ${{ matrix.benchmark-server-run-script-args }}
             ```
 
-            Benchmark environment expiration: ${{ inputs.benchmark-expire-min}}min (Until ${{ steps.create-benchmark.outputs.expiration }} UTC)
+            Benchmark environment expiration: ${{ matrix.benchmark-expire-min}}min (Until ${{ steps.create-benchmark.outputs.expiration }} UTC)
           state: "success"
           title: "Benchmark completed"
           update: "true"
