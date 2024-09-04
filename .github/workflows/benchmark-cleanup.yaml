@@ -1,4 +1,4 @@
-name: Benchmark Cleanup Failed
+name: Benchmark Cleanup
 
 on:
   workflow_call:
@@ -18,6 +18,11 @@ on:
         required: false
         type: string
         default: "dve"
+      state:
+        description: "Benchmark project name"
+        required: false
+        type: string
+        default: "Failed"
 
 env:
   GH_REPO: ${{ github.repository }} # gh cli handling
@@ -59,5 +64,5 @@ jobs:
       - name: Add Azure CLI devcenter extension
         run: az extension add --name devcenter --upgrade
       - name: Cleanup failed benchmark environment
-        run: bash ./scripts/clean_benchmark_environment.sh --dev-center-name '${{ inputs.benchmark-devcenter }}' --project-name '${{ inputs.benchmark-project }}' --state Failed --dry-run false
+        run: bash ./scripts/clean_benchmark_environment.sh --dev-center-name '${{ inputs.benchmark-devcenter }}' --project-name '${{ inputs.benchmark-project }}' --state ${{ inputs.state }} --dry-run false
         working-directory: ./Actions/.github
