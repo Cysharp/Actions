@@ -128,7 +128,8 @@ jobs:
   benchmark:
     needs: [config_to_matrix]
     strategy:
-      max-parallel: 1
+      max-parallel: 1 # do not run concurrently
+      fail-fast: true # stop if fail
       matrix: ${{ fromJson(needs.config_to_matrix.outputs.matrix) }}
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
