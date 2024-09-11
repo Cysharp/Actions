@@ -48,6 +48,14 @@ function extract_placeholders {
   local template_string=$1
   echo "$template_string" | grep -oP '{{\s*\K\w+(?=\s*}})'
 }
+function is_number {
+  local value=$1
+  if [[ "$value" =~ ^[0-9]+$ ]]; then
+    echo "1"
+  else
+      echo "0"
+  fi
+}
 
 echo "Arguments:" >&2
 echo "  --benchmark-config-path=${_BENCHMARK_CONFIG_FILE}"
@@ -81,9 +89,16 @@ for general_key in "${general_keys[@]}"; do
   obtained_value=$(yq eval "$general_key" "$_BENCHMARK_CONFIG_FILE")
   k=${general_key/\./}
   echo "${k}=$obtained_value" | tee -a "$GITHUB_OUTPUT"
-  general_json=$(jq -c -n --arg key "$k" --arg value "$obtained_value" '{
-    ($key): $value
-  }')
+  if [[ "$(is_number "$obtained_value")" == "1" ]]; then
+    general_json=$(jq -c -n --arg key "$k" --argjson value "$obtained_value" '{
+      ($key): $value
+    }')
+  else
+    general_json=$(jq -c -n --arg key "$k" --arg value "$obtained_value" '{
+      ($key): $value
+    }')
+  fi
+  # echo "$general_json" # debug
   general_json_elements+=("$general_json")
 done
 
