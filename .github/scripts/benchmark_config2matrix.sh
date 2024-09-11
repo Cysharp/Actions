@@ -25,7 +25,8 @@ set -euo pipefail
 # ### output arg sample ###
 # #########################
 # dotnet-version=8.0
-# benchmark-expire-min=10
+# benchmark-expire-min=15
+# benchmark-timeout-min=10
 # benchmark-client-run-script-path=.github/scripts/benchmark-client-run.sh
 # benchmark-server-run-script-path=.github/scripts/benchmark-server-run.sh
 # benchmark-server-stop-script-path=.github/scripts/benchmark-server-stop.sh
@@ -53,6 +54,7 @@ echo "  --benchmark-config-path=${_BENCHMARK_CONFIG_FILE}"
 
 echo "Config:" >&2
 echo "  dotnet_version_key=${dotnet_version_key:=.dotnet-version}"
+echo "  benchmark_timeout_min_key=${benchmark_timeout_min_key:=.benchmark-timeout-min}"
 echo "  benchmark_expire_min_key=${benchmark_expire_min_key:=.benchmark-expire-min}"
 echo "  benchmark_client_run_script_path_key=${benchmark_client_run_script_path_key:=.benchmark-client-run-script-path}"
 echo "  benchmark_server_run_script_path_key=${benchmark_server_run_script_path_key:=.benchmark-server-run-script-path}"
@@ -62,7 +64,7 @@ echo "  benchmark_server_run_script_args_key=${benchmark_server_run_script_args_
 
 general_json_elements=()
 matrix_includes_json_array="["
-general_keys=("$dotnet_version_key" "$benchmark_expire_min_key" "$benchmark_client_run_script_path_key" "$benchmark_server_run_script_path_key" "$benchmark_server_stop_script_path_key")
+general_keys=("$dotnet_version_key" "$benchmark_timeout_min_key" "$benchmark_expire_min_key" "$benchmark_client_run_script_path_key" "$benchmark_server_run_script_path_key" "$benchmark_server_stop_script_path_key")
 template_string_keys=("$benchmark_client_run_script_args_key" "$benchmark_server_run_script_args_key")
 
 if [[ "${CI:-""}" == "" ]]; then
