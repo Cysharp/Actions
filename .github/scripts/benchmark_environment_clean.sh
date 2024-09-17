@@ -136,7 +136,7 @@ for environment in "${jsons[@]}"; do
 
       if [[ "${_TRYREDEPLOY}" == "true" ]]; then
         print "! $name try redeploying..."
-        reset_expiration_date "15"
+        reset_expiration_date "12"
         extend "$name"
         if redeploy "$name"; then
           print "  - $name redeploy success."
