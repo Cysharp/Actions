@@ -23,6 +23,11 @@ on:
         required: false
         type: string
         default: "Failed"
+      try-redeploy:
+        description: "Try Redeploy before deletion"
+        required: false
+        type: boolean
+        default: false
 
 env:
   GH_REPO: ${{ github.repository }} # gh cli handling
@@ -64,5 +69,5 @@ jobs:
       - name: Add Azure CLI devcenter extension
         run: az extension add --name devcenter --upgrade
       - name: Cleanup failed benchmark environment
-        run: bash ./scripts/clean_benchmark_environment.sh --dev-center-name '${{ inputs.benchmark-devcenter }}' --project-name '${{ inputs.benchmark-project }}' --state ${{ inputs.state }} --dry-run false
+        run: bash ./scripts/benchmark_environment_clean.sh --dev-center-name '${{ inputs.benchmark-devcenter }}' --project-name '${{ inputs.benchmark-project }}' --state ${{ inputs.state }} --dry-run false --try-redeploy ${{ inputs.try-redeploy }}
         working-directory: ./Actions/.github

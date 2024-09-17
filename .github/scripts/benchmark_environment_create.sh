@@ -4,7 +4,7 @@ set -euo pipefail
 # Create Benchmark Environment by Azure Development Environment.
 #
 # Sample usage:
-# $ bash ./.github/scripts/create_benchmark_environment.sh --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'magiconion-123' --project-name 'dve' --expire-min 15 --dry-run true
+# $ bash ./.github/scripts/benchmark_environment_create.sh --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'magiconion-123' --project-name 'dve' --expire-min 15 --dry-run true
 #
 
 function usage {

@@ -4,20 +4,21 @@ set -euo pipefail
 # Clean up Failed Benchmark Environment created by Azure Development Environment.
 #
 # Sample usage:
-# $ bash ./.github/scripts/clean_benchmark_environment.sh --dev-center-name 'cysharp-devcenter'--project-name 'dve' --dry-run true
+# $ bash ./.github/scripts/benchmark_environment_clean.sh --dev-center-name 'cysharp-devcenter'--project-name 'dve' --dry-run true
 #
 
 function usage {
   cat <<EOF
 usage: $(basename $0) [options]
 Required:
-  --dev-center-name             string The name of the dev center.
-  --project-name                string The name of the project.
+  --dev-center-name             string      The name of the dev center.
+  --project-name                string      The name of the project.
 Options:
-  --state                       string State of the environment. (default: Failed)
-  --debug                       bool   Show debug output pr not. (default: false)
-  --dry-run                     bool   Show the command that would be run, but do not run it. (default: true)
-  --help                               Show this help message
+  --state                       string      State of the environment. (default: Failed)
+  --try-redeploy                true|false  Try to redeploy the environment before delete, this is useful when deletion failed due to stack not exists. (default: false)
+  --debug                       bool        Show debug output pr not. (default: false)
+  --dry-run                     bool        Show the command that would be run, but do not run it. (default: true)
+  --help                                    Show this help message
 
 Examples:
   1. Dryrun clean up Benchmark Environment
@@ -34,6 +35,7 @@ while [ $# -gt 0 ]; do
     --project-name) _PROJECT_NAME=$2; shift 2; ;;
     # optional
     --state) _STATE=$2; shift 2; ;; # Failed, Succeeded, All
+    --try-redeploy) _TRYREDEPLOY=$2; shift 2; ;;
     --dry-run) _DRYRUN=$2; shift 2; ;;
     --debug) _DEBUG=$2; shift 2; ;;
     --help) usage; exit 1; ;;
@@ -58,6 +60,12 @@ function enable_debug_mode {
 function reset_expiration_date {
   local minutes=$1
   new_expiration_time=$(date -ud "$minutes minutes" +"%Y-%m-%dT%H:%M:%SZ") # 2024-07-24T05:31:52Z
+}
+# re-deploy environment (re-deploy)
+function redeploy {
+  local name=$1
+  $dryrun az devcenter dev environment deploy --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$_NAME" --parameters "$(jq -c -n --arg n "$name" '{name: $n}')" --expiration-date "$new_expiration_time"
+  github_output
 }
 # delete environment
 function delete() {
@@ -91,33 +99,12 @@ function github_output() {
     echo "expiration=$output_expiration" | tee -a "$GITHUB_OUTPUT"
   fi
 }
-function main() {
-  print "Checking Failed environments are exists or not."
-  readarray -t jsons < <(list)
-
-  if [[ "${#jsons[@]}" == "0" ]]; then
-    print "! No failed environment found, exiting..."
-    exit
-  fi
-
-  # delete
-  print "Failed environments are found, deleting..."
-  for environment in "${jsons[@]}"; do
-    provisioningState=$(echo "$environment" | jq -r ".provisioningState")
-    name=$(echo "$environment" | jq -r ".name")
-
-    print "! $name status is $provisioningState, showing error reason, set auto-expire and delete existing..."
-    show_error_outputs "$name"
-    reset_expiration_date "1"
-    extend "$name"
-    delete "$name"
-  done
-}
 
 print "Arguments: "
 print "  --dev-center-name=${_DEVCENTER_NAME}"
 print "  --project-name=${_PROJECT_NAME}"
 print "  --state=${_STATE:="Failed"}"
+print "  --try-redeploy=${_TRYREDEPLOY:="false"}"
 print "  --debug=${_DEBUG:="false"}"
 print "  --dry-run=${_DRYRUN:="true"}"
 
@@ -128,4 +115,35 @@ if [[ "$_DRYRUN" == "true" ]]; then
   dryrun="echo (dryrun) "
 fi
 
-main
+print "Checking Failed environments are exists or not."
+readarray -t jsons < <(list)
+
+if [[ "${#jsons[@]}" == "0" ]]; then
+  print "! No failed environment found, exiting..."
+  exit
+fi
+
+# delete
+print "Failed environments are found, deleting..."
+for environment in "${jsons[@]}"; do
+  provisioningState=$(echo "$environment" | jq -r ".provisioningState")
+  name=$(echo "$environment" | jq -r ".name")
+
+  print "! $name status is $provisioningState, showing error reason...."
+  show_error_outputs "$name"
+  if [[ "${_TRYREDEPLOY}" == "true" ]]; then
+    print "! $name try redeploy..."
+    reset_expiration_date "15"
+    extend "$name"
+    if redeploy "$name"; then
+      print "  - $name redeployed."
+    else
+      print "  - $name redeploy failed."
+    fi
+  fi
+
+  print "! $name set expire and delete existing..."
+  reset_expiration_date "1"
+  extend "$name"
+  delete "$name"
+done
