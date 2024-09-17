@@ -195,10 +195,10 @@ function main {
       # Let's update first, then try to delete
       print "! $_NAME status is $provisioningState, showing error reason...."
       show_error_outputs
-      reset_expiration_date "1"
 
       # Let's re-deploy failed environment.
       print "$_NAME updating to re-deploy...."
+      reset_expiration_date "${create_timeout}" # 15 minutes for creation
       if redeploy; then
         # re-run
         print "$_NAME succeessfully updated, automatically re-run from beginning."
@@ -207,6 +207,7 @@ function main {
 
         # Let's delete failed environment. We can do nothing.
         print "$_NAME deleting environment..."
+        reset_expiration_date "1"
         delete
         print "$_NAME succeessfully deleted, automatically re-run from beginning."
       fi
