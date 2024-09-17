@@ -70,12 +70,12 @@ function reset_expiration_date {
 }
 # create environment
 function create {
-  $dryrun az devcenter dev environment create --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$_NAME" --parameters "$(jq -c -n --arg n "$_NAME" '{name: $n}')" --expiration-date "$new_expiration_time"
+  $dryrun az devcenter dev environment create --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$_NAME" --catalog-name "$_CATALOG_NAME" --environment-definition-name "$_ENVIRONMENT_DEFINITION_NAME" --environment-type "$_ENVIRONMENT_TYPE" --parameters "$(jq -c -n --arg n "$_NAME" '{name: $n}')" --expiration-date "$new_expiration_time"
   github_output
 }
-# update environment (re-deploy)
-function update {
-  $dryrun az devcenter dev environment update --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$_NAME" --catalog-name "$_CATALOG_NAME" --environment-definition-name "$_ENVIRONMENT_DEFINITION_NAME" --environment-type "$_ENVIRONMENT_TYPE" --parameters "$(jq -c -n --arg n "$_NAME" '{name: $n}')" --expiration-date "$new_expiration_time"
+# re-deploy environment (re-deploy)
+function redeploy {
+  $dryrun az devcenter dev environment deploy --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$_NAME" --parameters "$(jq -c -n --arg n "$_NAME" '{name: $n}')" --expiration-date "$new_expiration_time"
   github_output
 }
 # delete environment
@@ -199,7 +199,7 @@ function main {
 
       # Let's re-deploy failed environment.
       print "$_NAME updating to re-deploy...."
-      if update; then
+      if redeploy; then
         # re-run
         print "$_NAME succeessfully updated, automatically re-run from beginning."
       else
