@@ -145,6 +145,10 @@ for environment in "${jsons[@]}"; do
         fi
       fi
       ;;
+    "Deleting")
+      print "$name status is $provisioningState, skipping..."
+      continue
+      ;;
     *)
       print "$name status is $provisioningState, deleting..."
       ;;
