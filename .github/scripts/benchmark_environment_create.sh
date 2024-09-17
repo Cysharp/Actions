@@ -193,17 +193,17 @@ function main {
       ;;
     "Failed")
       # Let's update first, then try to delete
-      print "! $_NAME status is $provisioningState, showing error reason...."
+      print "! $_NAME status is $provisioningState, showing error reason..."
       show_error_outputs
 
       # Let's re-deploy failed environment.
-      print "$_NAME updating to re-deploy...."
+      print "$_NAME updating to re-deploy..."
       reset_expiration_date "${create_timeout}" # 15 minutes for creation
       if redeploy; then
         # re-run
         print "$_NAME succeessfully updated, automatically re-run from beginning."
       else
-        print "$_NAME failed to update environment...."
+        print "$_NAME failed to update environment..."
 
         # Let's delete failed environment. We can do nothing.
         print "$_NAME deleting environment..."

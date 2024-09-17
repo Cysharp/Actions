@@ -119,28 +119,36 @@ print "Checking Failed environments are exists or not."
 readarray -t jsons < <(list)
 
 if [[ "${#jsons[@]}" == "0" ]]; then
-  print "! No failed environment found, exiting..."
+  print "! No environment found, exiting..."
   exit
 fi
 
 # delete
-print "Failed environments are found, deleting..."
+print "Deployment environments are found, try deleting each..."
 for environment in "${jsons[@]}"; do
   provisioningState=$(echo "$environment" | jq -r ".provisioningState")
   name=$(echo "$environment" | jq -r ".name")
 
-  print "! $name status is $provisioningState, showing error reason...."
-  show_error_outputs "$name"
-  if [[ "${_TRYREDEPLOY}" == "true" ]]; then
-    print "! $name try redeploy..."
-    reset_expiration_date "15"
-    extend "$name"
-    if redeploy "$name"; then
-      print "  - $name redeployed."
-    else
-      print "  - $name redeploy failed."
-    fi
-  fi
+  case "$provisioningState" in
+    "Failed")
+      print "! $name status is $provisioningState, showing error reason..."
+      show_error_outputs "$name"
+
+      if [[ "${_TRYREDEPLOY}" == "true" ]]; then
+        print "! $name try redeploying..."
+        reset_expiration_date "15"
+        extend "$name"
+        if redeploy "$name"; then
+          print "  - $name redeploy success."
+        else
+          print "  - $name redeploy failed."
+        fi
+      fi
+      ;;
+    *)
+      print "$name status is $provisioningState, deleting..."
+      ;;
+  esac
 
   print "! $name set expire and delete existing..."
   reset_expiration_date "1"

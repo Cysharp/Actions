@@ -2,14 +2,14 @@ name: Benchmark Cleanup
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 18 * * *"
   workflow_call:
   workflow_dispatch:
     inputs:
       state:
         description: "state: Deletion target benchmark state."
         required: false
-        default: "Failed"
+        default: "All"
         type: choice
         options:
           - Failed
@@ -70,6 +70,6 @@ jobs:
           subscription-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_SUBSCRIPTIONID }}
       - name: Add Azure CLI devcenter extension
         run: az extension add --name devcenter --upgrade
-      - name: Cleanup failed benchmark environment
+      - name: Cleanup benchmark environment
         run: bash ./scripts/benchmark_environment_clean.sh --dev-center-name '${{ matrix.benchmark-devcenter }}' --project-name '${{ matrix.benchmark-project }}' --state ${{ matrix.state }} --dry-run false --try-redeploy ${{ matrix.try-redeploy }}
         working-directory: ./Actions/.github
