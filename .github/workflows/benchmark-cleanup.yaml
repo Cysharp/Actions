@@ -1,33 +1,25 @@
-name: (R) Benchmark Cleanup
+name: Benchmark Cleanup
 
 on:
+  schedule:
+    - cron: "0 0 * * *"
   workflow_call:
+  workflow_dispatch:
     inputs:
-      environment:
-        description: "Environment to run benchmark."
-        required: false
-        type: string
-        default: "benchmark"
-      benchmark-devcenter:
-        description: "Benchmark devcenter name"
-        required: false
-        type: string
-        default: "cysharp-devcenter"
-      benchmark-project:
-        description: "Benchmark project name"
-        required: false
-        type: string
-        default: "dve"
       state:
-        description: "Benchmark project name"
+        description: "state: Deletion target benchmark state."
         required: false
-        type: string
         default: "Failed"
+        type: choice
+        options:
+          - Failed
+          - Succeeded
+          - All
       try-redeploy:
-        description: "Try Redeploy before deletion"
-        required: false
-        type: boolean
+        description: "try-redeploy: Try Redeploy before deletion only if scheduled"
+        required: true
         default: false
+        type: boolean
 
 env:
   GH_REPO: ${{ github.repository }} # gh cli handling
@@ -40,8 +32,18 @@ permissions:
   issues: write
 
 jobs:
-  cleanup-failed:
-    environment: ${{ inputs.environment }}
+  cleanup:
+    name: "Cleanup ${{matrix.state}} (redeploy: ${{ matrix.try-redeploy}})"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - benchmark-devcenter: cysharp-devcenter # Benchmark devcenter name
+            benchmark-project: dve # Benchmark project name
+            state: ${{ inputs.state || 'Failed' }} # Failed benchmark environment is deletion target
+            try-redeploy: ${{ github.event_name == 'schedule' || inputs.try-redeploy }} # Try Redeploy before deletion only if scheduled
+    environment:
+      name: benchmark
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -69,5 +71,5 @@ jobs:
       - name: Add Azure CLI devcenter extension
         run: az extension add --name devcenter --upgrade
       - name: Cleanup failed benchmark environment
-        run: bash ./scripts/benchmark_environment_clean.sh --dev-center-name '${{ inputs.benchmark-devcenter }}' --project-name '${{ inputs.benchmark-project }}' --state ${{ inputs.state }} --dry-run false --try-redeploy ${{ inputs.try-redeploy }}
+        run: bash ./scripts/benchmark_environment_clean.sh --dev-center-name '${{ matrix.benchmark-devcenter }}' --project-name '${{ matrix.benchmark-project }}' --state ${{ matrix.state }} --dry-run false --try-redeploy ${{ matrix.try-redeploy }}
         working-directory: ./Actions/.github

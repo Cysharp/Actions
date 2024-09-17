@@ -13,11 +13,6 @@ on:
         required: true
         type: string
       # optional
-      environment:
-        description: "Environment to run benchmark."
-        required: false
-        type: string
-        default: "benchmark"
       benchmark-catalog:
         description: "Benchmark catalog name"
         required: false
@@ -131,7 +126,8 @@ jobs:
       max-parallel: 1 # do not run concurrently
       fail-fast: true # stop if fail
       matrix: ${{ fromJson(needs.config_to_matrix.outputs.matrix) }}
-    environment: ${{ inputs.environment }}
+    environment:
+      name: benchmark
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
