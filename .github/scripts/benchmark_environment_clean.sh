@@ -64,7 +64,8 @@ function reset_expiration_date {
 # re-deploy environment (re-deploy)
 function redeploy {
   local n=$1
-  $dryrun az devcenter dev environment deploy --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" --parameters "$(jq -c -n --arg n "$n" '{name: $n}')" --expiration-date "$new_expiration_time"
+  # minize = true to reduct environment resource to minimum, which reduce extra cost and speed up deletion.
+  $dryrun az devcenter dev environment deploy --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" --parameters "$(jq -c -n --arg n "$n" --argjson minimize true '{name: $n, minimize: $minimize}')" --expiration-date "$new_expiration_time"
   github_output
 }
 # delete environment
