@@ -88,7 +88,7 @@ function list {
     az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c ".[]"
   else
     # expirationDate(2024-09-18T04:00:00+00:00表記)が現在時刻よりも過去のものはprovisioningStateに関わらず削除対象とする、またprovisioningStateが_STATEのものはexpirationDateに関わらず削除対象とする
-    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c --arg current_time_utc_epoch "$current_time_utc_epoch" --arg state "$_STATE" '.[] | select((.expirationDate | strptime("%Y-%m-%dT%H:%M:%S%z") | mktime) < ($current_time_utc_epoch | tonumber) or .provisioningState == "$state")'
+    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c --arg current_time_utc_epoch "$current_time_utc_epoch" --arg state "$_STATE" '.[] | select((.expirationDate | strptime("%Y-%m-%dT%H:%M:%S%z") | mktime) < ($current_time_utc_epoch | tonumber) or .provisioningState == $state)'
   fi
 }
 # show environment error detail
@@ -119,7 +119,7 @@ if [[ "$_DRYRUN" == "true" ]]; then
   dryrun="echo (dryrun) "
 fi
 
-print "Checking Failed environments are exists or not."
+print "Checking ${_STATE} environments are exists or not."
 readarray -t jsons < <(list)
 
 if [[ "${#jsons[@]}" == "0" ]]; then
