@@ -2,12 +2,12 @@ name: Benchmark Cleanup
 
 on:
   schedule:
-    - cron: "0 18 * * *"
+    - cron: "0 * * * *" # Every hour
   workflow_call:
   workflow_dispatch:
     inputs:
       state:
-        description: "state: Deletion target benchmark state."
+        description: "state: Deletion target benchmark state. Despite of state, expired benchmark environments are always deleted."
         required: false
         default: "All"
         type: choice
