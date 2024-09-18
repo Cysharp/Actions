@@ -89,7 +89,7 @@ function extend {
 }
 # list environment
 function list {
-  az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c ".[] | select(.name == \"$_NAME\")"
+  az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c --arg name "$_NAME" '.[] | select(.name == $name)'
 }
 # show environment detail
 function show {
@@ -98,7 +98,7 @@ function show {
 # show environment error detail
 function show_error_outputs {
   az devcenter dev environment show-outputs --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$_NAME" | jq -r ".outputs"
-  az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -r ".[] | select(.name == \"$_NAME\") | .error.message"
+  az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -r --arg name "$_NAME" '.[] | select(.name == $name) | .error.message'
 }
 # output expiration date to GitHub Actions output
 function github_output {

@@ -95,7 +95,7 @@ function list {
 function show_error_outputs {
   local n=$1
   az devcenter dev environment show-outputs --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" | jq -r ".outputs"
-  az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -r ".[] | select(.name == \"$n\") | .error"
+  az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -r --arg name "$n" '.[] | select(.name == $name) | .error'
 }
 # output expiration date to GitHub Actions output
 function github_output() {
