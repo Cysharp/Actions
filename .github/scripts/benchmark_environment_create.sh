@@ -49,7 +49,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-function print() {
+function print {
   echo "$*"
 }
 function debug {

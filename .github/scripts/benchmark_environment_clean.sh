@@ -43,10 +43,10 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-function print() {
+function print {
   echo "$*"
 }
-function debug() {
+function debug {
   if [[ "${_DEBUG}" == "true" ]]; then
     echo "DEBUG: $*"
   fi
@@ -69,27 +69,30 @@ function redeploy {
   github_output
 }
 # delete environment
-function delete() {
+function delete {
   local n=$1
   $dryrun az devcenter dev environment delete --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" --yes --no-wait
 }
 # extend environment expiration date to requested time
-function extend() {
+function extend {
   local n=$1
   $dryrun az devcenter dev environment update-expiration-date --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" --expiration "$new_expiration_time"
   output_expiration=$new_expiration_time
   github_output
 }
 # list environment
-function list() {
+function list {
+  local current_time_utc_epoch
+  current_time_utc_epoch=$(date -u +"%s")
   if [[ "${_STATE}" == "All" ]]; then
     az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c ".[]"
   else
-    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c ".[] | select(.provisioningState == \"${_STATE}\")"
+    # expirationDate(2024-09-18T04:00:00+00:00表記)が現在時刻よりも過去のものはprovisioningStateに関わらず削除対象とする、またprovisioningStateが_STATEのものはexpirationDateに関わらず削除対象とする
+    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c --arg current_time_utc_epoch "$current_time_utc_epoch" --arg state "$_STATE" '.[] | select((.expirationDate | strptime("%Y-%m-%dT%H:%M:%S%z") | mktime) < ($current_time_utc_epoch | tonumber) or .provisioningState == $state)'
   fi
 }
 # show environment error detail
-function show_error_outputs() {
+function show_error_outputs {
   local n=$1
   az devcenter dev environment show-outputs --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" | jq -r ".outputs"
   az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -r ".[] | select(.name == \"$n\") | .error"
@@ -116,7 +119,7 @@ if [[ "$_DRYRUN" == "true" ]]; then
   dryrun="echo (dryrun) "
 fi
 
-print "Checking Failed environments are exists or not."
+print "Checking ${_STATE} environments are exists or not."
 readarray -t jsons < <(list)
 
 if [[ "${#jsons[@]}" == "0" ]]; then
@@ -132,11 +135,11 @@ for environment in "${jsons[@]}"; do
 
   case "$provisioningState" in
     "Failed")
-      print "! $name status is $provisioningState, showing error reason..."
+      print "! $name status is $provisioningState, mark as delete target and showing error reason..."
       show_error_outputs "$name"
 
       if [[ "${_TRYREDEPLOY}" == "true" ]]; then
-        print "! $name try redeploying..."
+        print "! $name try redeploying before delete..."
         reset_expiration_date "12"
         extend "$name"
         if redeploy "$name"; then
@@ -151,11 +154,11 @@ for environment in "${jsons[@]}"; do
       continue
       ;;
     *)
-      print "$name status is $provisioningState, deleting..."
+      print "$name status is $provisioningState, mark as delete target..."
       ;;
   esac
 
-  print "! $name set expire and delete existing..."
+  print "! $name set expire and begin deletion..."
   reset_expiration_date "1"
   extend "$name"
   delete "$name"
