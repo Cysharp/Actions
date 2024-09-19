@@ -197,7 +197,12 @@ jobs:
           sleep 5s
           actual=$(gh api --paginate /repos/${{ github.repository }}/releases?per_page=100 --jq '.[] | select(.tag_name == "${{ inputs.tag }}") | .name')
           expected="${{ format(inputs.release-format, inputs.tag) }}"
-          if [[ "$actual" != "$expected" ]]; then echo "Release name is not as expected. expected: $expected, actual: $actual"; exit 1; fi
+          if [[ "$actual" != "$expected" ]]; then
+            echo "Release name is not as expected. expected: $expected, actual: $actual"
+            exit 1
+          else
+            echo "Release name is expected! expected: $expected, actual: $actual"
+          fi
       - name: Upload asset files to release
         run: |
           while read -r asset_path; do
