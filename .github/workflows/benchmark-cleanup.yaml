@@ -4,6 +4,17 @@ on:
   schedule:
     - cron: "0 * * * *" # Every hour
   workflow_call:
+    inputs:
+      state:
+        description: "state: Deletion target benchmark state. Despite of state, expired benchmark environments are always deleted."
+        required: false
+        default: "Failed" # default should be 'Failed' for workflow_call, safe guard.
+        type: string
+      try-redeploy:
+        description: "try-redeploy: Try Redeploy before deletion only if scheduled"
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       state:
@@ -17,7 +28,7 @@ on:
           - All
       try-redeploy:
         description: "try-redeploy: Try Redeploy before deletion only if scheduled"
-        required: true
+        required: false
         default: false
         type: boolean
 
