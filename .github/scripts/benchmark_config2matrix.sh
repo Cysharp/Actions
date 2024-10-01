@@ -44,6 +44,16 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+function print {
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): $*"
+}
+function title {
+  echo ""
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): # $*"
+}
+function error {
+  echo "$*" >&2
+}
 function extract_placeholders {
   local template_string=$1
   echo "$template_string" | grep -oP '{{\s*\K\w+(?=\s*}})'
@@ -57,18 +67,18 @@ function is_number {
   fi
 }
 
-echo "Arguments:" >&2
-echo "  --benchmark-config-path=${_BENCHMARK_CONFIG_FILE}"
+title "Arguments:"
+print "  --benchmark-config-path=${_BENCHMARK_CONFIG_FILE}"
 
-echo "Config:" >&2
-echo "  dotnet_version_key=${dotnet_version_key:=.dotnet-version}"
-echo "  benchmark_timeout_min_key=${benchmark_timeout_min_key:=.benchmark-timeout-min}"
-echo "  benchmark_expire_min_key=${benchmark_expire_min_key:=.benchmark-expire-min}"
-echo "  benchmark_client_run_script_path_key=${benchmark_client_run_script_path_key:=.benchmark-client-run-script-path}"
-echo "  benchmark_server_run_script_path_key=${benchmark_server_run_script_path_key:=.benchmark-server-run-script-path}"
-echo "  benchmark_server_stop_script_path_key=${benchmark_server_stop_script_path_key:=.benchmark-server-stop-script-path}"
-echo "  benchmark_client_run_script_args_key=${benchmark_client_run_script_args_key:=.benchmark-client-run-script-args}"
-echo "  benchmark_server_run_script_args_key=${benchmark_server_run_script_args_key:=.benchmark-server-run-script-args}"
+title "Constants:"
+print "  * dotnet_version_key=${dotnet_version_key:=.dotnet-version}"
+print "  * benchmark_timeout_min_key=${benchmark_timeout_min_key:=.benchmark-timeout-min}"
+print "  * benchmark_expire_min_key=${benchmark_expire_min_key:=.benchmark-expire-min}"
+print "  * benchmark_client_run_script_path_key=${benchmark_client_run_script_path_key:=.benchmark-client-run-script-path}"
+print "  * benchmark_server_run_script_path_key=${benchmark_server_run_script_path_key:=.benchmark-server-run-script-path}"
+print "  * benchmark_server_stop_script_path_key=${benchmark_server_stop_script_path_key:=.benchmark-server-stop-script-path}"
+print "  * benchmark_client_run_script_args_key=${benchmark_client_run_script_args_key:=.benchmark-client-run-script-args}"
+print "  * benchmark_server_run_script_args_key=${benchmark_server_run_script_args_key:=.benchmark-server-run-script-args}"
 
 general_json_elements=()
 matrix_includes_json_array="["
@@ -80,7 +90,7 @@ if [[ "${CI:-""}" == "" ]]; then
 fi
 
 if [[ ! -f "${_BENCHMARK_CONFIG_FILE}" ]]; then
-  echo "File not found: ${_BENCHMARK_CONFIG_FILE}" >&2
+  error "File not found: ${_BENCHMARK_CONFIG_FILE}"
   exit 1
 fi
 
@@ -117,14 +127,14 @@ for job in "${filtered_jobs[@]}"; do
     template_string=$(yq "$template_string_key" "$_BENCHMARK_CONFIG_FILE")
 
     if [[ "$template_string" == "" || "$template_string" == "null" ]]; then
-      echo "Specified yaml not contains $template_string_key" >&2
+      error "Specified yaml not contains $template_string_key"
       exit 1
     fi
 
 
     # check if any matching jobs found
     if [ -z "$filtered_jobs" ]; then
-        echo "No matching job found for $_MATCH_JOB" >&2
+        error "No matching job found for $_MATCH_JOB"
         exit 1
     fi
 
@@ -158,4 +168,5 @@ matrix_includes_json_array+=']'
 json_output=$(jq -c -n --argjson matrix_includes "$matrix_includes_json_array" '{
   include: $matrix_includes
 }')
+
 echo "matrix=$json_output" | tee -a "$GITHUB_OUTPUT"

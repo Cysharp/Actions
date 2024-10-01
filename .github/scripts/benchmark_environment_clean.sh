@@ -22,9 +22,9 @@ Options:
 
 Examples:
   1. Dryrun clean up Benchmark Environment
-      bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --state Failed --dry-run true
+      $ bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --state Failed --dry-run true
   3. Clean up Benchmark Environment
-      bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --state Failed --dry-run false
+      $ bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --state Failed --dry-run false
 EOF
 }
 
@@ -44,7 +44,11 @@ while [ $# -gt 0 ]; do
 done
 
 function print {
-  echo "$*"
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): $*"
+}
+function title {
+  echo ""
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): # $*"
 }
 function debug {
   if [[ "${_DEBUG}" == "true" ]]; then
@@ -99,12 +103,10 @@ function show_error_outputs {
 }
 # output expiration date to GitHub Actions output
 function github_output() {
-  if [[ "${CI:=""}" != "" ]]; then
-    echo "expiration=$output_expiration" | tee -a "$GITHUB_OUTPUT"
-  fi
+  echo "expiration=$output_expiration" | tee -a "$GITHUB_OUTPUT"
 }
 
-print "Arguments: "
+title "Arguments:"
 print "  --dev-center-name=${_DEVCENTER_NAME}"
 print "  --project-name=${_PROJECT_NAME}"
 print "  --state=${_STATE:="Failed"}"
@@ -119,7 +121,11 @@ if [[ "$_DRYRUN" == "true" ]]; then
   dryrun="echo (dryrun) "
 fi
 
-print "Checking ${_STATE} environments are exists or not."
+if [[ "${CI:-""}" == "" ]]; then
+  GITHUB_OUTPUT="/dev/null"
+fi
+
+title "Checking ${_STATE} environments are exists or not."
 readarray -t jsons < <(list)
 
 if [[ "${#jsons[@]}" == "0" ]]; then
@@ -128,7 +134,7 @@ if [[ "${#jsons[@]}" == "0" ]]; then
 fi
 
 # delete
-print "Deployment environments are found, try deleting each..."
+title "Deployment environments are found, try deleting each..."
 for environment in "${jsons[@]}"; do
   provisioningState=$(echo "$environment" | jq -r ".provisioningState")
   name=$(echo "$environment" | jq -r ".name")
