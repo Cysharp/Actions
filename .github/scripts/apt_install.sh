@@ -32,11 +32,11 @@ while [ $# -gt 0 ]; do
 done
 
 function print {
-  echo "$*"
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): $*"
 }
 function title {
   echo ""
-  echo "# $*"
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): # $*"
 }
 
 # parameter setup

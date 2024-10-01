@@ -45,14 +45,14 @@ while [ $# -gt 0 ]; do
 done
 
 function print {
-  echo "$*"
-}
-function error {
-  echo "$*" >&2
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): $*"
 }
 function title {
   echo ""
-  echo "# $*"
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): # $*"
+}
+function error {
+  echo "$*" >&2
 }
 function extract_placeholders {
   local template_string=$1
