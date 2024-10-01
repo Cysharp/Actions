@@ -8,27 +8,29 @@ set -euo pipefail
 #
 
 function usage {
-    echo "usage: $(basename $0) [options]"
-    echo "Required:"
-    echo "  --catalog-name                string The name of the catalog."
-    echo "  --dev-center-name             string The name of the dev center."
-    echo "  --environment-definition-name string The name of the environment definition."
-    echo "  --environment-type            string The type of the environment."
-    echo "  --name                        string The name of the environment."
-    echo "  --project-name                string The name of the project."
-    echo "Options:"
-    echo "  --expire-min                     int    The number of minutes until the environment expires. (default: 15)"
-    echo "  --debug                       bool   Show debug output pr not. (default: false)"
-    echo "  --dry-run                     bool   Show the command that would be run, but do not run it. (default: true)"
-    echo "  --help                               Show this help message"
-    echo ""
-    echo "Examples:"
-    echo "  1. Dryrun create Benchmark Environment name foobar"
-    echo "     bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'dve' --expire-min 15 --dry-run true"
-    echo "  2. Dryrun create Benchmark Environment name foobar, with debug output"
-    echo "     bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'dve' --expire-min 15 --dry-run true --debug true"
-    echo "  3. Create Benchmark Environment name foobar"
-    echo "     bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'dve' --expire-min 15 --dry-run false"
+  cat <<EOF
+usage: $(basename $0) [options]
+Required:
+  --catalog-name                string The name of the catalog.
+  --dev-center-name             string The name of the dev center.
+  --environment-definition-name string The name of the environment definition.
+  --environment-type            string The type of the environment.
+  --name                        string The name of the environment.
+  --project-name                string The name of the project.
+Options:
+  --expire-min                     int    The number of minutes until the environment expires. (default: 15)
+  --debug                       bool   Show debug output pr not. (default: false)
+  --dry-run                     bool   Show the command that would be run, but do not run it. (default: true)
+  --help                               Show this help message
+
+Examples:
+1. Dryrun create Benchmark Environment name foobar
+   $ bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'dve' --expire-min 15 --dry-run true
+2. Dryrun create Benchmark Environment name foobar, with debug output
+    $ bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'dve' --expire-min 15 --dry-run true --debug true
+3. Create Benchmark Environment name foobar
+   $ bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'dve' --expire-min 15 --dry-run false
+EOF
 }
 
 while [ $# -gt 0 ]; do

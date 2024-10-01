@@ -22,9 +22,9 @@ Options:
 
 Examples:
   1. Dryrun clean up Benchmark Environment
-      bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --state Failed --dry-run true
+      $ bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --state Failed --dry-run true
   3. Clean up Benchmark Environment
-      bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --state Failed --dry-run false
+      $ bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --state Failed --dry-run false
 EOF
 }
 
@@ -45,6 +45,10 @@ done
 
 function print {
   echo "$*"
+}
+function title {
+  echo ""
+  echo "# $*"
 }
 function debug {
   if [[ "${_DEBUG}" == "true" ]]; then
@@ -104,7 +108,7 @@ function github_output() {
   fi
 }
 
-print "Arguments: "
+title "Arguments:"
 print "  --dev-center-name=${_DEVCENTER_NAME}"
 print "  --project-name=${_PROJECT_NAME}"
 print "  --state=${_STATE:="Failed"}"
@@ -119,7 +123,7 @@ if [[ "$_DRYRUN" == "true" ]]; then
   dryrun="echo (dryrun) "
 fi
 
-print "Checking ${_STATE} environments are exists or not."
+title "Checking ${_STATE} environments are exists or not."
 readarray -t jsons < <(list)
 
 if [[ "${#jsons[@]}" == "0" ]]; then
@@ -128,7 +132,7 @@ if [[ "${#jsons[@]}" == "0" ]]; then
 fi
 
 # delete
-print "Deployment environments are found, try deleting each..."
+title "Deployment environments are found, try deleting each..."
 for environment in "${jsons[@]}"; do
   provisioningState=$(echo "$environment" | jq -r ".provisioningState")
   name=$(echo "$environment" | jq -r ".name")

@@ -10,15 +10,17 @@ set -euo pipefail
 #
 
 function usage {
-    echo "usage: $(basename $0) [options]"
-    echo "Options:"
-    echo "  --dotnet-version string  Version of dotnet sdk to install (default: 8.0)"
-    echo "  --help                   Show this help message"
-    echo ""
-    echo "Examples:"
-    echo "  1. Install dotnet sdk version 8.0 over ssh"
-    echo "    ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@255.255.255.255 'bash -s -- --dotnet-version 8.0' < ./scripts/$(basename $0).sh"
-    echo '    echo $? # use $? to get the exit code of the remote command'
+  cat <<EOF
+usage: $(basename $0) [options]
+Options:
+  --dotnet-version string  Version of dotnet sdk to install (default: 8.0)
+  --help                   Show this help message
+
+Examples:
+  1. Install dotnet sdk version 8.0 over ssh
+    $ ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@255.255.255.255 'bash -s -- --dotnet-version 8.0' < ./scripts/$(basename $0).sh
+    $ echo \$?             # <- use \$? to get the exit code of the remote command
+EOF
 }
 
 while [ $# -gt 0 ]; do
@@ -30,27 +32,32 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-function print() {
-  echo ""
+function print {
   echo "$*"
 }
+function title {
+  echo ""
+  echo "# $*"
+}
 
-dotnet_version="${_DOTNET_VERSION:="8.0"}"
+# parameter setup
+title "Arguments:"
+print "--dotnet-version=${_DOTNET_VERSION:="8.0"}"
 
-# show machine name
-print "MACHINE_NAME: $(hostname)"
+title "Constants:"
+print "  * MACHINE_NAME=$(hostname)"
 
 # install dotnet (dotnet-install.sh must be downloaded before running script)
-print "# Install dotnet sdk version: ${dotnet_version}"
-sudo bash /opt/dotnet-install.sh --channel "${dotnet_version}" --install-dir /usr/share/dotnet
+title "Install dotnet sdk version: ${_DOTNET_VERSION}"
+sudo bash /opt/dotnet-install.sh --channel "${_DOTNET_VERSION}" --install-dir /usr/share/dotnet
 
 # link dotnet to /usr/local/bin
-print "# Link to /usr/local/bin/dotnet"
+title "Link to /usr/local/bin/dotnet"
 if [[ ! -h "/usr/local/bin/dotnet" ]]; then
   sudo ln -s /usr/share/dotnet/dotnet /usr/local/bin/dotnet
 fi
 
 # show dotnet verison
-print "# Show installed dotnet sdk versions"
-echo "dotnet sdk versions (list): $(dotnet --list-sdks)"
-echo "dotnet sdk version (default): $(dotnet --version)"
+title "Show installed dotnet sdk versions"
+print "dotnet sdk versions (list): $(dotnet --list-sdks)"
+print "dotnet sdk version (default): $(dotnet --version)"
