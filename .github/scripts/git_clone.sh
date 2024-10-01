@@ -49,7 +49,7 @@ print "  --owner=${_OWNER:="Cysharp"}"
 print "  --repo=${_REPO}"
 print "  --branch=${_BRANCH:="main"}"
 
-clone_path="$HOME/github/$_REPO"
+readonly clone_path="$HOME/github/$_REPO"
 title "Constants:"
 print "  * clone_path=${clone_path}"
 print "  * MACHINE_NAME=$(hostname)"

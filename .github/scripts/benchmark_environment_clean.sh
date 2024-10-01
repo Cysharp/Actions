@@ -103,9 +103,7 @@ function show_error_outputs {
 }
 # output expiration date to GitHub Actions output
 function github_output() {
-  if [[ "${CI:=""}" != "" ]]; then
-    echo "expiration=$output_expiration" | tee -a "$GITHUB_OUTPUT"
-  fi
+  echo "expiration=$output_expiration" | tee -a "$GITHUB_OUTPUT"
 }
 
 title "Arguments:"
@@ -121,6 +119,10 @@ enable_debug_mode
 dryrun=""
 if [[ "$_DRYRUN" == "true" ]]; then
   dryrun="echo (dryrun) "
+fi
+
+if [[ "${CI:-""}" == "" ]]; then
+  GITHUB_OUTPUT="/dev/null"
 fi
 
 title "Checking ${_STATE} environments are exists or not."

@@ -54,6 +54,10 @@ done
 function print {
   echo "$*"
 }
+function title {
+  echo ""
+  echo "# $*"
+}
 function debug {
   if [[ "${_DEBUG}" == "true" ]]; then
     echo "DEBUG: $*"
@@ -104,9 +108,7 @@ function show_error_outputs {
 }
 # output expiration date to GitHub Actions output
 function github_output {
-  if [[ "${CI:=""}" != "" ]]; then
-    echo "expiration=$new_expiration_time" | tee -a "$GITHUB_OUTPUT"
-  fi
+  echo "expiration=$new_expiration_time" | tee -a "$GITHUB_OUTPUT"
 }
 function main {
   print "Checking $_NAME is already exists or not."
@@ -265,7 +267,7 @@ function main {
   esac
 }
 
-print "Arguments: "
+title "Arguments: "
 print "  --catalog-name=${_CATALOG_NAME}"
 print "  --dev-center-name=${_DEVCENTER_NAME}"
 print "  --environment-definition-name=${_ENVIRONMENT_DEFINITION_NAME}"
@@ -276,8 +278,11 @@ print "  --expire-min=${_MINUTES:=20}"
 print "  --debug=${_DEBUG:=false}"
 print "  --dry-run=${_DRYRUN:=true}"
 
-create_timeout=15
-delete_timeout=10
+readonly create_timeout=15
+readonly delete_timeout=10
+title "Constants:"
+print "  * create_timeout=${create_timeout}"
+print "  * delete_timeout=${delete_timeout}"
 
 enable_debug_mode
 
@@ -286,4 +291,9 @@ if [[ "$_DRYRUN" == "true" ]]; then
   dryrun="echo (dryrun) "
 fi
 
+if [[ "${CI:-""}" == "" ]]; then
+  GITHUB_OUTPUT="/dev/null"
+fi
+
+title "Creating Benchmark Environment $_NAME"
 main
