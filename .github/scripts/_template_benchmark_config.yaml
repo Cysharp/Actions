@@ -1,3 +1,4 @@
+apt-tools: libmsquic
 dotnet-version: 8.0
 benchmark-expire-min: 15
 benchmark-timeout-min: 10
