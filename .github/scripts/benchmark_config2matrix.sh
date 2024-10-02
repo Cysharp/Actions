@@ -24,6 +24,7 @@ set -euo pipefail
 # #########################
 # ### output arg sample ###
 # #########################
+# apt-tools=libmsquic
 # dotnet-version=8.0
 # benchmark-expire-min=15
 # benchmark-timeout-min=10
@@ -71,6 +72,7 @@ title "Arguments:"
 print "  --benchmark-config-path=${_BENCHMARK_CONFIG_FILE}"
 
 title "Constants:"
+print "  * apt_tools_key=${apt_tools_key:=.apt-tools}"
 print "  * dotnet_version_key=${dotnet_version_key:=.dotnet-version}"
 print "  * benchmark_timeout_min_key=${benchmark_timeout_min_key:=.benchmark-timeout-min}"
 print "  * benchmark_expire_min_key=${benchmark_expire_min_key:=.benchmark-expire-min}"
@@ -82,7 +84,15 @@ print "  * benchmark_server_run_script_args_key=${benchmark_server_run_script_ar
 
 general_json_elements=()
 matrix_includes_json_array="["
-general_keys=("$dotnet_version_key" "$benchmark_timeout_min_key" "$benchmark_expire_min_key" "$benchmark_client_run_script_path_key" "$benchmark_server_run_script_path_key" "$benchmark_server_stop_script_path_key")
+general_keys=(
+  "$apt_tools_key"
+  "$dotnet_version_key"
+  "$benchmark_timeout_min_key"
+  "$benchmark_expire_min_key"
+  "$benchmark_client_run_script_path_key"
+  "$benchmark_server_run_script_path_key"
+  "$benchmark_server_stop_script_path_key"
+)
 template_string_keys=("$benchmark_client_run_script_args_key" "$benchmark_server_run_script_args_key")
 
 if [[ "${CI:-""}" == "" ]]; then
