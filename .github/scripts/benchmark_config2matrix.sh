@@ -71,30 +71,6 @@ function is_number {
 title "Arguments:"
 print "  --benchmark-config-path=${_BENCHMARK_CONFIG_FILE}"
 
-title "Constants:"
-print "  * apt_tools_key=${apt_tools_key:=.apt-tools}"
-print "  * dotnet_version_key=${dotnet_version_key:=.dotnet-version}"
-print "  * benchmark_timeout_min_key=${benchmark_timeout_min_key:=.benchmark-timeout-min}"
-print "  * benchmark_expire_min_key=${benchmark_expire_min_key:=.benchmark-expire-min}"
-print "  * benchmark_client_run_script_path_key=${benchmark_client_run_script_path_key:=.benchmark-client-run-script-path}"
-print "  * benchmark_server_run_script_path_key=${benchmark_server_run_script_path_key:=.benchmark-server-run-script-path}"
-print "  * benchmark_server_stop_script_path_key=${benchmark_server_stop_script_path_key:=.benchmark-server-stop-script-path}"
-print "  * benchmark_client_run_script_args_key=${benchmark_client_run_script_args_key:=.benchmark-client-run-script-args}"
-print "  * benchmark_server_run_script_args_key=${benchmark_server_run_script_args_key:=.benchmark-server-run-script-args}"
-
-general_json_elements=()
-matrix_includes_json_array="["
-general_keys=(
-  "$apt_tools_key"
-  "$dotnet_version_key"
-  "$benchmark_timeout_min_key"
-  "$benchmark_expire_min_key"
-  "$benchmark_client_run_script_path_key"
-  "$benchmark_server_run_script_path_key"
-  "$benchmark_server_stop_script_path_key"
-)
-template_string_keys=("$benchmark_client_run_script_args_key" "$benchmark_server_run_script_args_key")
-
 if [[ "${CI:-""}" == "" ]]; then
   GITHUB_OUTPUT="/dev/null"
 fi
@@ -104,17 +80,23 @@ if [[ ! -f "${_BENCHMARK_CONFIG_FILE}" ]]; then
   exit 1
 fi
 
-# Handle general values
+title "Preparing keys to handle"
+general_json_elements=()
+matrix_includes_json_array="["
+keys_json=$(yq -o json eval 'keys | map(select(. != "jobs"))' "$_BENCHMARK_CONFIG_FILE" | jq -c)
+general_keys=($(echo "$keys_json" | jq -r '.[] | select(. | endswith("run-script-args") | not)'))
+template_string_keys=($(echo "$keys_json" | jq -r '.[] | select(. | endswith("run-script-args"))'))
+
+title "Handle general values"
 for general_key in "${general_keys[@]}"; do
-  obtained_value=$(yq eval "$general_key" "$_BENCHMARK_CONFIG_FILE")
-  k=${general_key/\./}
-  echo "${k}=$obtained_value" | tee -a "$GITHUB_OUTPUT"
+  obtained_value=$(yq eval ".$general_key" "$_BENCHMARK_CONFIG_FILE")
+  print "${general_key}=$obtained_value"
   if [[ "$(is_number "$obtained_value")" == "1" ]]; then
-    general_json=$(jq -c -n --arg key "$k" --argjson value "$obtained_value" '{
+    general_json=$(jq -c -n --arg key "$general_key" --argjson value "$obtained_value" '{
       ($key): $value
     }')
   else
-    general_json=$(jq -c -n --arg key "$k" --arg value "$obtained_value" '{
+    general_json=$(jq -c -n --arg key "$general_key" --arg value "$obtained_value" '{
       ($key): $value
     }')
   fi
@@ -122,25 +104,24 @@ for general_key in "${general_keys[@]}"; do
   general_json_elements+=("$general_json")
 done
 
-# find job to proceed
+title "Find job to proceed"
 jobs_json=$(yq eval -o=json '.jobs' "$_BENCHMARK_CONFIG_FILE")
 filtered_jobs=($(echo "$jobs_json" | jq -c '.[]'))
 
-# handle filter job
+title "Handle filter job to get server/client args by job"
 for job in "${filtered_jobs[@]}"; do
   json_elements=()
   args_json_elements=()
 
-  # Handle server / client args by job
+  # Get server / client args by job
   for template_string_key in "${template_string_keys[@]}"; do
     # find template string key
-    template_string=$(yq "$template_string_key" "$_BENCHMARK_CONFIG_FILE")
+    template_string=$(yq ".$template_string_key" "$_BENCHMARK_CONFIG_FILE")
 
     if [[ "$template_string" == "" || "$template_string" == "null" ]]; then
       error "Specified yaml not contains $template_string_key"
       exit 1
     fi
-
 
     # check if any matching jobs found
     if [ -z "$filtered_jobs" ]; then
@@ -161,9 +142,8 @@ for job in "${filtered_jobs[@]}"; do
         assembled_string=$(echo "$assembled_string" | sed -e "s/{{\s*$key\s*}}/$value/g")
       done
 
-      k=${template_string_key/\./}
-      echo "${k}=$assembled_string" | tee -a "$GITHUB_OUTPUT"
-      args_json=$(jq -c -n --arg key "$k" --arg value "$assembled_string" '{
+      print "${template_string_key}=$assembled_string"
+      args_json=$(jq -c -n --arg key "$template_string_key" --arg value "$assembled_string" '{
         ($key): $value
       }')
       args_json_elements+=("$args_json")
@@ -173,10 +153,15 @@ for job in "${filtered_jobs[@]}"; do
   matrix_includes_json_array+=","
 done
 
+title "Output Matrix json"
 matrix_includes_json_array="${matrix_includes_json_array%,}"
 matrix_includes_json_array+=']'
 json_output=$(jq -c -n --argjson matrix_includes "$matrix_includes_json_array" '{
   include: $matrix_includes
 }')
 
+print "Pretty print Matrix json for debug"
+echo "$json_output" | jq
+
+print "Output for GITHUB_OUTPUT"
 echo "matrix=$json_output" | tee -a "$GITHUB_OUTPUT"
