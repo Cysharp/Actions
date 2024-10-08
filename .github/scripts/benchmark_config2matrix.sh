@@ -24,18 +24,29 @@ set -euo pipefail
 # #########################
 # ### output arg sample ###
 # #########################
-# apt-tools=libmsquic
-# dotnet-version=8.0
-# benchmark-expire-min=15
-# benchmark-timeout-min=10
-# benchmark-client-run-script-path=.github/scripts/benchmark-client-run.sh
-# benchmark-server-run-script-path=.github/scripts/benchmark-server-run.sh
-# benchmark-server-stop-script-path=.github/scripts/benchmark-server-stop.sh
-# benchmark-client-run-script-args=--args "-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 8 --channels 28 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c"
-# benchmark-server-run-script-args=--args "-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c"
-# benchmark-client-run-script-args=--args "-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 8 --channels 1 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c"
-# benchmark-server-run-script-args=--args "-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c"
-# matrix={"include":[{"dotnet-version":"8.0","benchmark-expire-min":"10","benchmark-client-run-script-path":".github/scripts/benchmark-client-run.sh","benchmark-server-run-script-path":".github/scripts/benchmark-server-run.sh","benchmark-server-stop-script-path":".github/scripts/benchmark-server-stop.sh","benchmark-client-run-script-args":"--args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 8 --channels 28 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\"","benchmark-server-run-script-args":"--args \"-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\""},{"dotnet-version":"8.0","benchmark-expire-min":"10","benchmark-client-run-script-path":".github/scripts/benchmark-client-run.sh","benchmark-server-run-script-path":".github/scripts/benchmark-server-run.sh","benchmark-server-stop-script-path":".github/scripts/benchmark-server-stop.sh","benchmark-client-run-script-args":"--args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 8 --channels 1 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c\"","benchmark-server-run-script-args":"--args \"-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c\""}]}
+# 2024-10-08 16:31:35 INFO(main): # Arguments:
+# 2024-10-08 16:31:35 INFO(main):   --benchmark-config-path=.github/scripts/_template_benchmark_config.yaml
+
+# 2024-10-08 16:31:35 INFO(main): # Gathering config keys
+
+# 2024-10-08 16:31:36 INFO(main): # Scan config and obtain json elements (General keys)
+# 2024-10-08 16:31:36 INFO(main): apt-tools=libmsquic
+# 2024-10-08 16:31:36 INFO(main): dotnet-version=8.0
+# 2024-10-08 16:31:36 INFO(main): benchmark-expire-min=15
+# 2024-10-08 16:31:36 INFO(main): benchmark-timeout-min=10
+# 2024-10-08 16:31:36 INFO(main): benchmark-client-run-script-path=.github/scripts/benchmark-client-run.sh
+# 2024-10-08 16:31:36 INFO(main): benchmark-server-run-script-path=.github/scripts/benchmark-server-run.sh
+# 2024-10-08 16:31:36 INFO(main): benchmark-server-stop-script-path=.github/scripts/benchmark-server-stop.sh
+
+# 2024-10-08 16:31:37 INFO(main): # Reflect the values defined in jobs into the placeholders for xxxx-run-script-args.
+# 2024-10-08 16:31:37 INFO(main): benchmark-client-run-script-args=--args "-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 28 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c"
+# 2024-10-08 16:31:37 INFO(main): benchmark-server-run-script-args=--args "-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c"
+# 2024-10-08 16:31:37 INFO(main): benchmark-client-run-script-args=--args "-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 1 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c"
+# 2024-10-08 16:31:37 INFO(main): benchmark-server-run-script-args=--args "-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c"
+
+# 2024-10-08 16:31:37 INFO(main): # Output Matrix json
+# 2024-10-08 16:31:37 INFO(main): Output for GITHUB_OUTPUT
+# matrix={"include":[{"apt-tools":"libmsquic","dotnet-version":"8.0","benchmark-expire-min":15,"benchmark-timeout-min":10,"benchmark-client-run-script-path":".github/scripts/benchmark-client-run.sh","benchmark-server-run-script-path":".github/scripts/benchmark-server-run.sh","benchmark-server-stop-script-path":".github/scripts/benchmark-server-stop.sh","benchmark-client-run-script-args":"--args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 28 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\"","benchmark-server-run-script-args":"--args \"-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\""},{"apt-tools":"libmsquic","dotnet-version":"8.0","benchmark-expire-min":15,"benchmark-timeout-min":10,"benchmark-client-run-script-path":".github/scripts/benchmark-client-run.sh","benchmark-server-run-script-path":".github/scripts/benchmark-server-run.sh","benchmark-server-stop-script-path":".github/scripts/benchmark-server-stop.sh","benchmark-client-run-script-args":"--args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 1 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c\"","benchmark-server-run-script-args":"--args \"-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c\""}]}
 
 while [ $# -gt 0 ]; do
   case $1 in
@@ -80,14 +91,14 @@ if [[ ! -f "${_BENCHMARK_CONFIG_FILE}" ]]; then
   exit 1
 fi
 
-title "Preparing keys to handle"
+title "Gathering config keys"
 general_json_elements=()
 matrix_includes_json_array="["
 keys_json=$(yq -o json eval 'keys | map(select(. != "jobs"))' "$_BENCHMARK_CONFIG_FILE" | jq -c)
-general_keys=($(echo "$keys_json" | jq -r '.[] | select(. | endswith("run-script-args") | not)'))
-template_string_keys=($(echo "$keys_json" | jq -r '.[] | select(. | endswith("run-script-args"))'))
+mapfile -t general_keys < <(echo "$keys_json" | jq -r '.[] | select(. | endswith("run-script-args") | not)')
+mapfile -t template_string_keys < <(echo "$keys_json" | jq -r '.[] | select(. | endswith("run-script-args"))')
 
-title "Handle general values"
+title "Scan config and obtain json elements (General keys)"
 for general_key in "${general_keys[@]}"; do
   obtained_value=$(yq eval ".$general_key" "$_BENCHMARK_CONFIG_FILE")
   print "${general_key}=$obtained_value"
@@ -104,11 +115,11 @@ for general_key in "${general_keys[@]}"; do
   general_json_elements+=("$general_json")
 done
 
-title "Find job to proceed"
+# Find job to proceed
 jobs_json=$(yq eval -o=json '.jobs' "$_BENCHMARK_CONFIG_FILE")
-filtered_jobs=($(echo "$jobs_json" | jq -c '.[]'))
+mapfile -t filtered_jobs < <(echo "$jobs_json" | jq -c '.[]')
 
-title "Handle filter job to get server/client args by job"
+title "Reflect the values defined in jobs into the placeholders for xxxx-run-script-args."
 for job in "${filtered_jobs[@]}"; do
   json_elements=()
   args_json_elements=()
@@ -124,29 +135,29 @@ for job in "${filtered_jobs[@]}"; do
     fi
 
     # check if any matching jobs found
-    if [ -z "$filtered_jobs" ]; then
+    if [[ -z "$filtered_jobs" ]]; then
         error "No matching job found for $_MATCH_JOB"
         exit 1
     fi
 
-      # initialize assembled string
-      assembled_string="$template_string"
+    # initialize assembled string
+    assembled_string="$template_string"
 
-      # extract placeholders from the template string
-      placeholders=$(extract_placeholders "$template_string")
+    # extract placeholders from the template string
+    placeholders=$(extract_placeholders "$template_string")
 
-      # extract values from the job, then replace the placeholder with the value
-      # {{ foo }} will be replaced with the value of the key "foo" in the job
-      for key in $placeholders; do
-        value=$(echo "$job" | jq -r --arg key "$key" '.[$key]')
-        assembled_string=$(echo "$assembled_string" | sed -e "s/{{\s*$key\s*}}/$value/g")
-      done
+    # extract values from the job, then replace the placeholder with the value
+    # {{ foo }} will be replaced with the value of the key "foo" in the job
+    for key in $placeholders; do
+      value=$(echo "$job" | jq -r --arg key "$key" '.[$key]')
+      assembled_string=$(echo "$assembled_string" | sed -e "s/{{\s*$key\s*}}/$value/g")
+    done
 
-      print "${template_string_key}=$assembled_string"
-      args_json=$(jq -c -n --arg key "$template_string_key" --arg value "$assembled_string" '{
-        ($key): $value
-      }')
-      args_json_elements+=("$args_json")
+    print "${template_string_key}=$assembled_string"
+    args_json=$(jq -c -n --arg key "$template_string_key" --arg value "$assembled_string" '{
+      ($key): $value
+    }')
+    args_json_elements+=("$args_json")
   done
   json_elements=("${general_json_elements[@]}" "${args_json_elements[@]}")
   matrix_includes_json_array+=$(jq -c -s add <<< "${json_elements[@]}")
