@@ -20,7 +20,7 @@ set -euo pipefail
 # #########################
 # ### input sample      ###
 # #########################
-# bash .github/scripts/benchmark_config2matrix.sh --benchmark-config-path ".github/scripts/_template_benchmark_config.yaml"
+# bash .github/scripts/benchmark_config2matrix.sh --benchmark-config-path ".github/scripts/test/template_benchmark_config.yaml"
 #
 # #########################
 # ### output sample ###
