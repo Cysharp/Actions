@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run benchmark_config2matrix
         id: result
-        run: bash ./.github/scripts/benchmark_config2matrix.sh --benchmark-config-path ./.github/scripts/test/template_benchmark_config.yaml
+        run: bash ./.github/scripts/benchmark_config2matrix.sh --benchmark-config-path ./.github/scripts/tests/template_benchmark_config.yaml
       - name: Test
         run: |
           echo "DEBUG: output: ${{ steps.result.outputs.matrix }}"
