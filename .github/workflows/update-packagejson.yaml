@@ -157,7 +157,7 @@ jobs:
           if [[ "${{ steps.check_update.outputs.changed }}" == "1" ]]; then
             git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git config --local user.name "github-actions[bot]"
-            git commit -m "feat: Update package.json to ${{ inputs.tag }}" -a
+            git commit -m "feat: Update package.json to ${{ inputs.tag }}" -m "Commit by [GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" -a
             echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
             echo "is-branch-created=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
           elif [[ "${{ inputs.ref }}" != "" ]]; then
