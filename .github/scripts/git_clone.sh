@@ -55,7 +55,7 @@ print "  * clone_path=${clone_path}"
 print "  * MACHINE_NAME=$(hostname)"
 
 # git clone cysharp repo
-title "# git clone $_OWNER/$_REPO"
+title "git clone $_OWNER/$_REPO"
 if [[ -d "$clone_path" && ! -d "$clone_path/.git" ]]; then
   rm -rf "$clone_path" # remove non-git directory
 fi
@@ -65,11 +65,11 @@ if [[ ! -d "$clone_path" ]]; then
 fi
 
 # list files
-title "# List cloned files"
+title "List cloned files"
 ls "$clone_path"
 
 # git pull
-title "# git pull $_BRANCH"
+title "git pull $_BRANCH"
 pushd "$clone_path"
   git merge --abort || true
   git fetch # get remote info first

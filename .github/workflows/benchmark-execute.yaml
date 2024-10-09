@@ -228,6 +228,7 @@ jobs:
           done
         working-directory: ./Repo/
         timeout-minutes: ${{ matrix.benchmark-timeout-min }}
+        continue-on-error: true # continue next benchmark even benchmark failed for this job
       - name: Stop benchmark server on VM
         if: ${{ matrix.benchmark-server-stop-script-path != '' }}
         run: |
