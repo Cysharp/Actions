@@ -1,0 +1,48 @@
+{
+  "include": [
+    {
+      "apt-tools": "libmsquic",
+      "dotnet-version": "8.0",
+      "benchmark-expire-min": 15,
+      "benchmark-timeout-min": 10,
+      "benchmark-client-run-script-path": ".github/scripts/benchmark-client-run.sh",
+      "benchmark-server-run-script-path": ".github/scripts/benchmark-server-run.sh",
+      "benchmark-server-stop-script-path": ".github/scripts/benchmark-server-stop.sh",
+      "benchmark-client-run-script-args": "--run-args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 28 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\" --build-args \"\"",
+      "benchmark-server-run-script-args": "--run-args \"-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\" --build-args \"\""
+    },
+    {
+      "apt-tools": "libmsquic",
+      "dotnet-version": "8.0",
+      "benchmark-expire-min": 15,
+      "benchmark-timeout-min": 10,
+      "benchmark-client-run-script-path": ".github/scripts/benchmark-client-run.sh",
+      "benchmark-server-run-script-path": ".github/scripts/benchmark-server-run.sh",
+      "benchmark-server-stop-script-path": ".github/scripts/benchmark-server-stop.sh",
+      "benchmark-client-run-script-args": "--run-args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 1 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c\" --build-args \"\"",
+      "benchmark-server-run-script-args": "--run-args \"-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c\" --build-args \"\""
+    },
+    {
+      "apt-tools": "libmsquic",
+      "dotnet-version": "8.0",
+      "benchmark-expire-min": 15,
+      "benchmark-timeout-min": 10,
+      "benchmark-client-run-script-path": ".github/scripts/benchmark-client-run.sh",
+      "benchmark-server-run-script-path": ".github/scripts/benchmark-server-run.sh",
+      "benchmark-server-stop-script-path": ".github/scripts/benchmark-server-stop.sh",
+      "benchmark-client-run-script-args": "--run-args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 28 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\" --build-args \"--p:UseNuGetClient=6.14\"",
+      "benchmark-server-run-script-args": "--run-args \"-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\" --build-args \"\""
+    },
+    {
+      "apt-tools": "libmsquic",
+      "dotnet-version": "8.0",
+      "benchmark-expire-min": 15,
+      "benchmark-timeout-min": 10,
+      "benchmark-client-run-script-path": ".github/scripts/benchmark-client-run.sh",
+      "benchmark-server-run-script-path": ".github/scripts/benchmark-server-run.sh",
+      "benchmark-server-stop-script-path": ".github/scripts/benchmark-server-stop.sh",
+      "benchmark-client-run-script-args": "--run-args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 28 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\" --build-args \"\"",
+      "benchmark-server-run-script-args": "--run-args \"-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\" --build-args \"--p:UseNuGetServer=6.14\""
+    }
+  ]
+}
