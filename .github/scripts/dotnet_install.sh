@@ -48,8 +48,9 @@ title "Constants:"
 print "  * MACHINE_NAME=$(hostname)"
 
 # download dotnet-install.sh if not exists
+title "Install dotnet-install script if not exists."
 if [[ ! -f "/opt/dotnet-install.sh" ]]; then
-  curl -L -s --fail-with-body --retry 3 --retry-delay 10 --retry-max-time 60 -o /opt/dotnet-install.sh https://dot.net/v1/dotnet-install.sh
+  curl -L -s --fail-with-body --retry 3 --retry-delay 10 --retry-max-time 60 -o "/opt/dotnet-install.sh" https://dot.net/v1/dotnet-install.sh
 fi
 
 # install dotnet (dotnet-install.sh must be downloaded before running script)
