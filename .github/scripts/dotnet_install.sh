@@ -49,14 +49,14 @@ print "  * MACHINE_NAME=$(hostname)"
 
 # download dotnet-install.sh if not exists
 title "Download dotnet-install script if not exists"
-if [[ ! -f "/opt/dotnet-install.sh" ]]; then
+if [[ ! -f "$HOME/dotnet-install.sh" ]]; then
   print "dotnet installer now found, downloading..."
-  curl -L -s --fail-with-body --retry 3 --retry-delay 10 --retry-max-time 60 -o "/opt/dotnet-install.sh" https://dot.net/v1/dotnet-install.sh
+  curl -L -s --fail-with-body --retry 3 --retry-delay 10 --retry-max-time 60 -o "$HOME/dotnet-install.sh" https://dot.net/v1/dotnet-install.sh
 fi
 
 # install dotnet (dotnet-install.sh must be downloaded before running script)
 title "Install dotnet sdk version: ${_DOTNET_VERSION}"
-sudo bash /opt/dotnet-install.sh --channel "${_DOTNET_VERSION}" --install-dir /usr/share/dotnet
+sudo bash "$HOME/dotnet-install.sh" --channel "${_DOTNET_VERSION}" --install-dir /usr/share/dotnet
 
 # link dotnet to /usr/local/bin
 title "Link to /usr/local/bin/dotnet"
