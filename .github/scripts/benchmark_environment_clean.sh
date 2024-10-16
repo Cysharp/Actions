@@ -16,6 +16,7 @@ Required:
 Options:
   --state                       string      State of the environment. (default: Failed)
   --try-redeploy                true|false  Try to redeploy the environment before delete, this is useful when deletion failed due to stack not exists. (default: false)
+  --no-delete                   true|false  No delete, extend expiration. (default: false)
   --debug                       bool        Show debug output pr not. (default: false)
   --dry-run                     bool        Show the command that would be run, but do not run it. (default: true)
   --help                                    Show this help message
@@ -36,6 +37,7 @@ while [ $# -gt 0 ]; do
     # optional
     --state) _STATE=$2; shift 2; ;; # Failed, Succeeded, All
     --try-redeploy) _TRYREDEPLOY=$2; shift 2; ;;
+    --no-delete) _NODELETE=$2; shift 2; ;;
     --dry-run) _DRYRUN=$2; shift 2; ;;
     --debug) _DEBUG=$2; shift 2; ;;
     --help) usage; exit 1; ;;
@@ -111,6 +113,7 @@ print "  --dev-center-name=${_DEVCENTER_NAME}"
 print "  --project-name=${_PROJECT_NAME}"
 print "  --state=${_STATE:="Failed"}"
 print "  --try-redeploy=${_TRYREDEPLOY:="false"}"
+print "  --no-delete=${_NODELETE:="false"}"
 print "  --debug=${_DEBUG:="false"}"
 print "  --dry-run=${_DRYRUN:="true"}"
 
@@ -164,8 +167,12 @@ for environment in "${jsons[@]}"; do
       ;;
   esac
 
-  print "! $name set expire and begin deletion..."
-  reset_expiration_date "1"
-  # extend "$name"
-  # delete "$name"
+  if [[ "${_NODELETE}" == "false" ]]; then
+    print "! $name set expire..."
+    reset_expiration_date "1"
+    extend "$name"
+
+    print "! $name delete..."
+    delete "$name"
+  fi
 done
