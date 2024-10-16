@@ -82,7 +82,6 @@ function create {
 # re-deploy environment (re-deploy)
 function redeploy {
   $dryrun az devcenter dev environment deploy --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$_NAME" --parameters "$(jq -c -n --arg n "$_NAME" '{name: $n}')" --expiration-date "$new_expiration_time"
-  github_output
 }
 # delete environment
 function delete {
