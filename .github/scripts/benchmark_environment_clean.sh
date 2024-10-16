@@ -166,6 +166,6 @@ for environment in "${jsons[@]}"; do
 
   print "! $name set expire and begin deletion..."
   reset_expiration_date "1"
-  extend "$name"
-  delete "$name"
+  # extend "$name"
+  # delete "$name"
 done
