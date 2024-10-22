@@ -1,15 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-# Clean up Failed Benchmark Environment created by Azure Development Environment.
-#
-# Sample usage:
-# $ bash ./.github/scripts/benchmark_environment_clean.sh --dev-center-name 'cysharp-devcenter'--project-name 'dve' --dry-run true
-#
-
 function usage {
   cat <<EOF
 usage: $(basename $0) [options]
+descr: Clean up Benchmark Environment created by Azure Development Environment.
 Required:
   --dev-center-name             string      The name of the dev center.
   --project-name                string      The name of the project.
@@ -96,8 +91,10 @@ function list {
   if [[ "${_STATE}" == "All" ]]; then
     az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --user-id me | jq -c ".[]"
   else
-    # expirationDate(2024-09-18T04:00:00+00:00表記)が現在時刻よりも過去のものはprovisioningStateに関わらず削除対象とする、またprovisioningStateが_STATEのものはexpirationDateに関わらず削除対象とする
-    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --user-id me | jq -c --arg current_time_utc_epoch "$current_time_utc_epoch" --arg state "$_STATE" '.[] | select((.expirationDate? | strptime("%Y-%m-%dT%H:%M:%S%z") | mktime) < ($current_time_utc_epoch | tonumber) or .provisioningState == $state)'
+    # 1. Missing expirationDate will be treated as delete target.
+    # 2. provisioningState with _STATE will be treated as delete target.
+    # 3. `expirationDate < current_time_utc_epoch` will be treated as delete target. (date format: `2024-09-18T04:00:00+00:00`)
+    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --user-id me | jq -c --arg current_time_utc_epoch "$current_time_utc_epoch" --arg state "$_STATE" 'map(select(.expirationDate == null or (.expirationDate | fromdateiso8601) < ($current_time_utc_epoch | tonumber) or .provisioningState == $state)) | .[]'
   fi
 }
 # show environment error detail
@@ -156,9 +153,9 @@ for environment in "${jsons[@]}"; do
         reset_expiration_date "12"
         extend "$name" "$user"
         if redeploy "$name" "$user"; then
-          print "  - $name redeploy success."
+          print "  $name redeployed."
         else
-          print "  - $name redeploy failed."
+          print "  $name redeploy failed."
         fi
       fi
       ;;
