@@ -70,31 +70,34 @@ function reset_expiration_date {
 # re-deploy environment (re-deploy)
 function redeploy {
   local n=$1
+  local u=$2
   # minize = true to reduct environment resource to minimum, which reduce extra cost and speed up deletion.
-  $dryrun az devcenter dev environment deploy --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" --parameters "$(jq -c -n --arg n "$n" --argjson minimize true '{name: $n, minimize: $minimize}')" --expiration-date "$new_expiration_time"
+  $dryrun az devcenter dev environment deploy --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" --parameters "$(jq -c -n --arg n "$n" --argjson minimize true '{name: $n, minimize: $minimize}')" --expiration-date "$new_expiration_time" --user-id "$u"
   github_output
 }
 # delete environment
 function delete {
   local n=$1
-  $dryrun az devcenter dev environment delete --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" --yes --no-wait
+  local u=$2
+  $dryrun az devcenter dev environment delete --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" --user-id "$u" --yes --no-wait
 }
 # extend environment expiration date to requested time
 function extend {
   local n=$1
-  $dryrun az devcenter dev environment update-expiration-date --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" --expiration "$new_expiration_time"
+  local u=$2
+  $dryrun az devcenter dev environment update-expiration-date --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$n" --expiration "$new_expiration_time" --user-id "$u"
   output_expiration=$new_expiration_time
   github_output
 }
-# list environment
+# list environment (filter to environment created by 'me')
 function list {
   local current_time_utc_epoch
   current_time_utc_epoch=$(date -u +"%s")
   if [[ "${_STATE}" == "All" ]]; then
-    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c ".[]"
+    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --user-id me | jq -c ".[]"
   else
     # expirationDate(2024-09-18T04:00:00+00:00表記)が現在時刻よりも過去のものはprovisioningStateに関わらず削除対象とする、またprovisioningStateが_STATEのものはexpirationDateに関わらず削除対象とする
-    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c --arg current_time_utc_epoch "$current_time_utc_epoch" --arg state "$_STATE" '.[] | select((.expirationDate | strptime("%Y-%m-%dT%H:%M:%S%z") | mktime) < ($current_time_utc_epoch | tonumber) or .provisioningState == $state)'
+    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --user-id me | jq -c --arg current_time_utc_epoch "$current_time_utc_epoch" --arg state "$_STATE" '.[] | select((.expirationDate? | strptime("%Y-%m-%dT%H:%M:%S%z") | mktime) < ($current_time_utc_epoch | tonumber) or .provisioningState == $state)'
   fi
 }
 # show environment error detail
@@ -141,6 +144,7 @@ title "Deployment environments are found, try deleting each..."
 for environment in "${jsons[@]}"; do
   provisioningState=$(echo "$environment" | jq -r ".provisioningState")
   name=$(echo "$environment" | jq -r ".name")
+  user=$(echo "$environment" | jq -r ".user")
 
   case "$provisioningState" in
     "Failed")
@@ -150,8 +154,8 @@ for environment in "${jsons[@]}"; do
       if [[ "${_TRYREDEPLOY}" == "true" ]]; then
         print "! $name try redeploying before delete..."
         reset_expiration_date "12"
-        extend "$name"
-        if redeploy "$name"; then
+        extend "$name" "$user"
+        if redeploy "$name" "$user"; then
           print "  - $name redeploy success."
         else
           print "  - $name redeploy failed."
@@ -170,9 +174,9 @@ for environment in "${jsons[@]}"; do
   if [[ "${_NODELETE}" == "false" ]]; then
     print "! $name set expire..."
     reset_expiration_date "1"
-    extend "$name"
+    extend "$name" "$user"
 
     print "! $name delete..."
-    delete "$name"
+    delete "$name" "$user"
   fi
 done
