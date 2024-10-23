@@ -14,9 +14,10 @@ Required:
   --name                        string The name of the environment.
   --project-name                string The name of the project.
 Options:
-  --expire-min                     int    The number of minutes until the environment expires. (default: 15)
+  --expire-min                  int    The number of minutes until the environment expires. (default: 15)
   --debug                       bool   Show debug output pr not. (default: false)
   --dry-run                     bool   Show the command that would be run, but do not run it. (default: true)
+  --location                    string The location of the environment. (default: "")
   --help                               Show this help message
 
 Examples:
@@ -26,6 +27,8 @@ Examples:
     $ bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'ade-devcenter-jp' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'ade-project-jp' --expire-min 15 --dry-run true --debug true
 3. Create Benchmark Environment name foobar
    $ bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'ade-devcenter-jp' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'ade-project-jp' --expire-min 15 --dry-run false
+4. Create Benchmark Environment name foobar-eastus with location eastus
+   $ bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'ade-devcenter-jp' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar-eastus' --project-name 'ade-project-jp' --expire-min 15 --location eastus --dry-run false
 EOF
 }
 
@@ -42,6 +45,7 @@ while [ $# -gt 0 ]; do
     --expire-min) _MINUTES=$2; shift 2; ;;
     --dry-run) _DRYRUN=$2; shift 2; ;;
     --debug) _DEBUG=$2; shift 2; ;;
+    --location) _LOCATION=$2; shift 2; ;;
     --help) usage; exit 1; ;;
     *) shift ;;
   esac
@@ -72,12 +76,12 @@ function reset_expiration_date {
 }
 # create environment
 function create {
-  $dryrun az devcenter dev environment create --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$_NAME" --catalog-name "$_CATALOG_NAME" --environment-definition-name "$_ENVIRONMENT_DEFINITION_NAME" --environment-type "$_ENVIRONMENT_TYPE" --parameters "$(jq -c -n --arg n "$_NAME" '{name: $n}')" --expiration-date "$new_expiration_time"
+  $dryrun az devcenter dev environment create --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$_NAME" --catalog-name "$_CATALOG_NAME" --environment-definition-name "$_ENVIRONMENT_DEFINITION_NAME" --environment-type "$_ENVIRONMENT_TYPE" --parameters "$(jq -c -n --arg n "$_NAME" --arg l "$_LOCATION" '{name: $n, location: $l}')" --expiration-date "$new_expiration_time"
   github_output
 }
 # re-deploy environment (re-deploy)
 function redeploy {
-  $dryrun az devcenter dev environment deploy --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$_NAME" --parameters "$(jq -c -n --arg n "$_NAME" '{name: $n}')" --expiration-date "$new_expiration_time"
+  $dryrun az devcenter dev environment deploy --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --name "$_NAME" --parameters "$(jq -c -n --arg n "$_NAME" --arg l "${_LOCATION}" '{name: $n, location: $l}')" --expiration-date "$new_expiration_time"
 }
 # delete environment
 function delete {
@@ -267,6 +271,7 @@ print "  --catalog-name=${_CATALOG_NAME}"
 print "  --dev-center-name=${_DEVCENTER_NAME}"
 print "  --environment-definition-name=${_ENVIRONMENT_DEFINITION_NAME}"
 print "  --environment-type=${_ENVIRONMENT_TYPE}"
+print "  --location=${_LOCATION:=""}"
 print "  --name=${_NAME}"
 print "  --project-name=${_PROJECT_NAME}"
 print "  --expire-min=${_MINUTES:=20}"
