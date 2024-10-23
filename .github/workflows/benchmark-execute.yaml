@@ -27,7 +27,7 @@ on:
         description: "Benchmark devcenter name"
         required: false
         type: string
-        default: "cysharp-devcenter"
+        default: "ade-devcenter-jp"
       benchmark-environment:
         description: "Benchmark environment name"
         required: false
@@ -37,7 +37,7 @@ on:
         description: "Benchmark project name"
         required: false
         type: string
-        default: "dve"
+        default: "ade-project-jp"
 
 env:
   BUILD_CONFIG: Release

@@ -60,8 +60,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - benchmark-devcenter: cysharp-devcenter # Benchmark devcenter name
-            benchmark-project: dve # Benchmark project name
+          - benchmark-devcenter: ade-devcenter-jp # Benchmark devcenter name
+            benchmark-project: ade-project-jp # Benchmark project name
             state: ${{ inputs.state || 'Failed' }} # Failed benchmark environment is deletion target
             try-redeploy: ${{ github.event_name == 'schedule' || inputs.try-redeploy }} # Try Redeploy before deletion only if scheduled
             no-delete: ${{ inputs.no-delete || 'false' }} # Skip delete, you can just update environment with try-redeploy
