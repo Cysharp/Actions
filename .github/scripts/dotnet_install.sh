@@ -1,24 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 
-# Install .NET SDK over ssh
-#
-# Sample usage:
-# $ ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@4.215.238.2 'bash -s -- --dotnet-version 8.0' < ./scripts/dotnet_install.sh
-# $ ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@4.215.237.255 'bash -s -- --dotnet-version 8.0' < ./scripts/dotnet_install.sh
-# $ echo $?
-#
-
 function usage {
   cat <<EOF
-usage: $(basename $0) [options]
+Usage: $(basename $0) [options]
+Descriptions: Install .NET SDK over ssh
+
 Options:
   --dotnet-version string  Version of dotnet sdk to install (default: 8.0)
   --help                   Show this help message
 
 Examples:
   1. Install dotnet sdk version 8.0 over ssh
-    $ ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@255.255.255.255 'bash -s -- --dotnet-version 8.0' < ./scripts/$(basename $0).sh
+    $ ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@4.215.238.2 'bash -s -- --dotnet-version 8.0' < ./scripts/dotnet_install.sh
     $ echo \$?             # <- use \$? to get the exit code of the remote command
 EOF
 }

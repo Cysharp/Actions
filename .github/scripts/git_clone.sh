@@ -1,14 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# git clone over ssh
-#
-# ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@4.215.238.2 'bash -s -- --branch benchmark --owner Cysharp --repo MagicOnion' < ./scripts/git_clone.sh
-# $ echo $?
-
 function usage {
   cat <<EOF
-usage: $(basename $0) --build-csproj <string> --repo <string> [options]
+Usage: $(basename $0) --build-csproj <string> --repo <string> [options]
+Descriptions: git clone over ssh
+
 Required:
   --repo          string  Repository name to clone
 Options:
@@ -18,7 +15,7 @@ Options:
 
 Examples:
   1. git clone Cysharp/MagicOnion main branch
-    $ ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@255.255.255.255 'bash -s -- --branch main --owner Cysharp --repo MagicOnion' < ./scripts/$(basename $0).sh"
+    $ ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@4.215.238.2 'bash -s -- --branch benchmark --owner Cysharp --repo MagicOnion' < ./scripts/git_clone.sh
     $ echo \$?            # <- use \$? to get the exit code of the remote command'
 EOF
 }
