@@ -1,9 +1,8 @@
 name: Benchmark Cleanup
 
 on:
-  # TODO: stopped for a while due to Azure Deployment Environment broken.
-  # schedule:
-  #   - cron: "0 * * * *" # Every hour
+  schedule:
+    - cron: "0 * * * *" # Every hour
   workflow_call:
     inputs:
       state:
