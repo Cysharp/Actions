@@ -168,7 +168,7 @@ jobs:
         run: az extension add --name devcenter --upgrade
       - name: Create benchmark environment
         id: create-benchmark
-        run: bash ./scripts/benchmark_environment_create.sh --catalog-name '${{ inputs.benchmark-catalog }}' --dev-center-name '${{ inputs.benchmark-devcenter }}' --environment-definition-name '${{ inputs.benchmark-definition-name }}' --environment-type '${{ inputs.benchmark-environment }}' --name '${{ inputs.benchmark-name }}' --project-name '${{ inputs.benchmark-project }}' --expire-min "${{ matrix.benchmark-expire-min }}" --dry-run false
+        run: bash ./scripts/benchmark_environment_create.sh --catalog-name '${{ inputs.benchmark-catalog }}' --dev-center-name '${{ inputs.benchmark-devcenter }}' --environment-definition-name '${{ inputs.benchmark-definition-name }}' --environment-type '${{ inputs.benchmark-environment }}' --location '${{ matrix.benchmark-location }}' --name '${{ inputs.benchmark-name }}' --project-name '${{ inputs.benchmark-project }}' --expire-min "${{ matrix.benchmark-expire-min }}" --dry-run false
         working-directory: ./Actions/.github
       - name: Comment (Progess - Benchmark environment)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
