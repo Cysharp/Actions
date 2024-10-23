@@ -1,15 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# Create Benchmark Environment by Azure Development Environment.
-#
-# Sample usage:
-# $ bash ./.github/scripts/benchmark_environment_create.sh --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'magiconion-123' --project-name 'dve' --expire-min 15 --dry-run true
-#
-
 function usage {
   cat <<EOF
-usage: $(basename $0) [options]
+Usage: $(basename $0) [options]
+Descriptions: Create Benchmark Environment by Azure Development Environment.
+
 Required:
   --catalog-name                string The name of the catalog.
   --dev-center-name             string The name of the dev center.
@@ -25,11 +21,11 @@ Options:
 
 Examples:
 1. Dryrun create Benchmark Environment name foobar
-   $ bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'dve' --expire-min 15 --dry-run true
+   $ bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'ade-devcenter-jp' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'ade-project-jp' --expire-min 15 --dry-run true
 2. Dryrun create Benchmark Environment name foobar, with debug output
-    $ bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'dve' --expire-min 15 --dry-run true --debug true
+    $ bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'ade-devcenter-jp' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'ade-project-jp' --expire-min 15 --dry-run true --debug true
 3. Create Benchmark Environment name foobar
-   $ bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'cysharp-devcenter' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'dve' --expire-min 15 --dry-run false
+   $ bash ./.github/scripts/$(basename $0) --catalog-name 'pulumi' --dev-center-name 'ade-devcenter-jp' --environment-definition-name 'Benchmark' --environment-type 'benchmark' --name 'foobar' --project-name 'ade-project-jp' --expire-min 15 --dry-run false
 EOF
 }
 
@@ -52,11 +48,11 @@ while [ $# -gt 0 ]; do
 done
 
 function print {
-  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): $*"
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-main}): $*"
 }
 function title {
   echo ""
-  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): # $*"
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-main}): # $*"
 }
 function debug {
   if [[ "${_DEBUG}" == "true" ]]; then

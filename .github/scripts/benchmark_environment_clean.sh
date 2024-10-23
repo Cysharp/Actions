@@ -3,8 +3,9 @@ set -euo pipefail
 
 function usage {
   cat <<EOF
-usage: $(basename $0) [options]
-descr: Clean up Benchmark Environment created by Azure Development Environment.
+Usage: $(basename $0) [options]
+Descriptions: Clean up Benchmark Environment created by Azure Development Environment.
+
 Required:
   --dev-center-name             string      The name of the dev center.
   --project-name                string      The name of the project.
@@ -18,9 +19,9 @@ Options:
 
 Examples:
   1. Dryrun clean up Benchmark Environment
-      $ bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --state Failed --dry-run true
+      $ bash ./.github/scripts/$(basename $0) --dev-center-name 'ade-devcenter-jp' --project-name 'ade-project-jp' --state Failed --dry-run true
   3. Clean up Benchmark Environment
-      $ bash ./.github/scripts/$(basename $0) --dev-center-name 'cysharp-devcenter' --project-name 'dve' --state Failed --dry-run false
+      $ bash ./.github/scripts/$(basename $0) --dev-center-name 'ade-devcenter-jp' --project-name 'ade-project-jp' --state Failed --dry-run false
 EOF
 }
 
@@ -41,11 +42,11 @@ while [ $# -gt 0 ]; do
 done
 
 function print {
-  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): $*"
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-main}): $*"
 }
 function title {
   echo ""
-  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): # $*"
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-main}): # $*"
 }
 function debug {
   if [[ "${_DEBUG}" == "true" ]]; then
