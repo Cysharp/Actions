@@ -39,14 +39,6 @@ on:
         type: string
         default: "ade-project-jp"
 
-env:
-  BUILD_CONFIG: Release
-  BENCHMARK_SERVER_NAME: "${{ inputs.benchmark-name }}-bench-server-vm"
-  BENCHMARK_CLIENT_NAME: "${{ inputs.benchmark-name }}-bench-client-vm"
-  BENCHMARK_RESOURCE_GROUP: "${{ inputs.benchmark-project }}-${{ inputs.benchmark-name }}"
-  GH_REPO: ${{ github.repository }} # gh cli handling
-  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # gh cli handling
-
 permissions:
   contents: read
   id-token: write
@@ -60,6 +52,9 @@ jobs:
     outputs:
       is-benchmarkable: ${{ steps.is-benchmarkable.outputs.authorized }} # true or false
       branch: ${{ steps.branch.outputs.name }}
+    env:
+      GH_REPO: ${{ github.repository }} # for gh CLI
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # for gh CLI
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
@@ -126,6 +121,10 @@ jobs:
       max-parallel: 1 # do not run concurrently
       fail-fast: true # stop if fail
       matrix: ${{ fromJson(needs.config_to_matrix.outputs.matrix) }}
+    env:
+      BENCHMARK_SERVER_NAME: "${{ inputs.benchmark-name }}-bench-server-vm"
+      BENCHMARK_CLIENT_NAME: "${{ inputs.benchmark-name }}-bench-client-vm"
+      BENCHMARK_RESOURCE_GROUP: "${{ inputs.benchmark-project }}-${{ inputs.benchmark-name }}"
     environment:
       name: benchmark
     runs-on: ubuntu-latest
