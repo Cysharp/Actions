@@ -48,27 +48,26 @@ Benchmark config has `type: config` and it defines `jobs` array. jobs array will
 
 ```yaml
 type: config # Indicate config type. config is used to define the benchmark configuration
-apt-tools: libmsquic # apt tools to install
-dotnet-version: 8.0  # dotnet version to install
-benchmark-expire-min: 15 # Benchmark expire time in minutes
-benchmark-location: "japaneast" # Benchmark location
-benchmark-timeout-min: 10 # Benchmark timeout in minutes
-benchmark-client-run-script-path: ".github/scripts/benchmark-client-run.sh" # Benchmark client run script path
-benchmark-client-run-script-args: '--run-args "-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol {{ protocol }} -s CI --rounds 3 --channels {{ channels }} --streams {{ streams }} --serialization {{ serialization }} --validate true --tags {{ tags }}" --build-args "{{ buildArgsClient }}"' # Benchmark client run script args
-benchmark-server-run-script-path: ".github/scripts/benchmark-server-run.sh" # Benchmark server run script path
-benchmark-server-run-script-args: '--run-args "-u http://0.0.0.0:5000 --protocol {{ protocol }} --validate true --tags {{ tags }}" --build-args "{{ buildArgsServer }}"' # Benchmark server run script args
-benchmark-server-stop-script-path: ".github/scripts/benchmark-server-stop.sh" # Benchmark server stop script path
+apt-tools: string # apt tool names to install (space separated)
+dotnet-version: numbert  # dotnet version to install
+benchmark-expire-min: number # Benchmark expire time in minutes
+benchmark-location: "japaneast" # Benchmark location, indicate azure region
+benchmark-timeout-min: number # Benchmark timeout in minutes
+benchmark-client-run-script-path: "stringh" # Benchmark client run script path
+benchmark-client-run-script-args: 'string' # Benchmark client run script args
+benchmark-server-run-script-path: "string" # Benchmark server run script path
+benchmark-server-run-script-args: 'string' # Benchmark server run script args
+benchmark-server-stop-script-path: "string" # Benchmark server stop script path
 jobs:
-  # Define job
-  - tags: legend:messagepack-h2c-linux,streams:1,protocol:h2c # Metrics Tags
-    protocol: h2c # gRPC Protocol
-    channels: 28 # gRPC Channels
-    streams: 1 # gRPC Streams
-    serialization: messagepack # Serialization
+  - tags: string # Metrics Tags (comma separated)
+    protocol: h2c|h2|h3 # gRPC Protocol
+    channels: number # gRPC Channels
+    streams: number # gRPC Streams
+    serialization: messagepack|memorypack # Serialization
   # you can define more
 ```
 
-This config will be converted to GitHub Actions matrix json.
+This config will be converted to GitHub Actions matrix json like follows.
 
 ```json
 {
@@ -97,8 +96,7 @@ This config will be converted to GitHub Actions matrix json.
 ```yaml
 type: loader # Indicate config type. loader is used to define the benchmark loader configuration
 branch-configs:
-  - branch: "main" # Branch name
-    config-path: "perf/configs/schedule.yaml" # Config path
-  - branch: "dev"
-    config-path: "perf/configs/schedule.yaml"
+  - branch: "string" # Branch name
+    config-path: "stringl" # Config path
+  # you can define more
 ```
