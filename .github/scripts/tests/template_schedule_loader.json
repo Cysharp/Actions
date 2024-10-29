@@ -1,0 +1,12 @@
+{
+  "include": [
+    {
+      "branch": "main",
+      "config": "./.github/scripts/tests/template_benchmark_config.yaml"
+    },
+    {
+      "branch": "feature/schedule",
+      "config": "./.github/scripts/tests/template_benchmark_config.yaml"
+    }
+  ]
+}

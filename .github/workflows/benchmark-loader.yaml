@@ -1,0 +1,86 @@
+name: (R) Benchmark Loader
+
+on:
+  workflow_call:
+    inputs:
+      # required
+      benchmark-name-prefix:
+        description: "Name of the benchamrk environment."
+        required: true
+        type: string
+      benchmark-loader-path:
+        description: "Benchmark loader yaml file path"
+        required: true
+        type: string
+    outputs:
+      is-benchmarkable:
+        description: "Indicates whether the actor is authorized to run benchmark."
+        value: ${{ jobs.verify.outputs.is-benchmarkable }}
+      matrix:
+        description: "Generated branch and config path matrix"
+        value: ${{ jobs.loader_config.outputs.matrix }}
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # is benchmarkable
+  verify:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/benchmark')) || github.event_name == 'push' || github.event_name == 'pull_request' }}
+    outputs:
+      is-benchmarkable: ${{ steps.is-benchmarkable.outputs.authorized }} # true or false
+    env:
+      GH_REPO: ${{ github.repository }} # for gh CLI
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # for gh CLI
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Check actor is benchmarkable
+        id: is-benchmarkable
+        uses: Cysharp/Actions/.github/actions/benchmark-runnable@main
+        with:
+          username: ${{ github.actor }}
+      - name: Add request receive reaction
+        run: |
+          gh api --method POST -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "/repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions" -f "content=+1"
+        if: ${{ github.event.issue.number }}
+      - name: Comment (Running - Auth Result)
+        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+        with:
+          comment: ${{ steps.is-benchmarkable.outputs.authorized == 'true' && 'Benchmark request accepted, creating benchmark environment. :clock1:' || 'Benchmark request rejected, you are not authorized to run benchmark. :warning:'}}
+          state: ${{ steps.is-benchmarkable.outputs.authorized == 'true' && 'running' || 'failed' }}
+          title: ${{ steps.is-benchmarkable.outputs.authorized == 'true' && 'Successfully begin benchmark' || 'Failed to begin benchmark' }}
+          update: "false"
+
+  loader_config:
+    if: ${{ needs.verify.outputs.is-benchmarkable == 'true' }}
+    needs: [verify]
+    outputs:
+      matrix: ${{ steps.loader2matrix.outputs.matrix }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Get branch name to checkout
+        id: branch
+        run: |
+          if [[ "${{ github.event_name }}" == "issue_comment" && "${{ github.event.issue.pull_request.html_url }}" != "" ]]; then
+            # issue_comment (pull_request)
+            branch=$(gh pr view "${{ github.event.issue.pull_request.html_url }}"  --json headRefName | jq -r ".headRefName")
+            echo "name=${branch}" | tee -a "$GITHUB_OUTPUT"
+          else
+            # workflow_dispatch or issue_comment (issue)
+            echo "name=${{ github.ref_name }}" | tee -a "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.branch.outputs.name }}
+          path: Repo
+      - uses: actions/checkout@v4
+        with:
+          repository: "Cysharp/Actions"
+          path: Actions
+      - name: Generate Matrix json from config
+        id: loader2matrix
+        run: bash ./Actions/.github/scripts/benchmark_loader2matrix.sh --benchmark-loader-path "./Repo/${{ inputs.benchmark-loader-path }}"
