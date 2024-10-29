@@ -11,30 +11,26 @@ benchmark-server-run-script-args: '--run-args "-u http://0.0.0.0:5000 --protocol
 benchmark-server-stop-script-path: ".github/scripts/benchmark-server-stop.sh"
 jobs:
   # 1
-  - match: messagepack-h2c-linux-1
-    tags: legend:messagepack-h2c-linux,streams:1,protocol:h2c
+  - tags: legend:messagepack-h2c-linux,streams:1,protocol:h2c
     protocol: h2c
     channels: 28
     streams: 1
     serialization: messagepack
   # 1x1
-  - match: messagepack-h2c-linux-1x1
-    tags: "legend:messagepack-h2c-linux,streams:1x1,protocol:h2c"
+  - tags: "legend:messagepack-h2c-linux,streams:1x1,protocol:h2c"
     protocol: h2c
     channels: 1
     streams: 1
     serialization: messagepack
   # Use fixed Client Version by NuGet
-  - match: messagepack-h2c-linux-1
-    tags: legend:messagepack-h2c-linux,streams:1,protocol:h2c
+  - tags: legend:messagepack-h2c-linux,streams:1,protocol:h2c
     protocol: h2c
     channels: 28
     streams: 1
     serialization: messagepack
     buildArgsClient: "--p:UseNuGetClient=6.14"
   # Use fixed Server Version by NuGet
-  - match: messagepack-h2c-linux-1
-    tags: legend:messagepack-h2c-linux,streams:1,protocol:h2c
+  - tags: legend:messagepack-h2c-linux,streams:1,protocol:h2c
     protocol: h2c
     channels: 28
     streams: 1

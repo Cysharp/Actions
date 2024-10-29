@@ -20,7 +20,7 @@ set -euo pipefail
 # #########################
 # ### input sample      ###
 # #########################
-# bash .github/scripts/benchmark_config2matrix.sh --benchmark-config-path ".github/scripts/test/template_benchmark_config.yaml"
+# bash .github/scripts/benchmark_config2matrix.sh --benchmark-config-path ".github/scripts/tests/template_benchmark_config.yaml"
 #
 # #########################
 # ### output sample ###
@@ -70,18 +70,18 @@ while [ $# -gt 0 ]; do
 done
 
 function print {
-  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): $*"
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-main}): $*"
 }
 function title {
   echo ""
-  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-unknown}): # $*"
+  echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-main}): # $*"
 }
 function error {
-  echo "$(date "+%Y-%m-%d %H:%M:%S") ERRO(${FUNCNAME[1]:-unknown}): # $*" >&2
+  echo "$(date "+%Y-%m-%d %H:%M:%S") ERRO(${FUNCNAME[1]:-main}): # $*" >&2
 }
 function debug {
   if [[ "${_DEBUG}" == "true" ]]; then
-    echo "$(date "+%Y-%m-%d %H:%M:%S") DEBG(${FUNCNAME[1]:-unknown}): $*"
+    echo "$(date "+%Y-%m-%d %H:%M:%S") DEBG(${FUNCNAME[1]:-main}): $*"
   fi
 }
 
