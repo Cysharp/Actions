@@ -50,7 +50,8 @@ permissions:
   issues: write
 
 jobs:
-  config_to_matrix:
+  config2matrix:
+    name: "config2matrix: ${{ inputs.benchmark-name}}@${{ inputs.branch}}"
     outputs:
       matrix: ${{ steps.config2matrix.outputs.matrix }}
     runs-on: ubuntu-latest
@@ -77,11 +78,12 @@ jobs:
 
   # run benchmark
   benchmark:
-    needs: [config_to_matrix]
+    needs: [config2matrix]
+    name: "benchmark: ${{ inputs.benchmark-name}}@${{ inputs.branch}} ${{ matrix.benchmark-client-run-script-args }}"
     strategy:
       max-parallel: 1 # do not run concurrently
       fail-fast: true # stop if fail
-      matrix: ${{ fromJson(needs.config_to_matrix.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.config2matrix.outputs.matrix) }}
     env:
       BENCHMARK_SERVER_NAME: "${{ inputs.benchmark-name }}-bench-server-vm"
       BENCHMARK_CLIENT_NAME: "${{ inputs.benchmark-name }}-bench-client-vm"

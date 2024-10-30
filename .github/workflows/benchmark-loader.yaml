@@ -18,7 +18,7 @@ on:
         value: ${{ jobs.verify.outputs.is-benchmarkable }}
       matrix:
         description: "Generated branch and config path matrix"
-        value: ${{ jobs.loader_config.outputs.matrix }}
+        value: ${{ jobs.loader2matrix.outputs.matrix }}
 
 permissions:
   contents: read
@@ -54,7 +54,7 @@ jobs:
           title: ${{ steps.is-benchmarkable.outputs.authorized == 'true' && 'Successfully begin benchmark' || 'Failed to begin benchmark' }}
           update: "false"
 
-  loader_config:
+  loader2matrix:
     if: ${{ needs.verify.outputs.is-benchmarkable == 'true' }}
     needs: [verify]
     outputs:
