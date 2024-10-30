@@ -1,42 +1,64 @@
-# Diagrams
+# Architecture
 
-## Simplest way to dispatch benchmark for multiple configurations
+This document describes the architecture of the benchmark dispatch system. The system is designed to dispatch benchmarks for multiple branches and configurations.
 
-Simplest way to dispatch benchmark for multiple configurations is to define benchmark config in config.yaml file. The `benchmark_config2matrix.sh` will convert the config to GitHub Actions matrix. This sequence diagram indicate how to dispatch the benchmark for multiple configurations.
+## Benchmark config
+
+Run the benchmark with the configurations defined in the config.yaml file. The `benchmark_config2matrix.sh` script will convert the configurations to a GitHub Actions matrix. This sequence diagram indicates how the dispatch works.
 
 ```mermaid
 sequenceDiagram
+    participant trigger as Comment<br/>Workflow Dispatch
     participant gha as GitHub Actions
-    participant config2matrix as Config2Matrix
-    participant benchmark as Benchmark
+    box JOB: benchmark
+      participant config2matrix as Config2Matrix
+      participant benchmark as Benchmark
+    end
 
-    gha->>config2matrix: Convert config to matrix
-    config2matrix->>config2matrix: Checkout current branch
-    config2matrix->>benchmark: Create matrix
-    benchmark->>benchmark: Run benchmark on current branch
+    trigger->>gha: Trigger via event
+    gha->>config2matrix: Dispatch
+    config2matrix->>config2matrix: Convert config to matrix
+    config2matrix->>benchmark: Checkout current branch <br/> Create matrix
+    benchmark->>benchmark: Run benchmarks...
+    benchmark->>benchmark: Run benchmarks...
+    benchmark->>benchmark: Run benchmarks...
 ```
 
-## Schedule Loader to dispatch benchmark for multiple branches
+## Benchmark Loader config
 
-Simplest way is most preffered way, but GitHub Actions `schedule` event only invoke on default branch. This means that we need to dispatch the benchmark for multiple branches if we want to run other branch than default. This sequence diagram indicate how to dispatch the benchmark for multiple branches.
+> [!NOTE]
+> Simplest way is the most preffered way, please consider using the `Benchmark config` instead of `Benchmark Loader config` if possible.
+
+GitHub Actions `schedule` event invoke on default branch only. Loader config will allow us dispatch benchmark for multiple branches. This sequence diagram indicate how to dispatch the benchmark for multiple branches.
 
 ```mermaid
 sequenceDiagram
+    participant trigger as Schedule
     participant gha as GitHub Actions
-    participant loader as ScheduleLoader
-    participant config2matrix as Config2Matrix
-    participant benchmark as Benchmark
+    box JOB: loader
+      participant loader2matrix as Loader2Matrix
+    end
+    box JOB: benchmark
+      participant config2matrix as Config2Matrix
+      participant benchmark as Benchmark
+    end
 
-    gha->>loader: Load benchmark config
-    loader->>config2matrix: Convert config to matrix
+    trigger->>gha: Trigger via Schedule
+    gha->>loader2matrix: Dispatch
+    loader2matrix->>loader2matrix: Convert loader config to matrix
+    gha->>config2matrix: Dispatch to run on the matrix
     par BranchA
-      config2matrix->>config2matrix: Checkout BranchA
-      config2matrix->>benchmark: Create matrix
-      benchmark->>benchmark: Run benchmark on BranchA
+      config2matrix->>config2matrix: Convert config to matrix
+      config2matrix->>benchmark: Checkout BranchA <br/> Create matrix
+      benchmark->>benchmark: Run benchmarks...
+      benchmark->>benchmark: Run benchmarks...
+      benchmark->>benchmark: Run benchmarks...
     and BranchB
-      config2matrix->>config2matrix: Checkout BranchB
-      config2matrix->>benchmark: Create matrix
-      benchmark->>benchmark: Run benchmark on BranchB
+      config2matrix->>config2matrix: Convert config to matrix
+      config2matrix->>benchmark: Checkout BranchB <br/> Create matrix
+      benchmark->>benchmark: Run benchmarks...
+      benchmark->>benchmark: Run benchmarks...
+      benchmark->>benchmark: Run benchmarks...
     end
 ```
 
@@ -44,10 +66,11 @@ sequenceDiagram
 
 ## Benchmark config
 
-Benchmark config has `type: config` and it defines `jobs` array. jobs array will templating the root element and create array of job. Each job will be dispatched by GitHub Actions matrix.
+GitHub Actions `schedule` event invokes only on the default branch. The loader configuration will allow us to dispatch the benchmark for multiple branches. This sequence diagram indicates how to dispatch the benchmark for multiple branches.
+
+**SPEC**
 
 ```yaml
-type: config # Indicate config type. config is used to define the benchmark configuration
 apt-tools: string # apt tool names to install (space separated)
 dotnet-version: numbert  # dotnet version to install
 benchmark-expire-min: number # Benchmark expire time in minutes
@@ -66,6 +89,8 @@ jobs:
     serialization: messagepack|memorypack # Serialization
   # you can define more
 ```
+
+**EXAMPLE**
 
 Following config will be converted to GitHub Actions matrix json like follows.
 
@@ -110,7 +135,9 @@ jobs:
 
 ## Loader config
 
-`type: loader` config defines `branch & config path` array. The loader will load the config for each branch and dispatch the benchmark. The loader will checkout the branch and run the config2matrix.
+Benchmark loader config has `type: loader` and it defines `branch-configs` array. `branch-configs` is array of `branch`, `config` and `suffix` combinations. The loader will load the config for each branch and dispatch the benchmark.
+
+**SPEC**
 
 ```yaml
 type: loader # Indicate config type. loader is used to define the benchmark loader configuration
@@ -121,9 +148,12 @@ branch-configs:
   # you can define more
 ```
 
+**EXAMPLE**
+
 Following config will be converted to GitHub Actions matrix json like follows. benchmark name is passed as `benchmark-123`.
 
 ```yaml
+type: loader
 branch-configs:
   - suffix: ""
     branch: main

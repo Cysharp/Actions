@@ -65,9 +65,11 @@ function validate_config {
     branch_exists=$(echo "$item" | jq 'has("branch")')
     # Check for config key
     config_exists=$(echo "$item" | yq 'has("config")')
+    # Check for suffix key
+    suffix_exists=$(echo "$item" | jq 'has("suffix")')
 
-    if [ "$branch_exists" != "true" ] || [ "$config_exists" != "true" ]; then
-      error "An item in branch-configs does not have both 'branch' and 'config' keys. item: $item"
+    if [[ "$branch_exists" != "true" || "$config_exists" != "true" || "$suffix_exists" != "true" ]]; then
+      error "An item in branch-configs does not have both 'branch', 'config' and 'suffix' keys. item: $item"
       exit 1
     fi
   done
