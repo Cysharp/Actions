@@ -1,0 +1,8 @@
+# bash ./.github/scripts/benchmark_loader2matrix.sh --benchmark-name-prefix magiconion-123 --config-path ".github/scripts/tests/template_schedule_loader.yaml"
+branch-configs:
+  - suffix: ""
+    branch: main
+    config: ./.github/scripts/tests/template_benchmark_config.yaml
+  - suffix: "-1"
+    branch: feature/schedule
+    config: ./.github/scripts/tests/template_benchmark_config.yaml

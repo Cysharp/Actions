@@ -3,8 +3,8 @@
     {
       "apt-tools": "libmsquic",
       "dotnet-version": "8.0",
-      "benchmark-expire-min": 15,
       "benchmark-location": "japaneast",
+      "benchmark-expire-min": 15,
       "benchmark-timeout-min": 10,
       "benchmark-client-run-script-path": ".github/scripts/benchmark-client-run.sh",
       "benchmark-server-run-script-path": ".github/scripts/benchmark-server-run.sh",
@@ -15,8 +15,8 @@
     {
       "apt-tools": "libmsquic",
       "dotnet-version": "8.0",
-      "benchmark-expire-min": 15,
       "benchmark-location": "japaneast",
+      "benchmark-expire-min": 15,
       "benchmark-timeout-min": 10,
       "benchmark-client-run-script-path": ".github/scripts/benchmark-client-run.sh",
       "benchmark-server-run-script-path": ".github/scripts/benchmark-server-run.sh",
@@ -27,8 +27,8 @@
     {
       "apt-tools": "libmsquic",
       "dotnet-version": "8.0",
-      "benchmark-expire-min": 15,
       "benchmark-location": "japaneast",
+      "benchmark-expire-min": 15,
       "benchmark-timeout-min": 10,
       "benchmark-client-run-script-path": ".github/scripts/benchmark-client-run.sh",
       "benchmark-server-run-script-path": ".github/scripts/benchmark-server-run.sh",
@@ -39,8 +39,8 @@
     {
       "apt-tools": "libmsquic",
       "dotnet-version": "8.0",
-      "benchmark-expire-min": 15,
       "benchmark-location": "japaneast",
+      "benchmark-expire-min": 15,
       "benchmark-timeout-min": 10,
       "benchmark-client-run-script-path": ".github/scripts/benchmark-client-run.sh",
       "benchmark-server-run-script-path": ".github/scripts/benchmark-server-run.sh",
