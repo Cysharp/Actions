@@ -12,6 +12,10 @@ on:
         description: "Benchmark config yaml file path"
         required: true
         type: string
+      branch:
+        description: "Branch name to checkout"
+        required: true
+        type: string
       # optional
       benchmark-catalog:
         description: "Benchmark catalog name"
@@ -48,25 +52,13 @@ permissions:
 jobs:
   config_to_matrix:
     outputs:
-      branch: ${{ steps.branch.outputs.name }}
       matrix: ${{ steps.config2matrix.outputs.matrix }}
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
-      - name: Get branch name to checkout
-        id: branch
-        run: |
-          if [[ "${{ github.event_name }}" == "issue_comment" && "${{ github.event.issue.pull_request.html_url }}" != "" ]]; then
-            # issue_comment (pull_request)
-            branch=$(gh pr view "${{ github.event.issue.pull_request.html_url }}"  --json headRefName | jq -r ".headRefName")
-            echo "name=${branch}" | tee -a "$GITHUB_OUTPUT"
-          else
-            # workflow_dispatch or issue_comment (issue)
-            echo "name=${{ github.ref_name }}" | tee -a "$GITHUB_OUTPUT"
-          fi
       - uses: actions/checkout@v4
         with:
-          ref: ${{ steps.branch.outputs.name }}
+          ref: ${{ inputs.branch }}
           path: Repo
       - uses: actions/checkout@v4
         with:
@@ -103,7 +95,7 @@ jobs:
         run: echo "${{ toJson(matrix) }}"
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.config_to_matrix.outputs.branch }}
+          ref: ${{ inputs.branch }}
           path: Repo
       - uses: actions/checkout@v4
         with:
@@ -165,7 +157,7 @@ jobs:
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
             echo "::group::Install on $ip"
-              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --branch "${{ needs.config_to_matrix.outputs.branch }}" --owner "${{ github.repository_owner }}" --repo "${{ github.event.repository.name }}"' < ./scripts/git_clone.sh
+              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --branch "${{ inputs.branch }}" --owner "${{ github.repository_owner }}" --repo "${{ github.event.repository.name }}"' < ./scripts/git_clone.sh
             echo "::endgroup::"
           done
         working-directory: ./Actions/.github
