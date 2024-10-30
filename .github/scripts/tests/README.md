@@ -67,7 +67,26 @@ jobs:
   # you can define more
 ```
 
-This config will be converted to GitHub Actions matrix json like follows.
+Following config will be converted to GitHub Actions matrix json like follows.
+
+```yaml
+apt-tools: libmsquic
+dotnet-version: 8.0
+benchmark-location: "japaneast"
+benchmark-expire-min: 15
+benchmark-timeout-min: 10
+benchmark-client-run-script-path: ".github/scripts/benchmark-client-run.sh"
+benchmark-client-run-script-args: '--run-args "-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol {{ protocol }} -s CI --rounds 3 --channels {{ channels }} --streams {{ streams }} --serialization {{ serialization }} --validate true --tags {{ tags }}" --build-args "{{ buildArgsClient }}"'
+benchmark-server-run-script-path: ".github/scripts/benchmark-server-run.sh"
+benchmark-server-run-script-args: '--run-args "-u http://0.0.0.0:5000 --protocol {{ protocol }} --validate true --tags {{ tags }}" --build-args "{{ buildArgsServer }}"'
+benchmark-server-stop-script-path: ".github/scripts/benchmark-server-stop.sh"
+jobs:
+  - tags: legend:messagepack-h2c-linux,streams:1,protocol:h2c
+    protocol: h2c
+    channels: 28
+    streams: 1
+    serialization: messagepack
+```
 
 ```json
 {
@@ -96,7 +115,37 @@ This config will be converted to GitHub Actions matrix json like follows.
 ```yaml
 type: loader # Indicate config type. loader is used to define the benchmark loader configuration
 branch-configs:
-  - branch: "string" # Branch name
+  - suffix: "" # suffix to append to the benchmark name
+    branch: "string" # Branch name
     config-path: "stringl" # Config path
   # you can define more
+```
+
+Following config will be converted to GitHub Actions matrix json like follows. benchmark name is passed as `benchmark-123`.
+
+```yaml
+branch-configs:
+  - suffix: ""
+    branch: main
+    config: ./.github/scripts/tests/template_benchmark_config.yaml
+  - suffix: "-1"
+    branch: feature/schedule
+    config: ./.github/scripts/tests/template_benchmark_config.yaml
+```
+
+```json
+{
+  "include": [
+    {
+      "benchmarkName": "benchmark-123",
+      "branch": "main",
+      "config": "./.github/scripts/tests/template_benchmark_config.yaml"
+    },
+    {
+      "benchmarkName": "benchmark-123-1",
+      "branch": "feature/schedule",
+      "config": "./.github/scripts/tests/template_benchmark_config.yaml"
+    }
+  ]
+}
 ```

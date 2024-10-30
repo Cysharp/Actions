@@ -3,28 +3,32 @@ set -euo pipefail
 
 function usage {
   cat <<EOF
-Usage: $(basename $0) [options]
+Usage: $(basename $0) --benchmark-name-prefix <string> [options]
 Descriptions: Create GitHub Matrix JSON, output can be used as matrix strategy in GitHub Actions. This script can be used to generate matrix from loader config or branch name.
 
+Required:
+  --benchmark-name-prefix  string      Benchmark name prefix
 Options:
-  --branch            string      Branch name to run the benchmark, required when --enable-loader is false (default: "")
-  --config-path       string      The name of the dev center.
-  --debug             bool        Show debug output or not. (default: false)
-  --help                          Show this help message
+  --branch                 string      Branch name to run the benchmark, required when --enable-loader is false (default: "")
+  --config-path            string      The name of the dev center.
+  --debug                  bool        Show debug output or not. (default: false)
+  --help                               Show this help message
 
 Sample benchmark-config:
   see: .github/scripts/tests/template_benchmark_config.yaml
 
 Examples:
   1. Generate GitHub Matrix JSON from loader
-      $ bash ./.github/scripts/$(basename $0) --config-path ".github/scripts/tests/template_schedule_loader.yaml"
+      $ bash ./.github/scripts/$(basename $0) --benchmark-name-prefix magiconion-wf --config-path ".github/scripts/tests/template_schedule_loader.yaml"
   2. Generate GitHub Matrix JSON from branch name
-      $ bash ./.github/scripts/benchmark_loader2matrix.sh --branch main --config-path ./.github/scripts/tests/template_benchmark_config.yaml
+      $ bash ./.github/scripts/benchmark_loader2matrix.sh --benchmark-name-prefix magiconion-123 --branch main --config-path ./.github/scripts/tests/template_benchmark_config.yaml
 EOF
 }
 
 while [ $# -gt 0 ]; do
   case $1 in
+    # required
+    --benchmark-name-prefix) _BENCHMARK_NAME_PREFIX=$2; shift 2; ;;
     # optional
     --branch) _BRANCH=$2; shift 2; ;;
     --config-path) _BENCHMARK_CONFIG_FILE=$2; shift 2; ;;
@@ -67,9 +71,18 @@ function validate_config {
       exit 1
     fi
   done
+
+  # suffix should be unique
+  unique_count=$(yq e '.["branch-configs"] | .[].suffix' "${_BENCHMARK_CONFIG_FILE}" | sort | uniq | wc -l) # unique count
+  original_count=$(yq e '.["branch-configs"] | .[].suffix' "${_BENCHMARK_CONFIG_FILE}" | wc -l) # original count
+  if [[ "$unique_count" != "$original_count" ]]; then
+    error "All Suffix should be unique in branch-configs"
+    exit 1
+  fi
 }
 
 title "Arguments:"
+print "  --benchmark-name-prefix=${_BENCHMARK_NAME_PREFIX}"
 print "  --branch=${_BRANCH:=""}"
 print "  --config-path=${_BENCHMARK_CONFIG_FILE:=""}"
 print "  --debug=${_DEBUG:=false}"
@@ -102,19 +115,23 @@ if [[ "${_BRANCH}" == "" ]]; then
   title "Validate config"
   validate_config
 
-  title "Scan config and obtain json elements (General keys)"
-  mapfile -t matrix_includes_json_array < <(yq -o json eval '.branch-configs' "$_BENCHMARK_CONFIG_FILE" | jq -c)
-
-  title "Output Matrix json"
-  json_output=$(jq -c -n --argjson matrix_includes "${matrix_includes_json_array[@]}" '{
-    include: $matrix_includes
+    title "Output Matrix json"
+  json_output=$(yq -o=json eval . "${_BENCHMARK_CONFIG_FILE}" | jq -c --arg prefix "${_BENCHMARK_NAME_PREFIX}" '{
+    include: [
+      .["branch-configs"][] | {
+        benchmarkName: ($prefix + .suffix),
+        branch: .branch,
+        config: .config
+      }
+    ]
   }')
 else
   # branch mode
   title "Branch specified, creating matrix via current config and branch."
-  json_output=$(jq -c -n --arg branch "${_BRANCH}" --arg config "$_BENCHMARK_CONFIG_FILE" '{
+  json_output=$(jq -c -n --arg benchmarkName "${_BENCHMARK_NAME_PREFIX}" --arg branch "${_BRANCH}" --arg config "$_BENCHMARK_CONFIG_FILE" '{
     include: [
       {
+        benchmarkName: $benchmarkName,
         branch: $branch,
         config: $config,
       }
@@ -123,8 +140,8 @@ else
 
 fi
 
-  print "Pretty print Matrix json for debug"
-  echo "$json_output" | jq
+print "Pretty print Matrix json for debug"
+echo "$json_output" | jq
 
-  print "Output for GITHUB_OUTPUT"
-  echo "matrix=$json_output" | tee -a "$GITHUB_OUTPUT"
+print "Output for GITHUB_OUTPUT"
+echo "matrix=$json_output" | tee -a "$GITHUB_OUTPUT"

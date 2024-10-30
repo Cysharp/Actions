@@ -1,10 +1,12 @@
 {
   "include": [
     {
+      "benchmarkName": "magiconion-123",
       "branch": "main",
       "config": "./.github/scripts/tests/template_benchmark_config.yaml"
     },
     {
+      "benchmarkName": "magiconion-123-1",
       "branch": "feature/schedule",
       "config": "./.github/scripts/tests/template_benchmark_config.yaml"
     }
