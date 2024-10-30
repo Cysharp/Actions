@@ -97,11 +97,6 @@ if [[ "${_BRANCH}" == "" && "${_BENCHMARK_CONFIG_FILE}" == "" ]]; then
   error "Loader config not specified, please use --config-path CONFIG_PATH to specify config."
   exit 1
 fi
-# config path is specified but not found
-if [[ "${_BENCHMARK_CONFIG_FILE}" != "" && ! -f "${_BENCHMARK_CONFIG_FILE}" ]]; then
-  error "Loader config specified but config not found. Please check the path. ${_BENCHMARK_CONFIG_FILE}"
-  exit 1
-fi
 # bracnh is specified but config is not
 if [[ "${_BRANCH}" != "" && "${_BENCHMARK_CONFIG_FILE}" == "" ]]; then
   error "Branch specified but config not found. Please use --config-path CONFIG_PATH to specify config."
@@ -111,6 +106,12 @@ fi
 if [[ "${_BRANCH}" == "" ]]; then
   # config mode
   title "Loader config found, creating matrix json from config."
+
+  # config path is specified but not found. Don't need this on branch mode
+  if [[ "${_BENCHMARK_CONFIG_FILE}" != "" && ! -f "${_BENCHMARK_CONFIG_FILE}" ]]; then
+    error "Loader config specified but config not found. Please check the path. ${_BENCHMARK_CONFIG_FILE}"
+    exit 1
+  fi
 
   title "Validate config"
   validate_config
