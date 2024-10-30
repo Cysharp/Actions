@@ -17,8 +17,9 @@ sequenceDiagram
 
     trigger->>gha: Trigger via event
     gha->>config2matrix: Dispatch
+    config2matrix->>config2matrix: Checkout current branch
     config2matrix->>config2matrix: Convert config to matrix
-    config2matrix->>benchmark: Checkout current branch <br/> Create matrix
+    config2matrix->>benchmark: Create job by matrix
     benchmark->>benchmark: Run benchmarks...
     benchmark->>benchmark: Run benchmarks...
     benchmark->>benchmark: Run benchmarks...
@@ -48,14 +49,16 @@ sequenceDiagram
     loader2matrix->>loader2matrix: Convert loader config to matrix
     gha->>config2matrix: Dispatch to run on the matrix
     par BranchA
+      config2matrix->>config2matrix: Checkout BranchA
       config2matrix->>config2matrix: Convert config to matrix
-      config2matrix->>benchmark: Checkout BranchA <br/> Create matrix
+      config2matrix->>benchmark: Create job by matrix
       benchmark->>benchmark: Run benchmarks...
       benchmark->>benchmark: Run benchmarks...
       benchmark->>benchmark: Run benchmarks...
     and BranchB
+      config2matrix->>config2matrix: Checkout BranchB
       config2matrix->>config2matrix: Convert config to matrix
-      config2matrix->>benchmark: Checkout BranchB <br/> Create matrix
+      config2matrix->>benchmark: Create job by matrix
       benchmark->>benchmark: Run benchmarks...
       benchmark->>benchmark: Run benchmarks...
       benchmark->>benchmark: Run benchmarks...
