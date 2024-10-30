@@ -8,7 +8,7 @@ on:
         description: "Name of the benchamrk environment."
         required: true
         type: string
-      benchmark-loader-path:
+      benchmark-config-path:
         description: "Benchmark loader yaml file path"
         required: true
         type: string
@@ -70,7 +70,7 @@ jobs:
             branch=$(gh pr view "${{ github.event.issue.pull_request.html_url }}"  --json headRefName | jq -r ".headRefName")
             echo "name=${branch}" | tee -a "$GITHUB_OUTPUT"
           else
-            # workflow_dispatch or issue_comment (issue)
+            # issue_comment (issue) and other trigger
             echo "name=${{ github.ref_name }}" | tee -a "$GITHUB_OUTPUT"
           fi
       - uses: actions/checkout@v4
@@ -83,4 +83,4 @@ jobs:
           path: Actions
       - name: Generate Matrix json from config
         id: loader2matrix
-        run: bash ./Actions/.github/scripts/benchmark_loader2matrix.sh --benchmark-loader-path "./Repo/${{ inputs.benchmark-loader-path }}"
+        run: bash ./Actions/.github/scripts/benchmark_loader2matrix.sh --config-path "./Repo/${{ inputs.benchmark-config-path }}" --branch "${{ github.event_name != 'schedule' && steps.branch.outputs.name || '' }}"
