@@ -1,8 +1,8 @@
-# bash ./.github/scripts/benchmark_config2matrix.sh --benchmark-config-path ./.github/scripts/tests/template_benchmark_config.yaml
+# bash ./.github/scripts/benchmark_config2matrix.sh --config-path ./.github/scripts/tests/template_benchmark_config.yaml
 apt-tools: libmsquic
 dotnet-version: 8.0
-benchmark-expire-min: 15
 benchmark-location: "japaneast"
+benchmark-expire-min: 15
 benchmark-timeout-min: 10
 benchmark-client-run-script-path: ".github/scripts/benchmark-client-run.sh"
 benchmark-client-run-script-args: '--run-args "-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol {{ protocol }} -s CI --rounds 3 --channels {{ channels }} --streams {{ streams }} --serialization {{ serialization }} --validate true --tags {{ tags }}" --build-args "{{ buildArgsClient }}"'

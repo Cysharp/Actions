@@ -13,7 +13,7 @@ Options:
   --state                       string      State of the environment. (default: Failed)
   --try-redeploy                true|false  Try to redeploy the environment before delete, this is useful when deletion failed due to stack not exists. (default: false)
   --no-delete                   true|false  No delete, extend expiration. (default: false)
-  --debug                       bool        Show debug output pr not. (default: false)
+  --debug                       bool        Show debug output or not. (default: false)
   --dry-run                     bool        Show the command that would be run, but do not run it. (default: true)
   --help                                    Show this help message
 

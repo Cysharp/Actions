@@ -1,70 +1,33 @@
 #!/bin/bash
 set -euo pipefail
-# Create GitHub Matrix JSON from yaml config file, output can be used as matrix strategy in GitHub Actions.
-#
-# # values in each matrix
-# * apt-tools
-# * dotnet-version
-# * benchmark-expire-min
-# * benchmark-client-run-script-path
-# * benchmark-client-run-script-args
-# * benchmark-server-run-script-path
-# * benchmark-server-run-script-args
-# * benchmark-server-stop-script-path
 
-# #########################
-# ### yaml file example ###
-# #########################
-# see: _template_benchmark_config.yaml
-#
-# #########################
-# ### input sample      ###
-# #########################
-# bash .github/scripts/benchmark_config2matrix.sh --benchmark-config-path ".github/scripts/tests/template_benchmark_config.yaml"
-#
-# #########################
-# ### output sample ###
-# #########################
-# 2024-10-09 16:01:09 INFO(main): # Arguments:
-# 2024-10-09 16:01:09 INFO(main):   --benchmark-config-path=./.github/scripts/_template_benchmark_config.yaml
-# 2024-10-09 16:01:09 INFO(main):   --debug=true
+function usage {
+  cat <<EOF
+Usage: $(basename $0) --config-path <string> [options]
+Descriptions: Create GitHub Matrix JSON from yaml config file, output can be used as matrix strategy in GitHub Actions.
 
-# 2024-10-09 16:01:09 INFO(main): # Parameters:
-# 2024-10-09 16:01:09 INFO(main):   * template_key_endswith=run-script-args
+Required:
+  --config-path       string      The name of the dev center.
+Options:
+  --debug             bool        Show debug output pr not. (default: false)
+  --help                          Show this help message
 
-# 2024-10-09 16:01:09 INFO(main): # Gathering config keys
+Sample benchmark-config:
+  see: .github/scripts/tests/template_benchmark_config.yaml
 
-# 2024-10-09 16:01:09 INFO(main): # Validate config
-#
-# 2024-10-09 15:58:34 INFO(main): # Scan config and obtain json elements (General keys)
-# 2024-10-09 15:58:34 INFO(main): apt-tools=libmsquic
-# 2024-10-09 15:58:34 INFO(main): dotnet-version=8.0
-# 2024-10-09 15:58:34 INFO(main): benchmark-expire-min=15
-# 2024-10-09 15:58:35 INFO(main): benchmark-timeout-min=10
-# 2024-10-09 15:58:35 INFO(main): benchmark-client-run-script-path=.github/scripts/benchmark-client-run.sh
-# 2024-10-09 15:58:35 INFO(main): benchmark-server-run-script-path=.github/scripts/benchmark-server-run.sh
-# 2024-10-09 15:58:35 INFO(main): benchmark-server-stop-script-path=.github/scripts/benchmark-server-stop.sh
-
-# 2024-10-09 15:58:35 INFO(main): # Reflect the values defined in jobs into the placeholders for xxxx-run-script-args.
-# 2024-10-09 15:58:35 INFO(main): benchmark-client-run-script-args=--run-args "-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 28 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c" --build-args ""
-# 2024-10-09 15:58:35 INFO(main): benchmark-server-run-script-args=--run-args "-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c"
-# 2024-10-09 15:58:35 INFO(main): benchmark-client-run-script-args=--run-args "-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 1 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c" --build-args ""
-# 2024-10-09 15:58:36 INFO(main): benchmark-server-run-script-args=--run-args "-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c"
-# 2024-10-09 15:58:36 INFO(main): benchmark-client-run-script-args=--run-args "-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 28 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c" --build-args "--p:UseNuGetClient=6.14"
-# 2024-10-09 15:58:36 INFO(main): benchmark-server-run-script-args=--run-args "-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c"
-# 2024-10-09 15:58:36 INFO(main): benchmark-client-run-script-args=--run-args "-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 28 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c" --build-args ""
-# 2024-10-09 15:58:36 INFO(main): benchmark-server-run-script-args=--run-args "-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c"
-
-# 2024-10-09 15:58:36 INFO(main): # Output Matrix json
-# 2024-10-09 15:58:36 INFO(main): Output for GITHUB_OUTPUT
-# matrix={"include":[{"apt-tools":"libmsquic","dotnet-version":"8.0","benchmark-expire-min":15,"benchmark-timeout-min":10,"benchmark-client-run-script-path":".github/scripts/benchmark-client-run.sh","benchmark-server-run-script-path":".github/scripts/benchmark-server-run.sh","benchmark-server-stop-script-path":".github/scripts/benchmark-server-stop.sh","benchmark-client-run-script-args":"--run-args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 28 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\" --build-args \"\"","benchmark-server-run-script-args":"--run-args \"-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\""},{"apt-tools":"libmsquic","dotnet-version":"8.0","benchmark-expire-min":15,"benchmark-timeout-min":10,"benchmark-client-run-script-path":".github/scripts/benchmark-client-run.sh","benchmark-server-run-script-path":".github/scripts/benchmark-server-run.sh","benchmark-server-stop-script-path":".github/scripts/benchmark-server-stop.sh","benchmark-client-run-script-args":"--run-args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 1 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c\" --build-args \"\"","benchmark-server-run-script-args":"--run-args \"-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1x1,protocol:h2c\""},{"apt-tools":"libmsquic","dotnet-version":"8.0","benchmark-expire-min":15,"benchmark-timeout-min":10,"benchmark-client-run-script-path":".github/scripts/benchmark-client-run.sh","benchmark-server-run-script-path":".github/scripts/benchmark-server-run.sh","benchmark-server-stop-script-path":".github/scripts/benchmark-server-stop.sh","benchmark-client-run-script-args":"--run-args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 28 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\" --build-args \"--p:UseNuGetClient=6.14\"","benchmark-server-run-script-args":"--run-args \"-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\""},{"apt-tools":"libmsquic","dotnet-version":"8.0","benchmark-expire-min":15,"benchmark-timeout-min":10,"benchmark-client-run-script-path":".github/scripts/benchmark-client-run.sh","benchmark-server-run-script-path":".github/scripts/benchmark-server-run.sh","benchmark-server-stop-script-path":".github/scripts/benchmark-server-stop.sh","benchmark-client-run-script-args":"--run-args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c -s CI --rounds 3 --channels 28 --streams 1 --serialization messagepack --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\" --build-args \"\"","benchmark-server-run-script-args":"--run-args \"-u http://0.0.0.0:5000 --protocol h2c --validate true --tags legend:messagepack-h2c-linux,streams:1,protocol:h2c\""}]}
+Examples:
+  1. Generate GitHub Matrix JSON from config
+      $ bash ./.github/scripts/$(basename $0) --config-path ".github/scripts/tests/template_benchmark_config.yaml"
+EOF
+}
 
 while [ $# -gt 0 ]; do
   case $1 in
     # required
-    --benchmark-config-path) _BENCHMARK_CONFIG_FILE=$2; shift 2; ;;
+    --config-path) _BENCHMARK_CONFIG_FILE=$2; shift 2; ;;
     # optional
     --debug) _DEBUG=$2; shift 2; ;;
+    --help) usage; exit 1; ;;
     *) shift ;;
   esac
 done
@@ -77,7 +40,7 @@ function title {
   echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-main}): # $*"
 }
 function error {
-  echo "$(date "+%Y-%m-%d %H:%M:%S") ERRO(${FUNCNAME[1]:-main}): # $*" >&2
+  echo "$(date "+%Y-%m-%d %H:%M:%S") ERRO(${FUNCNAME[1]:-main}): ERROR $*" >&2
 }
 function debug {
   if [[ "${_DEBUG}" == "true" ]]; then
@@ -118,7 +81,7 @@ function validate_config {
 }
 
 title "Arguments:"
-print "  --benchmark-config-path=${_BENCHMARK_CONFIG_FILE}"
+print "  --config-path=${_BENCHMARK_CONFIG_FILE}"
 print "  --debug=${_DEBUG:=false}"
 
 title "Parameters:"
@@ -129,6 +92,7 @@ if [[ "${CI:-""}" == "" ]]; then
   GITHUB_OUTPUT="/dev/null"
 fi
 
+title "Validating arguments:"
 if [[ ! -f "${_BENCHMARK_CONFIG_FILE}" ]]; then
   error "File not found: ${_BENCHMARK_CONFIG_FILE}"
   exit 1
@@ -159,7 +123,7 @@ for general_key in "${general_keys[@]}"; do
       ($key): $value
     }')
   fi
-  # echo "$general_json" # debug
+  debug "  general_json => $general_json"
   general_json_elements+=("$general_json")
 done
 
@@ -168,7 +132,7 @@ for job in "${filtered_jobs[@]}"; do
   json_elements=()
   args_json_elements=()
 
-  debug "  job: ${job}"
+  debug "  job => ${job}"
 
   # Get server / client args by job
   for template_string_key in "${template_string_keys[@]}"; do
@@ -188,7 +152,7 @@ for job in "${filtered_jobs[@]}"; do
     # extract placeholders from the template string
     placeholders=$(extract_placeholders "$template_string_value")
 
-    debug "  placeholders: ${placeholders}"
+    debug "  placeholders => ${placeholders}"
 
     # extract values from the job, then replace the placeholder with the value.
     # {{ foo }} will be replaced with the value of the key "foo" in the job
@@ -196,7 +160,7 @@ for job in "${filtered_jobs[@]}"; do
     for key in $placeholders; do
       # get value from the job, set empty string if not found
       value=$(echo "$job" | jq -r ".$key // \"\"")
-      debug "  templateKey=jobValue: ${key}=${value}"
+      debug "  templateKey=jobValue => ${key}=${value}"
       assembled_string=$(echo "$assembled_string" | sed -e "s/{{\s*$key\s*}}/$value/g")
     done
 

@@ -74,7 +74,7 @@ jobs:
           path: Actions
       - name: Generate Matrix json from config
         id: config2matrix
-        run: bash ./Actions/.github/scripts/benchmark_config2matrix.sh --benchmark-config-path "./Repo/${{ inputs.benchmark-config-path }}"
+        run: bash ./Actions/.github/scripts/benchmark_config2matrix.sh --config-path "./Repo/${{ inputs.benchmark-config-path }}"
       - name: Comment (Running - Config loaded)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
