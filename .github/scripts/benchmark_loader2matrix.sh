@@ -91,19 +91,17 @@ if [[ "${CI:-""}" == "" ]]; then
   GITHUB_OUTPUT="/dev/null"
 fi
 
+title "Detect config type"
+type=$(yq eval .type "${_BENCHMARK_CONFIG_FILE}")
+
 title "Validating arguments:"
 # branch or config must be specified
 if [[ "${_BRANCH}" == "" && "${_BENCHMARK_CONFIG_FILE}" == "" ]]; then
   error "Loader config not specified, please use --config-path CONFIG_PATH to specify config."
   exit 1
 fi
-# bracnh is specified but config is not
-if [[ "${_BRANCH}" != "" && "${_BENCHMARK_CONFIG_FILE}" == "" ]]; then
-  error "Branch specified but config not found. Please use --config-path CONFIG_PATH to specify config."
-  exit 1
-fi
 
-if [[ "${_BRANCH}" == "" ]]; then
+if [[ "${type}" == "loader" ]]; then
   # config mode
   title "Loader config found, creating matrix json from config."
 
@@ -129,6 +127,13 @@ if [[ "${_BRANCH}" == "" ]]; then
 else
   # branch mode
   title "Branch specified, creating matrix via current config and branch."
+
+  # bracnh is specified but config missing
+  if [[ "${_BRANCH}" != "" && "${_BENCHMARK_CONFIG_FILE}" == "" ]]; then
+    error "Branch specified but config not found. Please use --config-path CONFIG_PATH to specify config."
+    exit 1
+  fi
+
   json_output=$(jq -c -n --arg benchmarkName "${_BENCHMARK_NAME_PREFIX}" --arg branch "${_BRANCH}" --arg config "$_BENCHMARK_CONFIG_FILE" '{
     include: [
       {

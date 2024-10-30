@@ -83,9 +83,5 @@ jobs:
           path: Actions
       - name: Generate Matrix json from config
         id: loader2matrix
-        run: |
-          if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            bash ./Actions/.github/scripts/benchmark_loader2matrix.sh --benchmark-name-prefix "${{ inputs.benchmark-name-prefix }}" --config-path "./Repo/${{ inputs.benchmark-config-path }}"
-          else
-            bash ./Actions/.github/scripts/benchmark_loader2matrix.sh --benchmark-name-prefix "${{ inputs.benchmark-name-prefix }}" --config-path "${{ inputs.benchmark-config-path }}" --branch "${{ steps.branch.outputs.name }}"
-          fi
+        run: bash ../Actions/.github/scripts/benchmark_loader2matrix.sh --benchmark-name-prefix "${{ inputs.benchmark-name-prefix }}" --config-path "${{ inputs.benchmark-config-path }}" --branch "${{ steps.branch.outputs.name }}"
+        working-directory: Repo

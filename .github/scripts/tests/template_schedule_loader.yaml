@@ -1,4 +1,5 @@
-# bash ./.github/scripts/benchmark_loader2matrix.sh --benchmark-name-prefix magiconion-123 --config-path ".github/scripts/tests/template_schedule_loader.yaml"
+# bash ./.github/scripts/benchmark_loader2matrix.sh --benchmark-name-prefix foo --config-path ".github/scripts/tests/template_schedule_loader.yaml"
+type: loader # indicate this is loader config
 branch-configs:
   - suffix: ""
     branch: main
