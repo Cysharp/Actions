@@ -179,3 +179,10 @@ branch-configs:
   ]
 }
 ```
+
+# Practical Example
+
+**[Cysharp/MagicOnion](https://github.com/Cysharp/MagicOnion)**
+
+- [Benchmark Config](https://github.com/Cysharp/MagicOnion/tree/main/perf/BenchmarkApp/configs)
+- [GitHub Actions](https://github.com/Cysharp/MagicOnion/blob/main/.github/workflows/benchmark.yml)
