@@ -1,0 +1,29 @@
+name: Test benchmark_loader2matrix
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run benchmark_loader2matrix
+        id: actua_config
+        run: bash ./.github/scripts/benchmark_loader2matrix.sh --benchmark-name-prefix foo --config-path ./.github/scripts/tests/template_schedule_loader.yaml
+      - name: Run benchmark_loader2matrix
+        id: actual_params
+        run: bash ./.github/scripts/benchmark_loader2matrix.sh --benchmark-name-prefix foo --config-path ./.github/scripts/tests/template_benchmark_config.yaml --branch main
+      - name: Test
+        run: |
+          expected_config=$(jq -c < ./.github/scripts/tests/template_schedule_loader.json)
+          actual_config=$(echo '${{ steps.actua_config.outputs.matrix }}' | jq -c)
+
+          expected_params=$(jq -c < ./.github/scripts/tests/ondemand_schedule_loader.json)
+          actual_params=$(echo '${{ steps.actual_params.outputs.matrix }}' | jq -c)
+
+          echo -n "FACT: matrix is sane as expected json. "
+          if [[ "$actual_config" == "$expected_config" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "$actual_params" == "$expected_params" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
