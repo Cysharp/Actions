@@ -48,6 +48,9 @@ function title {
   echo ""
   echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-main}): # $*"
 }
+function error {
+  echo "$(date "+%Y-%m-%d %H:%M:%S") ERRO(${FUNCNAME[1]:-main}): ERROR $*" >&2
+}
 function debug {
   if [[ "${_DEBUG}" == "true" ]]; then
     echo "DEBUG: $*"
@@ -135,10 +138,14 @@ if [[ "${CI:-""}" == "" ]]; then
   GITHUB_OUTPUT="/dev/null"
 fi
 
-title "Checking ${_STATE} environments are exists or not."
-readarray -t jsons < <(list)
-
-if [[ "${#jsons[@]}" == "0" ]]; then
+# list
+title "List ${_STATE} environments..."
+list_outpouts=$(list) || {
+  error "Failed to list environments."
+  exit 1
+}
+readarray -t jsons <<< "$list_outpouts"
+if [[ "$list_outpouts" == "" || "${#jsons[@]}" == "0" ]]; then
   print "! No environment found, exiting..."
   exit
 fi
