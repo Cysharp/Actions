@@ -95,7 +95,13 @@ function list {
     # 1. Missing expirationDate will be treated as delete target.
     # 2. provisioningState with _STATE will be treated as delete target.
     # 3. `expirationDate < current_time_utc_epoch` will be treated as delete target. (date format: `2024-09-18T04:00:00+00:00`)
-    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --user-id me | jq -c --arg current_time_utc_epoch "$current_time_utc_epoch" --arg state "$_STATE" 'map(select(.expirationDate == null or (.expirationDate | fromdateiso8601) < ($current_time_utc_epoch | tonumber) or .provisioningState == $state)) | .[]'
+    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --user-id me | jq -c --arg current_time_utc_epoch "$current_time_utc_epoch" --arg state "$_STATE" '
+  map(select(
+    (.expirationDate == null) or
+    ((.expirationDate | strptime("%Y-%m-%dT%H:%M:%S%z") | mktime) < ($current_time_utc_epoch | tonumber)) or
+    (.provisioningState == $state)
+  )) | .[]
+'
   fi
 }
 # show environment error detail
