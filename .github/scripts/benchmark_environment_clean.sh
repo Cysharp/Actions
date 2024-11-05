@@ -90,12 +90,12 @@ function list {
   local current_time_utc_epoch
   current_time_utc_epoch=$(date -u +"%s")
   if [[ "${_STATE}" == "All" ]]; then
-    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --user-id me | jq -c ".[]"
+    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c ".[]"
   else
     # 1. Missing expirationDate will be treated as delete target.
     # 2. provisioningState with _STATE will be treated as delete target.
     # 3. `expirationDate < current_time_utc_epoch` will be treated as delete target. (date format: `2024-09-18T04:00:00+00:00`)
-    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" --user-id me | jq -c --arg current_time_utc_epoch "$current_time_utc_epoch" --arg state "$_STATE" '
+    az devcenter dev environment list --dev-center-name "$_DEVCENTER_NAME" --project-name "$_PROJECT_NAME" | jq -c --arg current_time_utc_epoch "$current_time_utc_epoch" --arg state "$_STATE" '
   map(select(
     (.expirationDate == null) or
     ((.expirationDate | strptime("%Y-%m-%dT%H:%M:%S%z") | mktime) < ($current_time_utc_epoch | tonumber)) or
