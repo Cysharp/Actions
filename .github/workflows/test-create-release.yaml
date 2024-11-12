@@ -118,3 +118,8 @@ jobs:
     uses: ./.github/workflows/clean-packagejson-branch.yaml
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
+
+  actions-timeline:
+    needs: [set-tag, update-packagejson, build-dotnet, build-unity, create-release, create-release2]
+    uses: ./.github/workflows/actions-timeline.yaml
+    secrets: inherit
