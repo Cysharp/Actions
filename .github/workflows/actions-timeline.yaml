@@ -1,0 +1,17 @@
+name: (R) Actions timeline
+
+on:
+  workflow_call:
+
+permissions:
+  actions: read
+
+jobs:
+  actions-timeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - uses: Kesin11/actions-timeline@v2
+        with:
+          github-token: ${{ github.token }}
+          show-waiting-runner: true
