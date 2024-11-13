@@ -19,3 +19,4 @@ jobs:
           dotnet --list-sdks | grep "6.0"
           dotnet --list-sdks | grep "7.0"
           dotnet --list-sdks | grep "8.0"
+          dotnet --list-sdks | grep "9.0"
