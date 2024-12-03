@@ -13,8 +13,11 @@ on:
         required: true
         type: string
     outputs:
+      normalized_tag:
+        description: normalized tag, tag without v prefix.
+        value: ${{ jobs.validate.outputs.normalized_tag }}
       tag:
-        description: input tag
+        description: same as input tag
         value: ${{ jobs.validate.outputs.tag }}
       validated:
         description: result of the validation is validated or not
@@ -40,18 +43,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      tag: ${{ steps.validate.outputs.tag }}
+      tag: ${{ steps.trim.outputs.tag }}
+      normalized_tag: ${{ steps.trim.outputs.normalized_tag }}
       validated: ${{ steps.validate.outputs.validated }}
     steps:
+      - name: Set version without "v" prefix
+        id: trim
+        run: |
+          input_tag="${{ inputs.tag }}"
+          if [[ "$input_tag" == v* ]]; then
+            normalized_tag="${input_tag:1}"
+          else
+            normalized_tag="$input_tag"
+          fi
+          echo "normalized_tag=$version" | tee -a "$GITHUB_OUTPUT"
+          echo "tag=${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
+
       # Only check released tag, allow override draft and pre-release. Old to new sort by version number.
       - name: Validate tag is not reverting
         shell: bash
         id: validate
         run: |
-          echo "tag=${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
-
           release_latest=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest | jq -c -r ".[] | select(.isLatest == true) | .tagName")
-          sorted_latest=$(echo -e "${release_latest}\n${{ inputs.tag }}" | sort -V | tail -n 1)
+          sorted_latest=$(echo -e "${release_latest}\n${{ steps.trim.outputs.normalized_tag }}" | sort -V | tail -n 1)
           if [[ "$release_latest" == "" ]]; then
             echo "There is not release tag."
             echo "validated=true" | tee -a "$GITHUB_OUTPUT"
