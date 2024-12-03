@@ -7,6 +7,10 @@ on:
         description: "commit-id: CommitId to create release & tag."
         required: false
         type: string
+      dry-run:
+        description: "dry-run: true = no upload. false = dry run changes && delete release after 60s."
+        required: true
+        type: boolean
       require-validation:
         description: "require-validation: true require validation must pass, false to keep going even validation failed."
         required: false
@@ -16,36 +20,37 @@ on:
         description: "tag: Git tag to create. (sample 1.0.0)"
         required: true
         type: string
-      release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
-        description: "release-format: if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred."
-        required: false
-        type: string
-        default: 'Ver.{0}'
+      # nuget
       nuget-push:
         description: "nuget-push: true = upload nuget package. false = not upload"
         required: false
         type: boolean
         default: false
-      unitypackage-upload: # todo: release-uploadで置き換えられるので消す
-        description: "[deprecated] unitypackage-upload: true = upload unitypackage. false = not upload"
+      # release
+      release-asset-path:
+        description: "release assets path to upload. This is a list of paths separated by a newline."
         required: false
-        type: boolean
-        default: false
+        type: string
+      release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
+        description: "release-format: if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred."
+        required: false
+        type: string
+        default: 'Ver.{0}'
       release-upload:
         description: "release-upload: true = upload assets. false = not upload"
         required: false
         type: boolean
         default: false
-      dry-run:
-        description: "dry-run: true = no upload. false = dry run changes && delete release after 60s."
-        required: true
-        type: boolean
   workflow_call:
     inputs:
       commit-id:
         description: "CommitId to create release & tag."
         required: true
         type: string
+      dry-run:
+        description: "true = no upload. false = dry run changes && delete release after 60s."
+        required: true
+        type: boolean
       require-validation:
         description: "true require validation must pass, false to keep going even validation failed."
         required: false
@@ -55,22 +60,7 @@ on:
         description: "Git tag to create. (sample 1.0.0)"
         required: true
         type: string
-      release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
-        description: "Release format. (if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred.)"
-        required: false
-        type: string
-        default: 'Ver.{0}'
-      push-tag: # todo: いらなくなったので消す
-        description: "[depreated] true = push tag. false = no push tag."
-        required: false
-        type: boolean
-        default: false
       # nuget
-      nuget-push:
-        description: "true = upload nuget package. false = not upload"
-        required: false
-        type: boolean
-        default: false
       nuget-path:
         description: "nuget path to upload."
         required: false
@@ -78,34 +68,26 @@ on:
         default: |
           ./nuget/*.nupkg
           ./nuget/*.snupkg
-      # unity
-      unitypackage-upload: # todo: release-uploadで置き換えられるので消す
-        description: "[deprecated] true = upload unitypackage. false = not upload"
+      nuget-push:
+        description: "true = upload nuget package. false = not upload"
         required: false
         type: boolean
         default: false
-      unitypackage-name: # todo: いらなくなったので消す
-        description: "[deprecated] unitypackage name to upload."
+      # release
+      release-asset-path:
+        description: "release assets path to upload. This is a list of paths separated by a newline."
         required: false
         type: string
-      unitypackage-path: # todo: release-uploadで置き換えられるので消す
-        description: "[deprecated] unitypackage path to upload."
+      release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
+        description: "Release format. (if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred.)"
         required: false
         type: string
-      # release assets
+        default: 'Ver.{0}'
       release-upload:
         description: "true = upload assets. false = not upload"
         required: false
         type: boolean
         default: false
-      release-asset-path:
-        description: "release assets path to upload."
-        required: false
-        type: string
-      dry-run:
-        description: "true = no upload. false = dry run changes && delete release after 60s."
-        required: true
-        type: boolean
 
 jobs:
   validate:
@@ -125,9 +107,9 @@ jobs:
     steps:
       - name: Validate inputs - unitypackage
         shell: bash
-        if: ${{ inputs.unitypackage-upload && inputs.unitypackage-path == '' }}
+        if: ${{ inputs.release-upload && inputs.release-asset-path == '' }}
         run: |
-          echo "Validation error! 'inputs.unitypackage-path' cannot be blank when 'inputs.unitypackage-upload' is true."
+          echo "Validation error! 'inputs.release-asset-path' cannot be blank when 'inputs.release-upload' is true."
           exit 1
 
       - name: Load secrets
@@ -159,16 +141,6 @@ jobs:
               exit 1
             fi
           done <<< "${{ inputs.release-asset-path }}"
-      - name: Validate package exists in artifact - unitypackage
-        if: ${{ inputs.unitypackage-upload }}
-        run: |
-          while read -r unitypackage_path; do
-            if [[ "${unitypackage_path}" == "" ]]; then continue; fi
-            if [[ ! -f "${unitypackage_path}" ]]; then
-              echo "Specified .unitypackage not found. path: ${unitypackage_path}"
-              exit 1
-            fi
-          done <<< "${{ inputs.unitypackage-path }}"
       - name: Validate package exists in artifact - NuGet
         if: ${{ inputs.nuget-push }}
         run: |
@@ -191,7 +163,6 @@ jobs:
           git push origin ${{ inputs.tag }}
       - name: Create Release
         run: gh release create ${{ inputs.tag }} --draft --verify-tag --title "${{ format(inputs.release-format, inputs.tag) }}" --generate-notes
-      # TODO: only list up to 100 relases, need to handle pagination
       - name: Wait and Verify Release Name is expected
         run: |
           sleep 5s
@@ -210,13 +181,6 @@ jobs:
             gh release upload ${{ inputs.tag }} "${asset_path}"
           done <<< "${{ inputs.release-asset-path }}"
         if: ${{ inputs.release-upload }}
-      - name: Upload .unitypacakge files to release
-        run: |
-          while read -r unitypackage_path; do
-            if [[ "${unitypackage_path}" == "" ]]; then continue; fi
-            gh release upload ${{ inputs.tag }} "${unitypackage_path}"
-          done <<< "${{ inputs.unitypackage-path }}"
-        if: ${{ inputs.unitypackage-upload }}
 
       # Upload to NuGet
       - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})

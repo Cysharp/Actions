@@ -92,14 +92,12 @@ jobs:
       tag: ${{ needs.set-tag.outputs.tag }}
       dry-run: true # true = Release作成後に60秒待って削除される。
       nuget-push: true # dry-run=true, nuget-push=true なら nuget-pushは実行されない。
-      unitypackage-upload: true # Releaseにアップロードされる。
-      unitypackage-path: |
-        ./Sandbox.Unity.unitypackage/Sandbox.Unity.unitypackage
-        ./Sandbox.Unity.Plugin.unitypackage/Sandbox.Unity.Plugin.unitypackage
       release-upload: true
       release-asset-path: |
         ./nuget/ClassLibrary.${{ needs.set-tag.outputs.tag }}.nupkg
         ./nuget/ClassLibrary.${{ needs.set-tag.outputs.tag }}.snupkg
+        ./Sandbox.Unity.unitypackage/Sandbox.Unity.unitypackage
+        ./Sandbox.Unity.Plugin.unitypackage/Sandbox.Unity.Plugin.unitypackage
     secrets: inherit
 
   create-release2:
