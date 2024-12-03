@@ -139,7 +139,7 @@ jobs:
             if [[ "${asset_path}" == "" ]]; then continue; fi
             # is it a wildcard?
             # shellcheck disable=SC2086
-            if [[ "$input_str" == *\** || "$input_str" == *\?* ]]; then
+            if [[ "$asset_path" == *\** || "$asset_path" == *\?* ]]; then
               # shellcheck disable=SC2086
               if ! ls -l ${asset_path}; then
                 echo "Specified nuget package not found. path: $asset_path"
@@ -195,7 +195,7 @@ jobs:
             if [[ "${asset_path}" == "" ]]; then continue; fi
             # is it a wildcard?
             # shellcheck disable=SC2086
-            if [[ "$input_str" == *\** || "$input_str" == *\?* ]]; then
+            if [[ "$asset_path" == *\** || "$asset_path" == *\?* ]]; then
               for file in ${asset_path}; do
                 gh release upload ${{ inputs.tag }} "${file}"
               done
@@ -226,7 +226,7 @@ jobs:
           done <<< "${{ inputs.nuget-path }}"
 
       # Clean up
-      - name: Clean up. Wait 60s and delete releas if dry-run or failure. (dry-run=${{ inputs.dry-run }}})
+      - name: Clean up. Wait 60s and delete release if dry-run or failure. (dry-run=${{ inputs.dry-run }}})
         if: ${{ inputs.dry-run || failure() }}
         run: |
           if gh release list | grep Draft | grep ${{ inputs.tag }}; then
