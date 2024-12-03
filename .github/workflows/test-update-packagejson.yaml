@@ -21,7 +21,7 @@ jobs:
       - name: Set tag
         id: set-tag
         run: |
-          tag=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.1.{0}', github.run_number) }}
+          tag=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.2.{0}', github.run_number) }}
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
   update-packagejson:

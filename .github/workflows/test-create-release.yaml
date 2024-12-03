@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "tag: GitHub Tag to release. ex) 1.1.0"
+        description: "tag: GitHub Tag to release. ex) 1.2.0"
         required: true
         default: ""
   pull_request:
@@ -21,7 +21,7 @@ jobs:
       - name: Set tag
         id: set-tag
         run: |
-          tag=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.1.{0}', github.run_number) }}
+          tag=${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('1.2.{0}', github.run_number) }}
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
   update-packagejson:
@@ -84,6 +84,7 @@ jobs:
           path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.Plugin.unitypackage
           if-no-files-found: error
 
+  # full release
   create-release:
     needs: [set-tag, update-packagejson, build-dotnet, build-unity]
     uses: ./.github/workflows/create-release.yaml
@@ -100,12 +101,24 @@ jobs:
         ./Sandbox.Unity.Plugin.unitypackage/Sandbox.Unity.Plugin.unitypackage
     secrets: inherit
 
+  # change release format
   create-release2:
     needs: [set-tag, update-packagejson, build-dotnet, build-unity, create-release]
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: ${{ needs.set-tag.outputs.tag }}
+      dry-run: true # true = Release作成後に60秒待って削除される。
+      release-format: '{0}'
+    secrets: inherit
+
+  # v prefixed version
+  create-release3:
+    needs: [set-tag, update-packagejson, build-dotnet, build-unity, create-release]
+    uses: ./.github/workflows/create-release.yaml
+    with:
+      commit-id: ${{ needs.update-packagejson.outputs.sha }}
+      tag: v${{ needs.set-tag.outputs.tag }}
       dry-run: true # true = Release作成後に60秒待って削除される。
       release-format: '{0}'
     secrets: inherit
