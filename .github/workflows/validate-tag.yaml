@@ -70,14 +70,14 @@ jobs:
             echo "There is not release tag."
             echo "validated=true" | tee -a "$GITHUB_OUTPUT"
           elif [[ "$sorted_latest" == "$release_latest" ]]; then
-            echo "Tag is reverting to old version. Please bump the version. tag: ${{ inputs.tag }}, latest: $release_latest"
+            echo "Tag is reverting to old version. Please bump the version. tag: ${{ inputs.tag }} (normalized_tag: ${{ steps.trim.outputs.normalized_tag }}), latest: $release_latest"
             echo "validated=false" | tee -a "$GITHUB_OUTPUT"
 
             if [[ "${{ inputs.require-validation }}" == "true" ]]; then
               exit 1
             fi
           else
-            echo "Great, tag is latest. tag: ${{ inputs.tag }}, latest: $release_latest"
+            echo "Great, tag is latest. tag: ${{ inputs.tag }} (normalized_tag: ${{ steps.trim.outputs.normalized_tag }}), latest: $release_latest"
             echo "validated=true" | tee -a "$GITHUB_OUTPUT"
           fi
         env:

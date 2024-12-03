@@ -100,9 +100,9 @@ jobs:
 
           echo -n "FACT: is-branch-created for update-packagejson should be created. "
           if [[ "${{ needs.update-packagejson.outputs.is-branch-created }}" == "true" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
-          echo -n "FACT: is-branch-created for update-packagejson2 should be not created. "
+          echo -n "FACT: is-branch-created for update-packagejson2 should not be created. "
           if [[ "${{ needs.update-packagejson2.outputs.is-branch-created }}" == "false" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
-          echo -n "FACT: is-branch-created for update-packagejson3 should be not created. "
+          echo -n "FACT: is-branch-created for update-packagejson3 should not be created. "
           if [[ "${{ needs.update-packagejson3.outputs.is-branch-created }}" == "false" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
 
           echo -n "FACT: branch-name for update-packagejson should be expected. "
@@ -110,7 +110,7 @@ jobs:
           echo -n "FACT: branch-name for update-packagejson2 should be exists. "
           if [[ "${{ needs.update-packagejson2.outputs.branch-name }}" == "test-release/${{ needs.set-tag.outputs.tag }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
           echo -n "FACT: branch-name for update-packagejson3 should be exists. "
-          if [[ "${{ needs.update-packagejson3.outputs.branch-name }}" == "test-release/${{ needs.set-tag.outputs.tag }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ needs.update-packagejson3.outputs.branch-name }}" == "test-release/v${{ needs.set-tag.outputs.tag }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
 
   actions-timeline:
     needs: [set-tag, update-packagejson, update-packagejson2, test]
