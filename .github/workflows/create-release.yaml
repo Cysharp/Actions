@@ -98,6 +98,7 @@ jobs:
     secrets: inherit
 
   create-release:
+    needs: [validate]
     name: Create Release
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # auto generated token
