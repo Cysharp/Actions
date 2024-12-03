@@ -123,6 +123,23 @@ jobs:
       release-format: '{0}'
     secrets: inherit
 
+  # wildcard package
+  create-release4:
+    needs: [set-tag, update-packagejson, create-release3]
+    uses: ./.github/workflows/create-release.yaml
+    with:
+      commit-id: ${{ needs.update-packagejson.outputs.sha }}
+      tag: ${{ needs.set-tag.outputs.tag }}
+      dry-run: true # true = Release作成後に60秒待って削除される。
+      nuget-push: true # dry-run=true, nuget-push=true なら nuget-pushは実行されない。
+      release-upload: true
+      release-asset-path: |
+        ./nuget/*.nupkg
+        ./nuget/*.snupkg
+        ./Sandbox.Unity.unitypackage/*.unitypackage
+        ./Sandbox.Unity.Plugin.unitypackage/*.unitypackage
+    secrets: inherit
+
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
     needs: [update-packagejson]
@@ -131,6 +148,6 @@ jobs:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 
   actions-timeline:
-    needs: [set-tag, update-packagejson, build-dotnet, build-unity, create-release, create-release2, create-release3]
+    needs: [set-tag, update-packagejson, build-dotnet, build-unity, create-release, create-release2, create-release3, create-release4]
     uses: ./.github/workflows/actions-timeline.yaml
     secrets: inherit
