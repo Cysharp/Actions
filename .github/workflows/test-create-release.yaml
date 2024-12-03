@@ -103,7 +103,7 @@ jobs:
 
   # change release format
   create-release2:
-    needs: [set-tag, update-packagejson, build-dotnet, build-unity, create-release]
+    needs: [set-tag, update-packagejson, create-release]
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
@@ -114,7 +114,7 @@ jobs:
 
   # v prefixed version
   create-release3:
-    needs: [set-tag, update-packagejson, build-dotnet, build-unity, create-release]
+    needs: [set-tag, update-packagejson, create-release2]
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
@@ -131,6 +131,6 @@ jobs:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 
   actions-timeline:
-    needs: [set-tag, update-packagejson, build-dotnet, build-unity, create-release, create-release2]
+    needs: [set-tag, update-packagejson, build-dotnet, build-unity, create-release, create-release2, create-release3]
     uses: ./.github/workflows/actions-timeline.yaml
     secrets: inherit

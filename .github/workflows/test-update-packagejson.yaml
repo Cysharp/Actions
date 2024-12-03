@@ -47,6 +47,7 @@ jobs:
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 
+  # omit `dotnet-run-path`
   update-packagejson2:
     if: ${{ github.actor != 'dependabot[bot]' }}
     needs: [set-tag, update-packagejson]
@@ -58,12 +59,26 @@ jobs:
         ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
         ./Sandbox/Directory.Build.props
-      # can omit 'dotnet-run-path' if not needed
       tag: ${{ needs.set-tag.outputs.tag }}
       dry-run: true
 
+  # use v Prefixed version
+  update-packagejson3:
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    needs: [set-tag, update-packagejson2]
+    uses: ./.github/workflows/update-packagejson.yaml
+    with:
+      ref: ${{ needs.update-packagejson2.outputs.sha }}
+      file-path: |
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
+        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
+        ./Sandbox/Directory.Build.props
+      tag: v${{ needs.set-tag.outputs.tag }}
+      dry-run: true
+
   test:
-    needs: [set-tag, update-packagejson, update-packagejson2]
+    needs: [set-tag, update-packagejson, update-packagejson2, update-packagejson3]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -80,16 +95,22 @@ jobs:
           if [[ "${{ needs.update-packagejson2.outputs.sha }}" != "${{ github.sha }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
           echo -n "FACT: sha for update-packagejson and update-packagejson2 should have same commit id. "
           if [[ "${{ needs.update-packagejson.outputs.sha }}" == "${{ needs.update-packagejson2.outputs.sha }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          echo -n "FACT: sha for update-packagejson and update-packagejson3 should have same commit id. "
+          if [[ "${{ needs.update-packagejson.outputs.sha }}" == "${{ needs.update-packagejson3.outputs.sha }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
 
           echo -n "FACT: is-branch-created for update-packagejson should be created. "
           if [[ "${{ needs.update-packagejson.outputs.is-branch-created }}" == "true" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
           echo -n "FACT: is-branch-created for update-packagejson2 should be not created. "
           if [[ "${{ needs.update-packagejson2.outputs.is-branch-created }}" == "false" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          echo -n "FACT: is-branch-created for update-packagejson3 should be not created. "
+          if [[ "${{ needs.update-packagejson3.outputs.is-branch-created }}" == "false" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
 
           echo -n "FACT: branch-name for update-packagejson should be expected. "
           if [[ "${{ needs.update-packagejson.outputs.branch-name }}" == "test-release/${{ needs.set-tag.outputs.tag }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
           echo -n "FACT: branch-name for update-packagejson2 should be exists. "
           if [[ "${{ needs.update-packagejson2.outputs.branch-name }}" == "test-release/${{ needs.set-tag.outputs.tag }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          echo -n "FACT: branch-name for update-packagejson3 should be exists. "
+          if [[ "${{ needs.update-packagejson3.outputs.branch-name }}" == "test-release/${{ needs.set-tag.outputs.tag }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
 
   actions-timeline:
     needs: [set-tag, update-packagejson, update-packagejson2, test]
