@@ -56,7 +56,7 @@ jobs:
           else
             normalized_tag="$input_tag"
           fi
-          echo "normalized_tag=$version" | tee -a "$GITHUB_OUTPUT"
+          echo "normalized_tag=$normalized_tag" | tee -a "$GITHUB_OUTPUT"
           echo "tag=${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
 
       # Only check released tag, allow override draft and pre-release. Old to new sort by version number.
