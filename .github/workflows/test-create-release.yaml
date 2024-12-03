@@ -95,8 +95,8 @@ jobs:
       nuget-push: true # dry-run=true, nuget-push=true なら nuget-pushは実行されない。
       release-upload: true
       release-asset-path: |
-        ./nuget/ClassLibrary.${{ needs.set-tag.outputs.tag }}.nupkg
-        ./nuget/ClassLibrary.${{ needs.set-tag.outputs.tag }}.snupkg
+        ./nuget/*.nupkg
+        ./nuget/*.snupkg
         ./Sandbox.Unity.unitypackage/Sandbox.Unity.unitypackage
         ./Sandbox.Unity.Plugin.unitypackage/Sandbox.Unity.Plugin.unitypackage
     secrets: inherit
@@ -120,7 +120,6 @@ jobs:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: v${{ needs.set-tag.outputs.tag }}
       dry-run: true # true = Release作成後に60秒待って削除される。
-      release-format: '{0}'
     secrets: inherit
 
   cleanup:
