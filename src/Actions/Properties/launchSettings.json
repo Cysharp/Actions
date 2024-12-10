@@ -1,0 +1,28 @@
+{
+  "profiles": {
+    "versioning (help)": {
+      "commandName": "Project",
+      "commandLineArgs": "versioning --help"
+    },
+    "versioning (major)": {
+      "commandName": "Project",
+      "commandLineArgs": "versioning --tag 0.1.0 --version-increment major"
+    },
+    "versioning (minor)": {
+      "commandName": "Project",
+      "commandLineArgs": "versioning --tag 0.1.0 --version-increment minor"
+    },
+    "versioning (patch)": {
+      "commandName": "Project",
+      "commandLineArgs": "versioning --tag 0.1.0"
+    },
+    "versioning (patch - prefix)": {
+      "commandName": "Project",
+      "commandLineArgs": "versioning --tag v0.1.0 --prefix v"
+    },
+    "versioning (patch - github actions)": {
+      "commandName": "Project",
+      "commandLineArgs": "versioning --tag 0.1.0 --output-format GitHubActions"
+    }
+  }
+}
