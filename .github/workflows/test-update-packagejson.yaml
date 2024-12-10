@@ -40,13 +40,6 @@ jobs:
       tag: ${{ needs.set-tag.outputs.tag }}
       dry-run: true
 
-  cleanup:
-    if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
-    needs: [update-packagejson]
-    uses: ./.github/workflows/clean-packagejson-branch.yaml
-    with:
-      branch: ${{ needs.update-packagejson.outputs.branch-name }}
-
   # omit `dotnet-run-path`
   update-packagejson2:
     if: ${{ github.actor != 'dependabot[bot]' }}
@@ -111,6 +104,13 @@ jobs:
           if [[ "${{ needs.update-packagejson2.outputs.branch-name }}" == "test-release/${{ needs.set-tag.outputs.tag }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
           echo -n "FACT: branch-name for update-packagejson3 should be exists. "
           if [[ "${{ needs.update-packagejson3.outputs.branch-name }}" == "test-release/v${{ needs.set-tag.outputs.tag }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+
+  cleanup:
+    if: ${{ needs.update-packagejson3.outputs.is-branch-created == 'true' }}
+    needs: [update-packagejson3]
+    uses: ./.github/workflows/clean-packagejson-branch.yaml
+    with:
+      branch: ${{ needs.update-packagejson3.outputs.branch-name }}
 
   actions-timeline:
     needs: [set-tag, update-packagejson, update-packagejson2, test]

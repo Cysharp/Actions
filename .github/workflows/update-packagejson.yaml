@@ -25,6 +25,7 @@ on:
         required: false
         type: string
         default: ''
+      # TODO: Obsolete, this field can be removed after reference removed.
       push-tag:
         description: "true = push tag. false = no push tag."
         required: false
@@ -95,12 +96,16 @@ jobs:
               if [[ "${file_name}" == "package.json" ]]; then
                 # Unity `"version": "VersionString",`
                 sed -i -e "s/\(\"version\":\) \"\(.*\)\",/\1 \"${{ needs.validate.outputs.normalized_tag }}\",/" "${file_path}"
+                actual=$(grep "version" "$file_path" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
               elif [[ "${file_name}" == "plugin.cfg" ]]; then
                 # Godot `version="VersionString"`
                 sed -i -e "s/\(version=\)\"\(.*\)\"/\1\"${{ needs.validate.outputs.normalized_tag }}\"/" "${file_path}"
+                actual=$(grep "version=" "$file_path" | cut -d '=' -f 2 | tr -d '"')
               elif [[ "${file_name}" == "Directory.Build.props" ]]; then
                 # .NET `<VersionPrefix>VersionString</VersionPrefix>`
                 sed -i -e 's|<VersionPrefix>.*</VersionPrefix>|<VersionPrefix>${{ needs.validate.outputs.normalized_tag }}</VersionPrefix>|g' "${file_path}"
+                # -P is for perl regex, only available in GNU grep
+                actual=$(grep -oP '<VersionPrefix>\K.*(?=</VersionPrefix>)' "$file_path")
               else
                 echo "Unknown file name ${file_name} is specified."
                 exit 1
@@ -112,18 +117,6 @@ jobs:
             echo "::endgroup::"
 
             echo "::group::Validate Change"
-              if [[ "${file_name}" == "package.json" ]]; then
-                actual=$(grep "version" "$file_path" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
-              elif [[ "${file_name}" == "plugin.cfg" ]]; then
-                actual=$(grep "version=" "$file_path" | cut -d '=' -f 2 | tr -d '"')
-              elif [[ "${file_name}" == "Directory.Build.props" ]]; then
-                # -P is for perl regex, only available in GNU grep
-                actual=$(grep -oP '<VersionPrefix>\K.*(?=</VersionPrefix>)' "$file_path")
-              else
-                echo "Validation for ${file_name} is not implemented."
-                exit 1
-              fi
-
               if [[ "$actual" != "$expected" ]]; then
                 echo "Failed. Path: $file_path, Expected: $expected, Actual: $actual"
                 exit 1
@@ -168,24 +161,11 @@ jobs:
             echo "is-branch-created=false" | tee -a "$GITHUB_OUTPUT"
           fi
 
-
-      - name: Create Tag
-        if: ${{ steps.check_update.outputs.changed == '1' && inputs.push-tag }}
-        run: git tag ${{ inputs.tag }}
-
       - name: Push changes
-        if: ${{ !inputs.dry-run && steps.check_update.outputs.changed == '1' }}
+        if: ${{ steps.check_update.outputs.changed == '1' }}
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
           branch: ${{ inputs.ref }}
-          tags: ${{ inputs.push-tag }}
-
-      - name: Push changes (dry-run)
-        if: ${{ inputs.dry-run && steps.check_update.outputs.changed == '1' }}
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
-          branch: "refs/heads/${{ steps.configure.outputs.branch-name }}"
           tags: false
-          force: true
+          force: ${{ inputs.dry-run }}
