@@ -25,6 +25,7 @@ on:
         required: false
         type: string
         default: ''
+      # TODO: Obsolete, this field can be removed after reference removed.
       push-tag:
         description: "true = push tag. false = no push tag."
         required: false
@@ -160,23 +161,11 @@ jobs:
             echo "is-branch-created=false" | tee -a "$GITHUB_OUTPUT"
           fi
 
-      - name: Create Tag
-        if: ${{ steps.check_update.outputs.changed == '1' && inputs.push-tag }}
-        run: git tag ${{ inputs.tag }}
-
       - name: Push changes
-        if: ${{ !inputs.dry-run && steps.check_update.outputs.changed == '1' }}
+        if: ${{ steps.check_update.outputs.changed == '1' }}
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
           branch: ${{ inputs.ref }}
-          tags: ${{ inputs.push-tag }}
-
-      - name: Push changes (dry-run)
-        if: ${{ inputs.dry-run && steps.check_update.outputs.changed == '1' }}
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
-          branch: "refs/heads/${{ steps.configure.outputs.branch-name }}"
           tags: false
-          force: true
+          force: ${{ inputs.dry-run }}
