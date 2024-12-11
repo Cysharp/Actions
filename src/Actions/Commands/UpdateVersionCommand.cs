@@ -4,12 +4,14 @@ using System.Text.Json.Serialization;
 
 namespace Actions.Commands
 {
+    public record struct UpdateVersionCommandResult(string Before, string After);
     public class UpdateVersionCommand(string version, string path)
     {
-        public (string before, string after) UpdateVersion(bool dryRun)
+        public UpdateVersionCommandResult UpdateVersion(bool dryRun)
         {
-            var writeBack = !dryRun;
             if (!File.Exists(path)) throw new FileNotFoundException(path);
+
+            var writeBack = !dryRun;
             var fileName = Path.GetFileName(path);
             return fileName switch
             {
@@ -24,35 +26,33 @@ namespace Actions.Commands
             };
         }
 
-        private (string before, string after) HandleUpm(bool writeBack)
+        private UpdateVersionCommandResult HandleUpm(bool writeBack)
         {
             // replace
-            var result = Sed.Replace(path, @"""version"":\s*""(.*?)""", $@"""version"": ""{version}""", writeBack);
+            var (before, after) = Sed.Replace(path, @"""version"":\s*""(.*?)""", $@"""version"": ""{version}""", writeBack);
 
             // validate
-            Validate(result.after, version);
+            Validate(after, version);
 
-            return result;
+            return new UpdateVersionCommandResult(before, after);
 
             static void Validate(string contents, string version)
             {
-                var packageJson = JsonSerializer.Deserialize<UpmPackageJson>(contents);
-                if (packageJson is null)
-                    throw new ActionCommandException($"UPM package.json updated, but failed to load as valid JSON. contents: {contents}");
+                var packageJson = JsonSerializer.Deserialize<UpmPackageJson>(contents) ?? throw new ActionCommandException($"UPM package.json updated, but failed to load as valid JSON. contents: {contents}");
                 if (packageJson.Version != version)
                     throw new ActionCommandException($"UPM package.json updated, but version miss-match. actual {packageJson?.Version}, expected {version}");
             }
         }
 
-        private (string before, string after) HandleGodot(bool writeBack)
+        private UpdateVersionCommandResult HandleGodot(bool writeBack)
         {
             // replace
-            var result = Sed.Replace(path, @"(version=)""(.*?)""", $@"$1""{version}""", writeBack);
+            var (before, after) = Sed.Replace(path, @"(version=)""(.*?)""", $@"$1""{version}""", writeBack);
 
             // validate
-            Validate(result.after, version);
+            Validate(after, version);
 
-            return result;
+            return new UpdateVersionCommandResult(before, after);
 
             static void Validate(string contents, string version)
             {
@@ -81,23 +81,21 @@ namespace Actions.Commands
             }
         }
 
-        private (string before, string after) HandleDirectoryBuildProps(bool writeBack)
+        private UpdateVersionCommandResult HandleDirectoryBuildProps(bool writeBack)
         {
             // replace
-            var result = Sed.Replace(path, @"<VersionPrefix>.*</VersionPrefix>", $@"<VersionPrefix>{version}</VersionPrefix>", writeBack);
+            var (before, after) = Sed.Replace(path, @"<VersionPrefix>.*</VersionPrefix>", $@"<VersionPrefix>{version}</VersionPrefix>", writeBack);
 
             // validate
-            Validate(result.after, version);
+            Validate(after, version);
 
-            return result;
+            return new UpdateVersionCommandResult(before, after);
 
             static void Validate(string contents, string version)
             {
                 var xmlDoc = new System.Xml.XmlDocument();
                 xmlDoc.LoadXml(contents);
-                var versionPrefixNode = xmlDoc.SelectSingleNode("//VersionPrefix");
-                if (versionPrefixNode == null)
-                    throw new ActionCommandException($"Directory.Build.props updated, but VersionPrefix key not found.");
+                var versionPrefixNode = xmlDoc.SelectSingleNode("//VersionPrefix") ?? throw new ActionCommandException($"Directory.Build.props updated, but VersionPrefix key not found.");
                 if (versionPrefixNode.InnerText != version)
                     throw new ActionCommandException($"Directory.Build.props updated, but version miss-match. actual {versionPrefixNode.InnerText}, expected {version}");
 

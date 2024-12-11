@@ -1,5 +1,6 @@
 using Actions;
 using Actions.Commands;
+using Actions.Utils;
 using ConsoleAppFramework;
 
 namespace Actions;
@@ -29,7 +30,8 @@ public class ActionsBatch
         var command = new VersioningCommand(tag, prefix, versionIncrement, isPrelease, prerelease);
         var versioning = command.Versioning(withoutPrefix);
 
-        Console.WriteLine(OutputFormat("version", versioning, outputFormat));
+        var output = OutputFormat("version", versioning, outputFormat);
+        Console.WriteLine(output);
     }
 
     /// <summary>
@@ -41,16 +43,23 @@ public class ActionsBatch
     [Command("update-version")]
     public void UpdateVersion(string version, string path, bool dryRun)
     {
+        Console.WriteLine($"Update begin, {path} ...");
         if (string.IsNullOrWhiteSpace(path))
-            Console.WriteLine("Input is empty path, skip execution.");
+        {
+            Console.WriteLine("Empty path detected, skip execution.");
+            return;
+        }
+
+        using (var githubGroup = new GitHubActionsGroupLogger("Before"))
+            Console.WriteLine(File.ReadAllText(path));
 
         var command = new UpdateVersionCommand(version, path);
-        var (_, after) = command.UpdateVersion(dryRun);
+        var result = command.UpdateVersion(dryRun);
 
-        if (dryRun)
-        {
-            Console.WriteLine(after);
-        }
+        using (var githubGroup = new GitHubActionsGroupLogger("After"))
+            Console.WriteLine(result.After);
+
+        Console.WriteLine($"Completed ...");
     }
 
     /// <summary>
@@ -60,8 +69,12 @@ public class ActionsBatch
     [Command("create-dummy")]
     public void CreateDummy(string basePath)
     {
+        Console.WriteLine($"Creating dummy files, under {basePath} ...");
+
         var command = new CreateDummyCommand();
         command.CreateDummyFiles(basePath);
+
+        Console.WriteLine($"Completed ...");
     }
 
     private static string OutputFormat(string key, string value, OutputFormatType format) => format switch
