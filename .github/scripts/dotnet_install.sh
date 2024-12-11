@@ -29,9 +29,30 @@ done
 function print {
   echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-main}): $*"
 }
+function error {
+  echo "$(date "+%Y-%m-%d %H:%M:%S") ERRO(${FUNCNAME[1]:-main}): ERROR $*" >&2
+}
 function title {
   echo ""
   echo "$(date "+%Y-%m-%d %H:%M:%S") INFO(${FUNCNAME[1]:-main}): # $*"
+}
+function download_url {
+  local retry_count=0
+  while [[ $retry_count -lt $max_retries ]]; do
+    if curl -L -s --fail-with-body --retry 3 --retry-delay 10 --retry-max-time 60 -o "$HOME/dotnet-install.sh" https://dot.net/v1/dotnet-install.sh; then
+      print "Download succeeded."
+      break
+    fi
+
+    retry_count=$((retry_count + 1))
+    if [[ $retry_count -ge $max_retries ]]; then
+      error "Failed to download after $max_retries attempts."
+      exit 1
+    else
+      print "Download failed, retrying in $retry_delay seconds... (Attempt: $retry_count)"
+      sleep "$retry_delay"
+    fi
+  done
 }
 
 # parameter setup
@@ -40,12 +61,14 @@ print "--dotnet-version=${_DOTNET_VERSION:="8.0"}"
 
 title "Constants:"
 print "  * MACHINE_NAME=$(hostname)"
+print "  * MAX_RETRIES=${max_retries:=3}"
+print "  * RETRY_DELAY=${retry_delay:=10}"
 
 # download dotnet-install.sh if not exists
 title "Download dotnet-install script if not exists"
 if [[ ! -f "$HOME/dotnet-install.sh" ]]; then
   print "dotnet installer now found, downloading..."
-  curl -L -s --fail-with-body --retry 3 --retry-delay 10 --retry-max-time 60 -o "$HOME/dotnet-install.sh" https://dot.net/v1/dotnet-install.sh
+  download_url
 fi
 
 # install dotnet (dotnet-install.sh must be downloaded before running script)
