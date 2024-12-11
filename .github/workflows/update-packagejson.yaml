@@ -72,6 +72,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
 
       # package.json
       # "version": 1.2.3 -> "version": 2.0.0
@@ -81,49 +82,8 @@ jobs:
       # TIPS: `grep -v "^$"` is used to remove empty line.
       - name: Update files to version ${{ needs.validate.outputs.normalized_tag }}
         run: |
-          expected="${{ needs.validate.outputs.normalized_tag }}"
           while read -r file_path; do
-            if [[ "$file_path" == "" ]]; then continue; fi
-
-            echo "Start $file_path"
-            file_name=$(basename "$file_path")
-
-            echo "::group::Before"
-              cat "$file_path"
-            echo "::endgroup::"
-
-            echo "::group::Updating"
-              if [[ "${file_name}" == "package.json" ]]; then
-                # Unity `"version": "VersionString",`
-                sed -i -e "s/\(\"version\":\) \"\(.*\)\",/\1 \"${{ needs.validate.outputs.normalized_tag }}\",/" "${file_path}"
-                actual=$(grep "version" "$file_path" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
-              elif [[ "${file_name}" == "plugin.cfg" ]]; then
-                # Godot `version="VersionString"`
-                sed -i -e "s/\(version=\)\"\(.*\)\"/\1\"${{ needs.validate.outputs.normalized_tag }}\"/" "${file_path}"
-                actual=$(grep "version=" "$file_path" | cut -d '=' -f 2 | tr -d '"')
-              elif [[ "${file_name}" == "Directory.Build.props" ]]; then
-                # .NET `<VersionPrefix>VersionString</VersionPrefix>`
-                sed -i -e 's|<VersionPrefix>.*</VersionPrefix>|<VersionPrefix>${{ needs.validate.outputs.normalized_tag }}</VersionPrefix>|g' "${file_path}"
-                # -P is for perl regex, only available in GNU grep
-                actual=$(grep -oP '<VersionPrefix>\K.*(?=</VersionPrefix>)' "$file_path")
-              else
-                echo "Unknown file name ${file_name} is specified."
-                exit 1
-              fi
-            echo "::endgroup::"
-
-            echo "::group::After"
-              cat "$file_path"
-            echo "::endgroup::"
-
-            echo "::group::Validate Change"
-              if [[ "$actual" != "$expected" ]]; then
-                echo "Failed. Path: $file_path, Expected: $expected, Actual: $actual"
-                exit 1
-              else
-                echo "Success. Path: $file_path, Expected: $expected, Actual: $actual"
-              fi
-            echo "::endgroup::"
+            dotnet run --project "./src/Actions/Actions.csproj" -- update-version --version "${{ needs.validate.outputs.normalized_tag }}" --path "$file_path"
           done <<< "${{ inputs.file-path }}"
 
       # dotnet run
