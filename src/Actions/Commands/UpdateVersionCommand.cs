@@ -1,4 +1,6 @@
 using Actions.Utils;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Actions.Commands
 {
@@ -11,13 +13,100 @@ namespace Actions.Commands
             return fileName switch
             {
                 // UPM
-                "package.json" => Sed.Replace(path, @"""version"":\s*""(.*?)""", $@"""version"": ""{version}""", dryRun),
+                "package.json" => HandleUpm(dryRun),
                 // Godot
-                "plugin.cfg" => Sed.Replace(path, @"(version=)""(.*?)""", $@"$1""{version}""", dryRun),
+                "plugin.cfg" => HandleGodot(dryRun),
                 // .NET
-                "Directory.Build.props" => Sed.Replace(path, @"<VersionPrefix>.*</VersionPrefix>", $@"<VersionPrefix>{version}</VersionPrefix>", dryRun),
+                "Directory.Build.props" => HandleDirectoryBuildProps(dryRun),
+                // Other
                 _ => throw new NotImplementedException(fileName),
             };
+        }
+
+        private (string before, string after) HandleUpm(bool dryRun)
+        {
+            // replace
+            var result = Sed.Replace(path, @"""version"":\s*""(.*?)""", $@"""version"": ""{version}""", dryRun);
+
+            // validate
+            Validate(result.after, version);
+
+            return result;
+
+            static void Validate(string contents, string version)
+            {
+                var packageJson = JsonSerializer.Deserialize<UpmPackageJson>(contents);
+                if (packageJson is null)
+                    throw new ActionCommandException($"UPM package.json updated, but failed to load as valid JSON. contents: {contents}");
+                if (packageJson.Version != version)
+                    throw new ActionCommandException($"UPM package.json updated, but version miss-match. actual {packageJson?.Version}, expected {version}");
+            }
+        }
+
+        private (string before, string after) HandleGodot(bool dryRun)
+        {
+            // replace
+            var result = Sed.Replace(path, @"(version=)""(.*?)""", $@"$1""{version}""", dryRun);
+
+            // validate
+            Validate(result.after, version);
+
+            return result;
+
+            static void Validate(string contents, string version)
+            {
+                var lines = contents.Split("\n");
+                Span<Range> destination = stackalloc Range[2];
+                foreach (var line in lines)
+                {
+                    // find the line befin with "version=", then split with = to get version
+                    if (!line.StartsWith("version="))
+                        continue;
+
+                    var span = line.AsSpan();
+                    var range = span.Split(destination, '=', StringSplitOptions.TrimEntries);
+                    if (range != 2)
+                        continue;
+
+                    // validate version is expceted
+                    var versionValue = span[destination[1]].ToString();
+                    if (versionValue != $"\"{version}\"")
+                    {
+                        throw new ActionCommandException($"Godot plugin.cfg updated, but version miss-match. actual {versionValue}, expected {version}");
+                    }
+                    return;
+                }
+                throw new ActionCommandException($"Godot plugin.cfg updated, but version key not found.");
+            }
+        }
+
+        private (string before, string after) HandleDirectoryBuildProps(bool dryRun)
+        {
+            // replace
+            var result = Sed.Replace(path, @"<VersionPrefix>.*</VersionPrefix>", $@"<VersionPrefix>{version}</VersionPrefix>", dryRun);
+
+            // validate
+            Validate(result.after, version);
+
+            return result;
+
+            static void Validate(string contents, string version)
+            {
+                var xmlDoc = new System.Xml.XmlDocument();
+                xmlDoc.LoadXml(contents);
+                var versionPrefixNode = xmlDoc.SelectSingleNode("//VersionPrefix");
+                if (versionPrefixNode == null)
+                    throw new ActionCommandException($"Directory.Build.props updated, but VersionPrefix key not found.");
+                if (versionPrefixNode.InnerText != version)
+                    throw new ActionCommandException($"Directory.Build.props updated, but version miss-match. actual {versionPrefixNode.InnerText}, expected {version}");
+
+            }
+        }
+
+        private record UpmPackageJson
+        {
+            [JsonPropertyName("version")]
+            public required string Version { get; set; }
         }
     }
 }
