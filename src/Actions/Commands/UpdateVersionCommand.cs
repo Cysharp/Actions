@@ -8,25 +8,26 @@ namespace Actions.Commands
     {
         public (string before, string after) UpdateVersion(bool dryRun)
         {
+            var writeBack = !dryRun;
             if (!File.Exists(path)) throw new FileNotFoundException(path);
             var fileName = Path.GetFileName(path);
             return fileName switch
             {
                 // UPM
-                "package.json" => HandleUpm(dryRun),
+                "package.json" => HandleUpm(writeBack),
                 // Godot
-                "plugin.cfg" => HandleGodot(dryRun),
+                "plugin.cfg" => HandleGodot(writeBack),
                 // .NET
-                "Directory.Build.props" => HandleDirectoryBuildProps(dryRun),
+                "Directory.Build.props" => HandleDirectoryBuildProps(writeBack),
                 // Other
                 _ => throw new NotImplementedException(fileName),
             };
         }
 
-        private (string before, string after) HandleUpm(bool dryRun)
+        private (string before, string after) HandleUpm(bool writeBack)
         {
             // replace
-            var result = Sed.Replace(path, @"""version"":\s*""(.*?)""", $@"""version"": ""{version}""", dryRun);
+            var result = Sed.Replace(path, @"""version"":\s*""(.*?)""", $@"""version"": ""{version}""", writeBack);
 
             // validate
             Validate(result.after, version);
@@ -43,10 +44,10 @@ namespace Actions.Commands
             }
         }
 
-        private (string before, string after) HandleGodot(bool dryRun)
+        private (string before, string after) HandleGodot(bool writeBack)
         {
             // replace
-            var result = Sed.Replace(path, @"(version=)""(.*?)""", $@"$1""{version}""", dryRun);
+            var result = Sed.Replace(path, @"(version=)""(.*?)""", $@"$1""{version}""", writeBack);
 
             // validate
             Validate(result.after, version);
@@ -80,10 +81,10 @@ namespace Actions.Commands
             }
         }
 
-        private (string before, string after) HandleDirectoryBuildProps(bool dryRun)
+        private (string before, string after) HandleDirectoryBuildProps(bool writeBack)
         {
             // replace
-            var result = Sed.Replace(path, @"<VersionPrefix>.*</VersionPrefix>", $@"<VersionPrefix>{version}</VersionPrefix>", dryRun);
+            var result = Sed.Replace(path, @"<VersionPrefix>.*</VersionPrefix>", $@"<VersionPrefix>{version}</VersionPrefix>", writeBack);
 
             // validate
             Validate(result.after, version);
