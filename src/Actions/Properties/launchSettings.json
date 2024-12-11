@@ -29,10 +29,31 @@
       "commandName": "Project",
       "commandLineArgs": "versioning --tag 0.1.0 --output-format GitHubActions"
     },
-    // update-version
+    // update-version (run create-dummy before run these)
     "update-version (help)": {
       "commandName": "Project",
       "commandLineArgs": "update-version --help"
+    },
+    "update-version (upm)": {
+      "commandName": "Project",
+      "commandLineArgs": "update-version --version 1.0.0 --path ./dummy/package.json"
+    },
+    "update-version (godot)": {
+      "commandName": "Project",
+      "commandLineArgs": "update-version --version 1.0.0 --path ./dummy/plugin.cfg"
+    },
+    "update-version (Directory.Build.props)": {
+      "commandName": "Project",
+      "commandLineArgs": "update-version --version 1.0.0 --path ./dummy/Directory.Build.props"
+    },
+    // create-dummy
+    "create-dummy (help)": {
+      "commandName": "Project",
+      "commandLineArgs": "create-dummy --help"
+    },
+    "create-dummy (init)": {
+      "commandName": "Project",
+      "commandLineArgs": "create-dummy --base-path dummy/"
     }
   }
 }

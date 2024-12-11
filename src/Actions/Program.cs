@@ -41,6 +41,9 @@ public class ActionsBatch
     [Command("update-version")]
     public void UpdateVersion(string version, string path, bool dryRun)
     {
+        if (string.IsNullOrWhiteSpace(path))
+            Console.WriteLine("Input is empty path, skip execution.");
+
         var command = new UpdateVersionCommand(version, path);
         var (_, after) = command.UpdateVersion(dryRun);
 
@@ -48,6 +51,17 @@ public class ActionsBatch
         {
             Console.WriteLine(after);
         }
+    }
+
+    /// <summary>
+    /// Create dummy files
+    /// </summary>
+    /// <param name="basePath"></param>
+    [Command("create-dummy")]
+    public void CreateDummy(string basePath)
+    {
+        var command = new CreateDummyCommand();
+        command.CreateDummyFiles(basePath);
     }
 
     private static string OutputFormat(string key, string value, OutputFormatType format) => format switch
