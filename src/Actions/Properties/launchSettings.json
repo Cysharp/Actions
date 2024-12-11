@@ -1,5 +1,10 @@
 {
   "profiles": {
+    "help": {
+      "commandName": "Project",
+      "commandLineArgs": "--help"
+    },
+    // versioning
     "versioning (help)": {
       "commandName": "Project",
       "commandLineArgs": "versioning --help"
@@ -23,6 +28,11 @@
     "versioning (patch - github actions)": {
       "commandName": "Project",
       "commandLineArgs": "versioning --tag 0.1.0 --output-format GitHubActions"
+    },
+    // update-version
+    "update-version (help)": {
+      "commandName": "Project",
+      "commandLineArgs": "update-version --help"
     }
   }
 }
