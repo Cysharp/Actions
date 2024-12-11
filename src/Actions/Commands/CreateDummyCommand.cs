@@ -46,10 +46,11 @@ namespace Actions.Commands
 
             foreach (var (file, contents) in new[] { upm, godot, directoryBuildProps })
             {
+                var path = Path.Combine(basePath, file);
                 if (!Directory.Exists(basePath))
                     Directory.CreateDirectory(basePath);
 
-                var path = Path.Combine(basePath, file);
+                Console.WriteLine($"- {path} ...");
                 File.WriteAllText(path, contents);
             }
         }
