@@ -1,16 +1,16 @@
-namespace Actions.Handlers;
+namespace Actions.Commands;
 
-public class VersionHandler(string tag, string prefix, VersionIncrement versionIncrement, bool isPrelease, string prerelease)
+public class VersioningCommand(string tag, string prefix, VersionIncrement versionIncrement, bool isPrelease, string prerelease)
 {
     /// <summary>
     /// Handling versioning
     /// </summary>
     /// <returns></returns>
-    public string Versioning()
+    public string Versioning(bool withoutPrefix = false)
     {
         var version = GetNormalizedVersion(tag, prefix);
         var increment = IncrementVersion(version, versionIncrement);
-        var format = FormatVersion(increment, prefix, isPrelease, prerelease);
+        var format = FormatVersion(increment, prefix, isPrelease, prerelease, withoutPrefix);
         return format;
     }
 
@@ -59,9 +59,9 @@ public class VersionHandler(string tag, string prefix, VersionIncrement versionI
     /// <param name="isPrelease"></param>
     /// <param name="prerelease"></param>
     /// <returns></returns>
-    private static string FormatVersion(Version version, string prefix, bool isPrelease, string prerelease)
+    private static string FormatVersion(Version version, string prefix, bool isPrelease, string prerelease, bool withoutPrefix)
     {
-        var preReleaseSuffix = isPrelease ? $"-{prerelease}" : "";
-        return $"{prefix}{version}{preReleaseSuffix}";
+        var preReleaseSuffix = isPrelease && prerelease != "" ? $"-{prerelease}" : "";
+        return withoutPrefix ? $"{version}{preReleaseSuffix}" : $"{prefix}{version}{preReleaseSuffix}";
     }
 }
