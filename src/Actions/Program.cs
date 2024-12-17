@@ -13,6 +13,8 @@ namespace Actions
     {
 #pragma warning disable CA1822 // Mark members as static
 
+        private bool _verbose;
+
         /// <summary>Get version string from tag</summary>
         /// <param name="tag"></param>
         /// <param name="prefix"></param>
@@ -27,7 +29,7 @@ namespace Actions
             var versioning = command.Versioning(withoutPrefix);
 
             var output = OutputFormat("version", versioning, outputFormat);
-            Console.WriteLine(output);
+            WriteLog(output);
         }
 
         /// <summary>
@@ -39,37 +41,40 @@ namespace Actions
         [Command("update-version")]
         public void UpdateVersion(string version, string path, bool dryRun)
         {
-            Console.WriteLine($"Update begin, {path} ...");
+            WriteLog($"Update begin, {path} ...");
             if (string.IsNullOrWhiteSpace(path))
             {
-                Console.WriteLine("Empty path detected, skip execution.");
+                WriteLog("Empty path detected, skip execution.");
                 return;
             }
 
             using (var githubGroup = new GitHubActionsGroupLogger("Before"))
-                Console.WriteLine(File.ReadAllText(path));
+                WriteLog(File.ReadAllText(path));
 
             var command = new UpdateVersionCommand(version, path);
             var result = command.UpdateVersion(dryRun);
 
             using (var githubGroup = new GitHubActionsGroupLogger("After"))
-                Console.WriteLine(result.After);
+                WriteLog(result.After);
 
-            Console.WriteLine($"Completed ...");
+            WriteLog($"Completed ...");
         }
 
         /// <summary>
         /// Validate specified path contains file
         /// </summary>
         /// <param name="pathPattern"></param>
+        /// <param name="verbose"></param>
         [Command("validate-file-exists")]
-        public void ValidateFileExists(string pathPattern)
+        public void ValidateFileExists(string pathPattern, bool verbose)
         {
-            Console.WriteLine($"Validating path, {pathPattern}");
+            _verbose = verbose;
+            WriteLog($"Validating path, {pathPattern} ...");
+            WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
             var command = new FileExsistsCommand(pathPattern);
             command.Validate();
 
-            Console.WriteLine($"Completed ...");
+            WriteLog($"Completed ...");
         }
 
         /// <summary>
@@ -79,12 +84,12 @@ namespace Actions
         [Command("create-dummy")]
         public void CreateDummy(string basePath)
         {
-            Console.WriteLine($"Creating dummy files, under {basePath} ...");
+            WriteLog($"Creating dummy files, under {basePath} ...");
 
             var command = new CreateDummyCommand();
             command.CreateDummy(basePath);
 
-            Console.WriteLine($"Completed ...");
+            WriteLog($"Completed ...");
         }
 
 #pragma warning restore CA1822 // Mark members as static
@@ -95,6 +100,19 @@ namespace Actions
             OutputFormatType.GitHubActions => $"{key}={value}",
             _ => throw new NotImplementedException(nameof(format)),
         };
+
+        void WriteLog(string value)
+        {
+            Console.WriteLine($"[{DateTime.Now:s}] {value}");
+        }
+
+        void WriteVerbose(string value)
+        {
+            if (_verbose)
+            {
+                Console.WriteLine($"[{DateTime.Now:s}] {value}");
+            }
+        }
     }
 
     public class ActionCommandException(string message, Exception? innterException = null) : Exception(message, innterException)
