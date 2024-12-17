@@ -2,7 +2,13 @@
 
 public class CreateDummyCommand
 {
-    public void CreateDummyFiles(string basePath)
+    public void CreateDummy(string basePath)
+    {
+        DummyVersionFiles(basePath);
+        DummyAssetFiles(Path.Combine(basePath, "downloads/"));
+    }
+
+    private void DummyVersionFiles(string basePath)
     {
         var upm = ("package.json", """
             {
@@ -44,6 +50,7 @@ public class CreateDummyCommand
             </Project>                
             """);
 
+        Console.WriteLine($"{nameof(DummyVersionFiles)}");
         foreach (var (file, contents) in new[] { upm, godot, directoryBuildProps })
         {
             var path = Path.Combine(basePath, file);
@@ -52,6 +59,21 @@ public class CreateDummyCommand
 
             Console.WriteLine($"- {path} ...");
             File.WriteAllText(path, contents);
+        }
+    }
+
+    private void DummyAssetFiles(string basePath)
+    {
+        Console.WriteLine($"{nameof(DummyAssetFiles)}");
+        var items = new[] { "foo", "bar", "piyo" };
+        foreach (var item in items)
+        {
+            var path = Path.Combine(basePath, item);
+            if (!Directory.Exists(basePath))
+                Directory.CreateDirectory(basePath);
+
+            Console.WriteLine($"- {path} ...");
+            File.WriteAllText(path, "");
         }
     }
 }
