@@ -27,8 +27,9 @@ public class FileExistsCommandTest
     public void WildcardFileTest()
     {
         var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(WildcardFileTest)}";
-        var items = new[] { "foo", "bar", "piyo" };
-        foreach (var item in items) {
+        var items = new[] { "foo", "bar", "piyo", "test.txt", "hoge.txt" };
+        foreach (var item in items)
+        {
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
             File.WriteAllText(Path.Combine(dir, item), "");
         }
@@ -38,6 +39,12 @@ public class FileExistsCommandTest
 
         var command2 = new FileExsistsCommand($"{dir}/foo");
         command2.Validate();
+
+        var command3 = new FileExsistsCommand($"{dir}/*.txt");
+        command3.Validate();
+
+        var command4 = new FileExsistsCommand($"{dir}/hoge.*");
+        command4.Validate();
     }
 
     [Fact]

@@ -65,7 +65,7 @@ public class CreateDummyCommand
     private void DummyAssetFiles(string basePath)
     {
         Console.WriteLine($"{nameof(DummyAssetFiles)}");
-        var items = new[] { "foo", "bar", "piyo" };
+        var items = new[] { "foo", "bar", "piyo", "foo.nupkg", "bar.nupkg" };
         foreach (var item in items)
         {
             var path = Path.Combine(basePath, item);

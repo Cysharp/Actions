@@ -85,6 +85,36 @@ namespace Actions
         }
 
         /// <summary>
+        /// Validate specified path contains nuget packages
+        /// </summary>
+        /// <param name="pathPattern"></param>
+        /// <param name="verbose"></param>
+        [Command("validate-nupkg-exists")]
+        public void ValidateNupkgExists(string pathPattern, bool verbose)
+        {
+            SetOptions(verbose);
+            var fileName = Path.GetFileName(pathPattern);
+            var allowMissing = Path.GetExtension(fileName) == ".snupkg";
+
+            WriteLog($"Validating path, {pathPattern} ...");
+            WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
+            if (string.IsNullOrWhiteSpace(pathPattern))
+            {
+                WriteLog("Empty path detected, skip execution.");
+                return;
+            }
+            if (allowMissing)
+            {
+                WriteLog(".snupkg detected, allow missing file.");
+            }
+
+            var command = new FileExsistsCommand(pathPattern, allowMissing);
+            command.Validate();
+
+            WriteLog($"Completed ...");
+        }
+
+        /// <summary>
         /// Create dummy files
         /// </summary>
         /// <param name="basePath"></param>

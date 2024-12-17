@@ -63,11 +63,16 @@
       "commandName": "Project",
       "commandLineArgs": "validate-file-exists --path-pattern ./dummy/**/foo"
     },
-    // create-dummy
-    "create-dummy (help)": {
+    // validate-nupkg-exsits
+    "validate-nupkg-exsits (path: *.nupkg)": {
       "commandName": "Project",
-      "commandLineArgs": "create-dummy --help"
+      "commandLineArgs": "validate-nupkg-exists --path-pattern ./dummy/downloads/*.nupkg"
     },
+    "validate-nupkg-exsits (path: *.snupkg)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-nupkg-exists --path-pattern ./dummy/downloads/*.snupkg"
+    },
+    // create-dummy
     "create-dummy (init)": {
       "commandName": "Project",
       "commandLineArgs": "create-dummy --base-path dummy/"
