@@ -142,15 +142,7 @@ jobs:
         if: ${{ inputs.nuget-push }}
         run: |
           while read -r nuget_path; do
-            if [[ "${nuget_path}" == "" ]]; then continue; fi
-            # shellcheck disable=SC2086
-            if ! ls -l ${nuget_path}; then
-              echo "Specified nuget package not found. path: $nuget_path"
-              if [[ "${nuget_path}" == *.nupkg ]]; then
-                echo ".nupkg must be included in the artifact."
-                exit 1
-              fi
-            fi
+            dotnet run --project "./src/Actions/Actions.csproj" -- validate-nupkg-exists --path-pattern "$nuget_path"
           done <<< "${{ inputs.nuget-path }}"
 
       # Create Releases
