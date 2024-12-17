@@ -1,4 +1,4 @@
-using Actions.Commands;
+﻿using Actions.Commands;
 using FluentAssertions;
 
 namespace Actions.Tests;
@@ -6,7 +6,7 @@ namespace Actions.Tests;
 public class UpdateVersionCommandTest
 {
     [Fact]
-    public void UpdateVersionUpmTest()
+    public void UnityUpmTest()
     {
         var version = "1.0.0";
         var path = $"{nameof(UpdateVersionCommandTest)}/package.json";
@@ -67,10 +67,10 @@ public class UpdateVersionCommandTest
     }
 
     [Fact]
-    public void UpdateVersionGodotTest()
+    public void GodotPluginTest()
     {
         var version = "1.0.0";
-        var path = $"{nameof(UpdateVersionGodotTest)}/plugin.cfg";
+        var path = $"{nameof(GodotPluginTest)}/plugin.cfg";
         var contents = """
             [plugin]
 
@@ -102,10 +102,10 @@ public class UpdateVersionCommandTest
     }
 
     [Fact]
-    public void UpdateVersionDirectoryBuildPropsTest()
+    public void DirectoryBuildPropsTest()
     {
         var version = "1.0.0";
-        var path = $"{nameof(UpdateVersionDirectoryBuildPropsTest)}/Directory.Build.props";
+        var path = $"{nameof(DirectoryBuildPropsTest)}/Directory.Build.props";
         var contents = """
             <Project>
               <PropertyGroup>
