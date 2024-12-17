@@ -136,25 +136,7 @@ jobs:
         if: ${{ inputs.release-upload }}
         run: |
           while read -r asset_path; do
-            if [[ "${asset_path}" == "" ]]; then continue; fi
-            # is it a wildcard?
-            # shellcheck disable=SC2086
-            if [[ "$asset_path" == *\** || "$asset_path" == *\?* ]]; then
-              # shellcheck disable=SC2086
-              if ! ls -l ${asset_path}; then
-                echo "Specified nuget package not found. path: $asset_path"
-                if [[ "${asset_path}" == *.nupkg ]]; then
-                  echo ".nupkg must be included in the artifact."
-                  exit 1
-                fi
-              fi
-              continue
-            fi
-            # is it a file?
-            if [[ ! -f "${asset_path}" ]]; then
-              echo "Specified asset not found. path: ${asset_path}"
-              exit 1
-            fi
+            dotnet run --project "./src/Actions/Actions.csproj" -- validate-file-exists --path-pattern "$asset_path"
           done <<< "${{ inputs.release-asset-path }}"
       - name: Validate package exists in artifact - NuGet
         if: ${{ inputs.nuget-push }}
