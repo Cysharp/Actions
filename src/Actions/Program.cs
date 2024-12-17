@@ -68,9 +68,16 @@ namespace Actions
         [Command("validate-file-exists")]
         public void ValidateFileExists(string pathPattern, bool verbose)
         {
-            _verbose = verbose;
+            SetOptions(verbose);
+
             WriteLog($"Validating path, {pathPattern} ...");
             WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
+            if (string.IsNullOrWhiteSpace(pathPattern))
+            {
+                WriteLog("Empty path detected, skip execution.");
+                return;
+            }
+
             var command = new FileExsistsCommand(pathPattern);
             command.Validate();
 
@@ -100,6 +107,11 @@ namespace Actions
             OutputFormatType.GitHubActions => $"{key}={value}",
             _ => throw new NotImplementedException(nameof(format)),
         };
+
+        private void SetOptions(bool verbose)
+        {
+            _verbose = verbose;
+        }
 
         void WriteLog(string value)
         {
