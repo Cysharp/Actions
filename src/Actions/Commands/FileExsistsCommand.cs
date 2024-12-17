@@ -6,9 +6,7 @@ public class FileExsistsCommand(string pathPattern)
     {
         // do nothing for empty input
         if (string.IsNullOrWhiteSpace(pathPattern))
-        {            
-            throw new ActionCommandException("Input path was empty.");
-        }
+            return;
 
         // Handle glob path pattern.
         // /foo/bar/**/*

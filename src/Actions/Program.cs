@@ -68,6 +68,7 @@ namespace Actions
             Console.WriteLine($"Validating path, {pathPattern}");
             var command = new FileExsistsCommand(pathPattern);
             command.Validate();
+
             Console.WriteLine($"Completed ...");
         }
 

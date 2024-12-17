@@ -5,10 +5,10 @@ namespace Actions.Tests;
 public class FileExistsCommandTest
 {
     [Fact]
-    public void EmptyPathTest()
+    public void SkipEmptyPathTest()
     {
         var command = new FileExsistsCommand("");
-        Assert.Throws<ActionCommandException>(() => command.Validate());
+        command.Validate();
     }
 
     [Fact]
