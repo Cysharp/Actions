@@ -9,7 +9,7 @@ public class UpdateVersionCommandTest
     public void UnityUpmTest()
     {
         var version = "1.0.0";
-        var path = $"{nameof(UpdateVersionCommandTest)}/package.json";
+        var path = $".tests/{nameof(UpdateVersionCommandTest)}{nameof(UnityUpmTest)}/package.json";
         var contents = """
             {
               "name": "com.unity.plugin.example",
@@ -70,7 +70,7 @@ public class UpdateVersionCommandTest
     public void GodotPluginTest()
     {
         var version = "1.0.0";
-        var path = $"{nameof(GodotPluginTest)}/plugin.cfg";
+        var path = $".tests/{nameof(UpdateVersionCommandTest)}/{nameof(GodotPluginTest)}/plugin.cfg";
         var contents = """
             [plugin]
 
@@ -105,7 +105,7 @@ public class UpdateVersionCommandTest
     public void DirectoryBuildPropsTest()
     {
         var version = "1.0.0";
-        var path = $"{nameof(DirectoryBuildPropsTest)}/Directory.Build.props";
+        var path = $".tests/{nameof(UpdateVersionCommandTest)}/{nameof(DirectoryBuildPropsTest)}/Directory.Build.props";
         var contents = """
             <Project>
               <PropertyGroup>

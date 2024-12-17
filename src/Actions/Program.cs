@@ -59,6 +59,19 @@ namespace Actions
         }
 
         /// <summary>
+        /// Validate specified path contains file
+        /// </summary>
+        /// <param name="pathPattern"></param>
+        [Command("validate-file-exists")]
+        public void ValidateFileExists(string pathPattern)
+        {
+            Console.WriteLine($"Validating path, {pathPattern}");
+            var command = new FileExsistsCommand(pathPattern);
+            command.Validate();
+            Console.WriteLine($"Completed ...");
+        }
+
+        /// <summary>
         /// Create dummy files
         /// </summary>
         /// <param name="basePath"></param>
@@ -68,7 +81,7 @@ namespace Actions
             Console.WriteLine($"Creating dummy files, under {basePath} ...");
 
             var command = new CreateDummyCommand();
-            command.CreateDummyFiles(basePath);
+            command.CreateDummy(basePath);
 
             Console.WriteLine($"Completed ...");
         }
@@ -83,7 +96,7 @@ namespace Actions
         };
     }
 
-    public class ActionCommandException(string message) : Exception(message)
+    public class ActionCommandException(string message, Exception? innterException = null) : Exception(message, innterException)
     {
     }
 }

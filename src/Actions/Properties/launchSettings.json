@@ -46,6 +46,23 @@
       "commandName": "Project",
       "commandLineArgs": "update-version --version 1.0.0 --path ./dummy/Directory.Build.props"
     },
+    // validate-file-exsits
+    "validate-file-exsits (path: foo)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-file-exists --path-pattern ./dummy/downloads/foo"
+    },
+    "validate-file-exsits (path: *)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-file-exists --path-pattern ./dummy/downloads/*"
+    },
+    "validate-file-exsits (path: */foo)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-file-exists --path-pattern ./dummy/*/foo"
+    },
+    "validate-file-exsits (path: **/foo)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-file-exists --path-pattern ./dummy/**/foo"
+    },
     // create-dummy
     "create-dummy (help)": {
       "commandName": "Project",
