@@ -6,11 +6,69 @@ indent_style = space
 indent_size = 2
 end_of_line = lf
 
-[{appsettings.json,appsettings.*.json}]
+[*.cs]
 charset = utf-8-bom
 indent_style = space
 indent_size = 4
 
-[*.cs]
+[*.{csproj,props}]
+charset = utf-8
 indent_style = space
-indent_size = 4
+indent_size = 2
+
+[{appsettings.json,appsettings.*.json}]
+charset = utf-8-bom
+indent_style = space
+indent_size = 2
+
+[*.cs]
+# C# Standards
+dotnet_diagnostic.CS1998.severity = none # This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
+
+# Nullable Reference Types
+dotnet_diagnostic.CS8618.severity = error # Non-nullable field is uninitialized. Consider declaring as nullable.
+dotnet_diagnostic.CS8604.severity = error # Possible null reference argument.
+dotnet_diagnostic.CS8629.severity = error # Nullable value type may be null.
+dotnet_diagnostic.CS8600.severity = error # Converting null literal or possible null value to non-nullable type.
+dotnet_diagnostic.CS8603.severity = error # Possible null reference return.
+dotnet_diagnostic.CS8610.severity = error # Nullability of reference types in type of parameter doesn't match overridden member.
+dotnet_diagnostic.CS8625.severity = error # Cannot convert null literal to non-nullable reference type.
+dotnet_diagnostic.CS8606.severity = error # Possible null reference assignment to iteration variable
+dotnet_diagnostic.CS8602.severity = error # Dereference of a possibly null reference.
+dotnet_diagnostic.CS8601.severity = error # Possible null reference assignment.
+dotnet_diagnostic.CS8614.severity = error # Nullability of reference types in type of parameter doesn't match implicitly implemented member.
+dotnet_diagnostic.CS8765.severity = error # Nullability of type of parameter 'obj' doesn't match overridden member (possibly because of nullability attributes).
+dotnet_diagnostic.CS8619.severity = error # Nullability of reference types in value of type 'GenericType<T?>' doesn't match target type 'GenericType<T>'.
+
+# =================
+# Analyzer Rulesets
+# =================
+
+# Microsoft.CodeAnalysis.BannedApiAnalyzers
+dotnet_diagnostic.RS0030.severity = error # RS0030: Banned API
+
+# Microsoft.VisualStudio.Threading.Analyzers
+dotnet_diagnostic.VSTHRD100.severity = error # VSTHRD100: Avoid async void methods
+dotnet_diagnostic.VSTHRD101.severity = error # VSTHRD101: Avoid unsupported async delegates
+dotnet_diagnostic.VSTHRD110.severity = error # VSTHRD110: Observe result of async calls
+dotnet_diagnostic.VSTHRD003.severity = none  # VSTHRD003 Avoid awaiting foreign Tasks
+
+# =================
+# Format Rulesets
+# =================
+
+# IDE0160: Convert to file-scoped namespace
+csharp_style_namespace_declarations = file_scoped:warning
+
+# Microsoft.Analyzers.ManagedCodeAnalysis
+dotnet_diagnostic.CA2200.severity = error # Rethrow to preserve stack details
+
+# =================
+# Too Match Detail Rulesets
+# =================
+
+# CONSIDER: Are IDE0051 and IDE0052 too noisy to be warnings for IDE editing scenarios? Should they be made build-only warnings?
+dotnet_diagnostic.IDE0005.severity = warning # Remove unnecessary imports
+dotnet_diagnostic.IDE0051.severity = warning # Remove unused private member
+dotnet_diagnostic.IDE0052.severity = warning # Remove unread private member
+dotnet_diagnostic.IDE0090.severity = none # Simplify new expression
