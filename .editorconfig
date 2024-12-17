@@ -71,4 +71,5 @@ dotnet_diagnostic.CA2200.severity = error # Rethrow to preserve stack details
 dotnet_diagnostic.IDE0005.severity = warning # Remove unnecessary imports
 dotnet_diagnostic.IDE0051.severity = warning # Remove unused private member
 dotnet_diagnostic.IDE0052.severity = warning # Remove unread private member
+dotnet_diagnostic.IDE0079.severity = none # Remove unnecessary suppression
 dotnet_diagnostic.IDE0090.severity = none # Simplify new expression

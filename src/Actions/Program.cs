@@ -1,4 +1,4 @@
-using Actions;
+﻿using Actions;
 using Actions.Commands;
 using Actions.Utils;
 using ConsoleAppFramework;
@@ -11,6 +11,8 @@ namespace Actions
 {
     public class ActionsBatch
     {
+#pragma warning disable CA1822 // Mark members as static
+
         /// <summary>Get version string from tag</summary>
         /// <param name="tag"></param>
         /// <param name="prefix"></param>
@@ -70,6 +72,8 @@ namespace Actions
 
             Console.WriteLine($"Completed ...");
         }
+
+#pragma warning restore CA1822 // Mark members as static
 
         private static string OutputFormat(string key, string value, OutputFormatType format) => format switch
         {
