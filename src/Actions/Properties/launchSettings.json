@@ -1,0 +1,81 @@
+{
+  "profiles": {
+    "help": {
+      "commandName": "Project",
+      "commandLineArgs": "--help"
+    },
+    // versioning
+    "versioning (help)": {
+      "commandName": "Project",
+      "commandLineArgs": "versioning --help"
+    },
+    "versioning (major)": {
+      "commandName": "Project",
+      "commandLineArgs": "versioning --tag 0.1.0 --version-increment major"
+    },
+    "versioning (minor)": {
+      "commandName": "Project",
+      "commandLineArgs": "versioning --tag 0.1.0 --version-increment minor"
+    },
+    "versioning (patch)": {
+      "commandName": "Project",
+      "commandLineArgs": "versioning --tag 0.1.0"
+    },
+    "versioning (patch - prefix)": {
+      "commandName": "Project",
+      "commandLineArgs": "versioning --tag v0.1.0 --prefix v"
+    },
+    "versioning (patch - github actions)": {
+      "commandName": "Project",
+      "commandLineArgs": "versioning --tag 0.1.0 --output-format GitHubActions"
+    },
+    // update-version (run create-dummy before run these)
+    "update-version (help)": {
+      "commandName": "Project",
+      "commandLineArgs": "update-version --help"
+    },
+    "update-version (upm)": {
+      "commandName": "Project",
+      "commandLineArgs": "update-version --version 1.0.0 --path ./dummy/package.json"
+    },
+    "update-version (godot)": {
+      "commandName": "Project",
+      "commandLineArgs": "update-version --version 1.0.0 --path ./dummy/plugin.cfg"
+    },
+    "update-version (Directory.Build.props)": {
+      "commandName": "Project",
+      "commandLineArgs": "update-version --version 1.0.0 --path ./dummy/Directory.Build.props"
+    },
+    // validate-file-exsits
+    "validate-file-exsits (path: foo)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-file-exists --path-pattern ./dummy/downloads/foo"
+    },
+    "validate-file-exsits (path: *)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-file-exists --path-pattern ./dummy/downloads/*"
+    },
+    "validate-file-exsits (path: */foo)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-file-exists --path-pattern ./dummy/*/foo"
+    },
+    "validate-file-exsits (path: **/foo)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-file-exists --path-pattern ./dummy/**/foo"
+    },
+    // validate-nupkg-exsits
+    "validate-nupkg-exsits (path: *.nupkg)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-nupkg-exists --path-pattern ./dummy/downloads/*.nupkg"
+    },
+    "validate-nupkg-exsits (path: *.snupkg)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-nupkg-exists --path-pattern ./dummy/downloads/*.snupkg"
+    },
+    // create-dummy
+    "create-dummy (init)": {
+      "commandName": "Project",
+      "commandLineArgs": "create-dummy --base-path dummy/"
+    }
+  }
+}
