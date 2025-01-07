@@ -159,9 +159,11 @@ namespace Actions
             {
                 var result = await "git diff --exit-code";
                 WriteLog("There is no git diff.");
+
+                var sha = await "git rev-parse HEAD";
                 GitHubOutput("commited", "0");
-                GitHubOutput("sha", "");
-                GitHubOutput("is-branch-created", dryRun.ToString().ToLower());
+                GitHubOutput("sha", sha);
+                GitHubOutput("is-branch-created", "false");
             }
             catch (ProcessErrorException)
             {
@@ -175,7 +177,7 @@ namespace Actions
                 var sha = await "git rev-parse HEAD";
                 GitHubOutput("commited", "1");
                 GitHubOutput("sha", sha);
-                GitHubOutput("is-branch-created", dryRun.ToString().ToLower());
+                GitHubOutput("is-branch-created", dryRun.ToString().ToLower()); // dryrun時はブランチで代用する
             }
         }
 
