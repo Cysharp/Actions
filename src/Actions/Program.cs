@@ -1,7 +1,9 @@
 ﻿using Actions;
 using Actions.Commands;
+using Actions.Contexts;
 using Actions.Utils;
-using ConsoleAppFramework;
+using Cysharp.Diagnostics;
+using System.Runtime.CompilerServices;
 
 var app = ConsoleApp.Create();
 app.Add<ActionsBatch>();
@@ -33,31 +35,42 @@ namespace Actions
         }
 
         /// <summary>
-        /// Update Version for specified path
+        /// Update Version for specified path and commit
         /// </summary>
         /// <param name="version"></param>
-        /// <param name="path"></param>
+        /// <param name="paths"></param>
         /// <param name="dryRun"></param>
         [Command("update-version")]
-        public void UpdateVersion(string version, string path, bool dryRun)
+        public async Task<int> UpdateVersion(string version, string[] paths, bool dryRun)
         {
-            WriteLog($"Update begin, {path} ...");
-            if (string.IsNullOrWhiteSpace(path))
+            foreach (var path in paths)
             {
-                WriteLog("Empty path detected, skip execution.");
-                return;
+
+                WriteLog($"Update begin, {path} ...");
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    WriteLog("Empty path detected, skip execution.");
+                    continue;
+                }
+
+                // Update Version
+                using (var githubGroup = new GitHubActionsGroupLogger("Before"))
+                    WriteLog(File.ReadAllText(path));
+                var command = new UpdateVersionCommand(version, path);
+                var result = command.UpdateVersion(dryRun);
+                using (var githubGroup = new GitHubActionsGroupLogger("After"))
+                    WriteLog(result.After);
             }
 
-            using (var githubGroup = new GitHubActionsGroupLogger("Before"))
-                WriteLog(File.ReadAllText(path));
-
-            var command = new UpdateVersionCommand(version, path);
-            var result = command.UpdateVersion(dryRun);
-
-            using (var githubGroup = new GitHubActionsGroupLogger("After"))
-                WriteLog(result.After);
+            // Git Commit
+            using (var githubGroup = new GitHubActionsGroupLogger("git commit changes"))
+            {
+                await GitCommitAsync(dryRun, version);
+            }
 
             WriteLog($"Completed ...");
+
+            return 0;
         }
 
         /// <summary>
@@ -129,6 +142,42 @@ namespace Actions
             WriteLog($"Completed ...");
         }
 
+        /// <summary>
+        /// Git Commit
+        /// </summary>
+        /// <param name="dryRun"></param>
+        /// <param name="tag"></param>
+        /// <param name="email"></param>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        private async Task GitCommitAsync(bool dryRun, string tag, string email = "41898282+github-actions[bot]@users.noreply.github.com", string user = "github-actions[bot]")
+        {
+            WriteLog($"Checking File change has been happen ...");
+            try
+            {
+                var result = await "git diff --exit-code";
+                WriteLog("There is no git diff.");
+                GitHubOutput("commited", "0");
+                GitHubOutput("sha", "");
+                GitHubOutput("is-branch-created", dryRun.ToString().ToLower());
+            }
+            catch (ProcessErrorException)
+            {
+                WriteLog("Detected git diff.");
+                var commitMessageTitle = $"feat: Update package.json to {tag}";
+                var commitMessageBody = $"Commit by [GitHub Actions]({GitHubContext.GetWorkflowRunUrl(GitHubContext.Current)})";
+                await $"git config --local user.email \"{email}\"";
+                await $"git config --local user.name \"{user}\"";
+                await $"git commit -m \"{commitMessageTitle}\" -m \"{commitMessageBody}\" -a";
+
+                var sha = await "git rev-parse HEAD";
+                GitHubOutput("commited", "1");
+                GitHubOutput("sha", sha);
+                GitHubOutput("is-branch-created", dryRun.ToString().ToLower());
+            }
+        }
+
+
 #pragma warning restore CA1822 // Mark members as static
 
         private static string OutputFormat(string key, string value, OutputFormatType format) => format switch
@@ -143,17 +192,27 @@ namespace Actions
             _verbose = verbose;
         }
 
-        void WriteLog(string value)
+        private void WriteLog(string value)
         {
             Console.WriteLine($"[{DateTime.Now:s}] {value}");
         }
 
-        void WriteVerbose(string value)
+        private void WriteVerbose(string value)
         {
             if (_verbose)
             {
                 Console.WriteLine($"[{DateTime.Now:s}] {value}");
             }
+        }
+
+        private static void GitHubOutput(string key, string value, [CallerMemberName]string? callerMemberName = null)
+        {
+            var output = Environment.GetEnvironmentVariable("GITHUB_OUTPUT", EnvironmentVariableTarget.Process) ?? Path.Combine(Directory.GetCurrentDirectory(), $"GitHubOutputs/{callerMemberName}");
+            if (!Directory.Exists(Path.GetDirectoryName(output)))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+            }
+            File.AppendAllLines(output, [$"{key}={value}"]);
         }
     }
 

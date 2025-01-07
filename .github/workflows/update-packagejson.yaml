@@ -7,6 +7,11 @@ on:
         description: "package.json path to update. You can input multiline paths. Supported files are `package.json`, `plugin.cfg` and `Directory.Build.props`"
         required: true
         type: string
+      ref:
+        description: "checkout ref"
+        required: false
+        type: string
+        default: ''
       require-validation:
         description: "true require validation must pass, false to keep going even validation failed."
         required: false
@@ -31,11 +36,6 @@ on:
         required: false
         type: boolean
         default: true
-      ref:
-        description: "checkout ref"
-        required: false
-        type: string
-        default: ''
     outputs:
       sha:
         description: "Git commit sha after package.json has changed."
@@ -60,9 +60,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      sha: ${{ steps.commit.outputs.sha }}
+      sha: ${{ steps.update.outputs.sha }}
       branch-name: ${{ steps.configure.outputs.branch-name }}
-      is-branch-created: ${{ steps.commit.outputs.is-branch-created }}
+      is-branch-created: ${{ steps.update.outputs.is-branch-created }}
     steps:
       - name: Configure Output variables
         id: configure
@@ -73,18 +73,6 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-
-      # package.json
-      # "version": 1.2.3 -> "version": 2.0.0
-      # plugin.cfg
-      # version="1.2.3" -> version="2.0.0"
-      #
-      # TIPS: `grep -v "^$"` is used to remove empty line.
-      - name: Update files to version ${{ needs.validate.outputs.normalized_tag }}
-        run: |
-          while read -r file_path; do
-            dotnet run --project "./src/Actions/Actions.csproj" -- update-version --version "${{ needs.validate.outputs.normalized_tag }}" --path "$file_path"
-          done <<< "${{ inputs.file-path }}"
 
       # dotnet run
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
@@ -100,29 +88,21 @@ jobs:
           done <<< "${{ inputs.dotnet-run-path }}"
         if: ${{ inputs.dotnet-run-path != '' }}
 
-      - name: Check update on git
-        id: check_update
-        run: git diff --exit-code || echo "changed=1" | tee -a "$GITHUB_OUTPUT"
-
-      - name: Commit files (updated? = ${{ steps.check_update.outputs.changed == '1' }})
-        id: commit
+      # package.json
+      # "version": 1.2.3 -> "version": 2.0.0
+      # plugin.cfg
+      # version="1.2.3" -> version="2.0.0"
+      #
+      # TIPS: Converting file-oath from \n to ,
+      - name: Update files to version ${{ needs.validate.outputs.normalized_tag }}
+        id: update
         run: |
-          if [[ "${{ steps.check_update.outputs.changed }}" == "1" ]]; then
-            git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git config --local user.name "github-actions[bot]"
-            git commit -m "feat: Update package.json to ${{ needs.validate.outputs.normalized_tag }}" -m "Commit by [GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" -a
-            echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
-            echo "is-branch-created=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
-          elif [[ "${{ inputs.ref }}" != "" ]]; then
-            echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
-            echo "is-branch-created=false" | tee -a "$GITHUB_OUTPUT"
-          else
-            echo "sha=" | tee -a "$GITHUB_OUTPUT"
-            echo "is-branch-created=false" | tee -a "$GITHUB_OUTPUT"
-          fi
+          file_path_csv=$(echo "${{ inputs.file-path }}" | tr '\n' ',' | sed 's/,$/\n/')
+          echo "file_path_csv: $file_path_csv"
+          dotnet run --project "./src/Actions/Actions.csproj" -- update-version --version "${{ needs.validate.outputs.normalized_tag }}" --paths "${file_path_csv}"
 
       - name: Push changes
-        if: ${{ steps.check_update.outputs.changed == '1' }}
+        if: ${{ steps.update.outputs.commited == '1' }}
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
