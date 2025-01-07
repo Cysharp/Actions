@@ -170,7 +170,7 @@ namespace Actions
                 var commitMessageBody = $"Commit by [GitHub Actions]({GitHubContext.GetWorkflowRunUrl(GitHubContext.Current)})";
                 await $"git config --local user.email \"{email}\"";
                 await $"git config --local user.name \"{user}\"";
-                await $"git commit -m \"{commitMessageTitle}\" -m \"{commitMessageBody}\" -a";
+                await $"git commit -a -m \"{commitMessageTitle}\" -m \"{commitMessageBody}\"";
 
                 var sha = await "git rev-parse HEAD";
                 GitHubOutput("commited", "1");
