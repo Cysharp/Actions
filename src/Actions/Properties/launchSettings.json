@@ -34,19 +34,14 @@
       "commandName": "Project",
       "commandLineArgs": "update-version --help"
     },
-    "update-version (upm)": {
+    "update-version": {
       "commandName": "Project",
-      "commandLineArgs": "update-version --version 1.0.0 --path ./dummy/package.json"
+      "commandLineArgs": "update-version --version 1.0.0 --paths ./dummy/package.json,./dummy/plugin.cfg,./dummy/Directory.Build.props",
+      "environmentVariables": {
+        "GITHUB_CONTEXT": "{\"server_url\":\"https://github.com\", \"run_id\":\"11350100787\", \"repository\":\"Actions\", \"repository_owner\":\"Cysharp\", \"event_name\": \"pull_request\"}"
+      }
     },
-    "update-version (godot)": {
-      "commandName": "Project",
-      "commandLineArgs": "update-version --version 1.0.0 --path ./dummy/plugin.cfg"
-    },
-    "update-version (Directory.Build.props)": {
-      "commandName": "Project",
-      "commandLineArgs": "update-version --version 1.0.0 --path ./dummy/Directory.Build.props"
-    },
-    // validate-file-exsits
+    // validate-nupkg-exsits
     "validate-file-exsits (path: foo)": {
       "commandName": "Project",
       "commandLineArgs": "validate-file-exists --path-pattern ./dummy/downloads/foo"
@@ -63,7 +58,6 @@
       "commandName": "Project",
       "commandLineArgs": "validate-file-exists --path-pattern ./dummy/**/foo"
     },
-    // validate-nupkg-exsits
     "validate-nupkg-exsits (path: *.nupkg)": {
       "commandName": "Project",
       "commandLineArgs": "validate-nupkg-exists --path-pattern ./dummy/downloads/*.nupkg"
