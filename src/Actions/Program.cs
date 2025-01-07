@@ -43,6 +43,8 @@ namespace Actions
         [Command("update-version")]
         public async Task<int> UpdateVersion(string version, string[] paths, bool dryRun)
         {
+            GitHubContext.ThrowIfNotAvailable();
+
             foreach (var path in paths)
             {
 
