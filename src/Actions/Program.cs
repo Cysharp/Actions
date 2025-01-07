@@ -155,30 +155,38 @@ namespace Actions
         private async Task GitCommitAsync(bool dryRun, string tag, string email = "41898282+github-actions[bot]@users.noreply.github.com", string user = "github-actions[bot]")
         {
             WriteLog($"Checking File change has been happen ...");
+            var commited = "0";
+            var branchName = "";
+            var isBranchCreated = "false";
             try
             {
                 var result = await "git diff --exit-code";
                 WriteLog("There is no git diff.");
-
-                var sha = await "git rev-parse HEAD";
-                GitHubOutput("commited", "0");
-                GitHubOutput("sha", sha);
-                GitHubOutput("is-branch-created", "false");
             }
             catch (ProcessErrorException)
             {
                 WriteLog("Detected git diff.");
-                var commitMessageTitle = $"feat: Update package.json to {tag}";
-                var commitMessageBody = $"Commit by [GitHub Actions]({GitHubContext.GetWorkflowRunUrl(GitHubContext.Current)})";
+                if (dryRun)
+                {
+                    WriteLog("Dryrun Mode detected, creating branch switch to.");
+                    await $"git switch -c test-release/{tag}";
+                    branchName = $"test-release/{tag}";
+                    isBranchCreated = "true";
+                }
+
+                var commitMessage = $"Update package.json to {tag}\n\nCommit by [GitHub Actions]({GitHubContext.GetWorkflowRunUrl(GitHubContext.Current)})";
+                WriteLog("Committing change.");
                 await $"git config --local user.email \"{email}\"";
                 await $"git config --local user.name \"{user}\"";
-                await $"git commit -a -m \"{commitMessageTitle}\" -m \"{commitMessageBody}\"";
+                await $"git commit -a -m \"{commitMessage}\"";
 
-                var sha = await "git rev-parse HEAD";
-                GitHubOutput("commited", "1");
-                GitHubOutput("sha", sha);
-                GitHubOutput("is-branch-created", dryRun.ToString().ToLower()); // dryrun時はブランチで代用する
+                commited = "1";
             }
+
+            GitHubOutput("commited", commited);
+            GitHubOutput("sha", await "git rev-parse HEAD");
+            GitHubOutput("branch-name", branchName);
+            GitHubOutput("is-branch-created", isBranchCreated);
         }
 
 

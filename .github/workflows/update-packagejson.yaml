@@ -60,15 +60,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      sha: ${{ steps.update.outputs.sha }}
-      branch-name: ${{ steps.configure.outputs.branch-name }}
+      branch-name: ${{ steps.update.outputs.branch-name }}
       is-branch-created: ${{ steps.update.outputs.is-branch-created }}
+      sha: ${{ steps.update.outputs.sha }}
     steps:
-      - name: Configure Output variables
-        id: configure
-        run: |
-          echo "branch-name=test-release/${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
-
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
@@ -99,7 +94,7 @@ jobs:
         run: |
           file_path_csv=$(echo "${{ inputs.file-path }}" | tr '\n' ',' | sed 's/,$/\n/')
           echo "file_path_csv: $file_path_csv"
-          dotnet run --project "./src/Actions/Actions.csproj" -- update-version --version "${{ needs.validate.outputs.normalized_tag }}" --paths "${file_path_csv}"
+          dotnet run --project "./src/Actions/Actions.csproj" -- update-version --version "${{ needs.validate.outputs.normalized_tag }}" --paths "${file_path_csv}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
 
@@ -108,6 +103,6 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
-          branch: ${{ inputs.ref }}
+          branch: ${{ inputs.dry-run && steps.update.outputs.branch-name || inputs.ref }}
           tags: false
           force: ${{ inputs.dry-run }}
