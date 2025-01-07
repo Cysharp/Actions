@@ -18,6 +18,11 @@ public record GitHubContext
     [JsonPropertyName("event_name")]
     public required string EventName { get; init; }
 
+    public static void ThrowIfNotAvailable()
+    {
+        var env = Environment.GetEnvironmentVariable("GITHUB_CONTEXT") ?? throw new ArgumentNullException("Environment Variable 'GITHUB_CONTEXT' is missing.");
+        ArgumentNullException.ThrowIfNullOrEmpty(Current.ServerUrl);
+    }
     public static string GetWorkflowRunUrl(GitHubContext context) => $"{context.ServerUrl}/{context.Repository}/actions/runs/{context.RunId}";
 }
 
