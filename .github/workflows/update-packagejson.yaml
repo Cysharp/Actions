@@ -37,15 +37,15 @@ on:
         type: boolean
         default: true
     outputs:
-      sha:
-        description: "Git commit sha after package.json has changed."
-        value: ${{ jobs.update-packagejson.outputs.sha }}
       branch-name:
         description: Git branch name created.
         value: ${{ jobs.update-packagejson.outputs.branch-name }}
       is-branch-created:
         description: Indicate is Git branch created or not.
         value: ${{ jobs.update-packagejson.outputs.is-branch-created }}
+      sha:
+        description: "Git commit sha after package.json has changed."
+        value: ${{ jobs.update-packagejson.outputs.sha }}
 
 jobs:
   validate:
@@ -103,6 +103,6 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
-          branch: ${{ inputs.dry-run && steps.update.outputs.branch-name || inputs.ref }}
+          branch: ${{ steps.update.outputs.branch-name }}
           tags: false
           force: ${{ inputs.dry-run }}

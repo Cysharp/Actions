@@ -97,10 +97,12 @@ jobs:
           if [[ "${{ needs.update-packagejson2.outputs.branch-name }}" == "" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
           echo -n "FACT: branch-name for update-packagejson3 should be empty. "
           if [[ "${{ needs.update-packagejson3.outputs.branch-name }}" == "" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+        env:
+          HEAD_REF: ${{ github.head_ref }}
 
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
-    needs: [update-packagejson]
+    needs: [update-packagejson, update-packagejson3]
     uses: ./.github/workflows/clean-packagejson-branch.yaml
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}

@@ -150,20 +150,9 @@ namespace Actions
         /// </summary>
         /// <returns></returns>
         [Command("debug")]
-        public async Task Debug()
+        public void Debug(string[] foo)
         {
-            var str = "git commit -a -m \"feat: Update package.json to 1.0.0\n\nCommit by [GitHub Actions](https://github.com/Actions/actions/runs/11350100787)\"";
-            var (command, argument) = ParseCommand(str);
-            var startInfo = new ProcessStartInfo(command, argument!);
-            using var process = Process.Start(startInfo);
-            process!.WaitForExit();
-            await foreach (var item in ProcessX.StartAsync(str))
-            {
-                Console.WriteLine(item);
-            }
-
-            //// Zx run with `shell + "\"" + command + "\""`, there fore we need double escape for innner quote.
-            //var result = await $"{EscapeCommand(str)}";
+            Console.WriteLine($"--foo {string.Join(",", foo)}");
         }
 
         /// <summary>
@@ -212,19 +201,6 @@ namespace Actions
             GitHubOutput("is-branch-created", isBranchCreated);
         }
 
-
-        private static (string fileName, string? arguments) ParseCommand(string command)
-        {
-            int num = command.IndexOf(' ');
-            if (num == -1)
-            {
-                return (command, null);
-            }
-            string item = command.Substring(0, num);
-            string item2 = command.Substring(num + 1, command.Length - (num + 1));
-            return (item, item2);
-        }
-
 #pragma warning restore CA1822 // Mark members as static
 
         /// <summary>
@@ -270,14 +246,17 @@ namespace Actions
             }
         }
 
-        private static void GitHubOutput(string key, string value, [CallerMemberName]string? callerMemberName = null)
+        private void GitHubOutput(string key, string value, [CallerMemberName]string? callerMemberName = null)
         {
+            var input = $"{key}={value}";
             var output = Environment.GetEnvironmentVariable("GITHUB_OUTPUT", EnvironmentVariableTarget.Process) ?? Path.Combine(Directory.GetCurrentDirectory(), $"GitHubOutputs/{callerMemberName}");
             if (!Directory.Exists(Path.GetDirectoryName(output)))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(output)!);
             }
-            File.AppendAllLines(output, [$"{key}={value}"]);
+
+            WriteLog($"GitHub Output: {input}");
+            File.AppendAllLines(output, [input]);
         }
     }
 
