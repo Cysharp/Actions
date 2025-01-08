@@ -1,12 +1,12 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 
 namespace Actions.Tests;
 
-public class UtilsSedTest
+public class RegexReplacerTest
 {
     private readonly string _dummyMultilineText;
 
-    public UtilsSedTest()
+    public RegexReplacerTest()
     {
         _dummyMultilineText = """
             1 foobar
@@ -21,7 +21,7 @@ public class UtilsSedTest
     public void CharacterReplaceTest()
     {
         var input = @"Hello world!";
-        var (_, after) = Utils.Sed.Replace(input, "world", "Japan");
+        var (_, after) = Utils.RegrexReplace.Replace(input, "world", "Japan");
 
         after.Should().Be("Hello Japan!");
     }
@@ -30,9 +30,9 @@ public class UtilsSedTest
     public void CharacterChainReplaceTest()
     {
         var input = @"/a/b/c";
-        var (_, after) = Utils.Sed.Replace(input, "a", "A");
-        var (_, after2) = Utils.Sed.Replace(after, "b", "B");
-        var (_, after3) = Utils.Sed.Replace(after2, "c", "C");
+        var (_, after) = Utils.RegrexReplace.Replace(input, "a", "A");
+        var (_, after2) = Utils.RegrexReplace.Replace(after, "b", "B");
+        var (_, after3) = Utils.RegrexReplace.Replace(after2, "c", "C");
 
         after.Should().Be("/A/b/c");
         after2.Should().Be("/A/B/c");
@@ -43,7 +43,7 @@ public class UtilsSedTest
     public void CharacterInsertTest()
     {
         var input = @"ABC DEF";
-        var (_, after) = Utils.Sed.Replace(input, "ABC", "ABCD");
+        var (_, after) = Utils.RegrexReplace.Replace(input, "ABC", "ABCD");
 
         after.Should().Be("ABCD DEF");
     }
@@ -52,7 +52,7 @@ public class UtilsSedTest
     public void CharacterDeleteTest()
     {
         var input = @"ABC DEF";
-        var (_, after) = Utils.Sed.Replace(input, "ABC", "");
+        var (_, after) = Utils.RegrexReplace.Replace(input, "ABC", "");
 
         after.Should().Be(" DEF");
     }
@@ -63,7 +63,7 @@ public class UtilsSedTest
         var input = _dummyMultilineText;
 
         // insert sentence before the line contains `abcde`
-        var (_, after) = Utils.Sed.Replace(input, $"^(.*?abcde.*?$)", "foo\n$1");
+        var (_, after) = Utils.RegrexReplace.Replace(input, $"^(.*?abcde.*?$)", "foo\n$1");
 
         after.Should().Be("""
             1 foobar
@@ -80,7 +80,7 @@ public class UtilsSedTest
     {
         var input = _dummyMultilineText;
         // delete the line contains `abcde`, but keep brank line as is
-        var (_, after) = Utils.Sed.Replace(input, $"^(.*?abcde.*?$)", "");
+        var (_, after) = Utils.RegrexReplace.Replace(input, $"^(.*?abcde.*?$)", "");
 
         after.Should().Be("""
             1 foobar
@@ -97,7 +97,7 @@ public class UtilsSedTest
         var input = _dummyMultilineText;
 
         // delete the line contains `abcde`, then compaction deleted line.
-        var (_, after) = Utils.Sed.Replace(input, $"^(.*?abcde.*?$).*(\r?\n)?", "");
+        var (_, after) = Utils.RegrexReplace.Replace(input, $"^(.*?abcde.*?$).*(\r?\n)?", "");
 
         after.Should().Be("""
             1 foobar
@@ -113,11 +113,10 @@ public class UtilsSedTest
         var path = $"{nameof(NoWriteBackTest)}.txt";
         if (File.Exists(path)) File.Delete(path);
 
-        var input = _dummyMultilineText;
-        File.WriteAllText(path, input);
+        File.WriteAllText(path, _dummyMultilineText);
 
         // delete the line contains `abcde`, then compaction deleted line.
-        var (before, after) = Utils.Sed.Replace(path, $"^(.*?abcde.*?$).*(\r?\n)?", "", false);
+        var (before, after) = Utils.RegrexReplace.Replace(path, $"^(.*?abcde.*?$).*(\r?\n)?", "", false);
 
         after.Should().Be("""
             1 foobar
@@ -134,11 +133,10 @@ public class UtilsSedTest
         var path = $"{nameof(WriteBackTest)}.txt";
         if (File.Exists(path)) File.Delete(path);
 
-        var input = _dummyMultilineText;
-        File.WriteAllText(path, input);
+        File.WriteAllText(path, _dummyMultilineText);
 
         // delete the line contains `abcde`, then compaction deleted line.
-        var (_, after) = Utils.Sed.Replace(path, $"^(.*?abcde.*?$).*(\r?\n)?", "", true);
+        var (_, after) = Utils.RegrexReplace.Replace(path, $"^(.*?abcde.*?$).*(\r?\n)?", "", true);
 
         after.Should().Be("""
             1 foobar

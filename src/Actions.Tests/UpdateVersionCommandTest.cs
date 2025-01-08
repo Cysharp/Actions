@@ -38,8 +38,8 @@ public class UpdateVersionCommandTest
         if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
         File.WriteAllText(path, contents);
 
-        var command = new UpdateVersionCommand(version, path);
-        var (before, after) = command.UpdateVersion(false);
+        var command = new UpdateVersionCommand(version);
+        var (before, after) = command.UpdateVersion(path, false);
 
         after.Should().Be("""
             {
@@ -86,8 +86,8 @@ public class UpdateVersionCommandTest
         if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
         File.WriteAllText(path, contents);
 
-        var command = new UpdateVersionCommand(version, path);
-        var (before, after) = command.UpdateVersion(false);
+        var command = new UpdateVersionCommand(version);
+        var (before, after) = command.UpdateVersion(path, false);
 
         after.Should().Be("""
             [plugin]
@@ -118,8 +118,8 @@ public class UpdateVersionCommandTest
         if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
         File.WriteAllText(path, contents);
 
-        var command = new UpdateVersionCommand(version, path);
-        var (before, after) = command.UpdateVersion(false);
+        var command = new UpdateVersionCommand(version);
+        var (before, after) = command.UpdateVersion(path, false);
 
         after.Should().Be("""
             <Project>
