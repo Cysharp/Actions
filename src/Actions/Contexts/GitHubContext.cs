@@ -5,7 +5,7 @@ namespace Actions.Contexts;
 
 public record GitHubContext
 {
-    public static readonly GitHubContext Current = JsonSerializer.Deserialize<GitHubContext>(Environment.GetEnvironmentVariable("GITHUB_CONTEXT") ?? "{}")!;
+    public static readonly GitHubContext Current = JsonSerializer.Deserialize<GitHubContext>(ActionsBatchOptions.GitHubContext ?? "{}")!;
 
     [JsonPropertyName("server_url")]
     public required string ServerUrl { get; init; }
@@ -17,12 +17,14 @@ public record GitHubContext
     public required string RepositoryOwner { get; init; }
     [JsonPropertyName("event_name")]
     public required string EventName { get; init; }
+    public string WorkflowRunUrl => $"{ServerUrl}/{Repository}/actions/runs/{RunId}";
 
     public static void ThrowIfNotAvailable()
     {
-        var env = Environment.GetEnvironmentVariable("GITHUB_CONTEXT") ?? throw new ArgumentNullException("Environment Variable 'GITHUB_CONTEXT' is missing.");
-        ArgumentNullException.ThrowIfNullOrEmpty(Current.ServerUrl);
+        // This should be throw when Environment Variable is missing.
+        _ = ActionsBatchOptions.GitHubContext ?? throw new ArgumentNullException("Environment Variable 'GITHUB_CONTEXT' is missing.");
+        // This should be throw when required property is missing.
+        _ = GitHubContext.Current;
     }
-    public static string GetWorkflowRunUrl(GitHubContext context) => $"{context.ServerUrl}/{context.Repository}/actions/runs/{context.RunId}";
 }
 

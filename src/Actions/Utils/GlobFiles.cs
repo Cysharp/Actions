@@ -41,18 +41,16 @@ public static class GlobFiles
         var limit = 5;
         var current = 0;
         var dir = path;
-        var fileName = Path.GetFileName(dir);
-        var next = false;
+        bool next;
         do
         {
-            dir = Path.GetDirectoryName(dir) ?? "";
-            fileName = Path.GetFileName(dir);
-            current++;
             if (current >= limit)
-            {
                 throw new ActionCommandException($"Recursively approaced parent directory but reached limit. {current}/{limit}");
-            }
+
+            dir = Path.GetDirectoryName(dir) ?? "";
+            var fileName = Path.GetFileName(dir);
             next = fileName == "**" || fileName == "*";
+            current++;
         } while (next);
 
         return dir;

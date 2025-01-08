@@ -29,7 +29,7 @@ public class UpdateVersionCommand(string version)
     private UpdateVersionCommandResult HandleUpm(string path, bool writeBack)
     {
         // replace
-        var (before, after) = Sed.Replace(path, @"""version"":\s*""(.*?)""", $@"""version"": ""{version}""", writeBack);
+        var (before, after) = RegrexReplace.Replace(path, @"""version"":\s*""(.*?)""", $@"""version"": ""{version}""", writeBack);
 
         // validate
         Validate(after, version);
@@ -47,7 +47,7 @@ public class UpdateVersionCommand(string version)
     private UpdateVersionCommandResult HandleGodot(string path, bool writeBack)
     {
         // replace
-        var (before, after) = Sed.Replace(path, @"(version=)""(.*?)""", $@"$1""{version}""", writeBack);
+        var (before, after) = RegrexReplace.Replace(path, @"(version=)""(.*?)""", $@"$1""{version}""", writeBack);
 
         // validate
         Validate(after, version);
@@ -84,7 +84,7 @@ public class UpdateVersionCommand(string version)
     private UpdateVersionCommandResult HandleDirectoryBuildProps(string path, bool writeBack)
     {
         // replace
-        var (before, after) = Sed.Replace(path, @"<VersionPrefix>.*</VersionPrefix>", $@"<VersionPrefix>{version}</VersionPrefix>", writeBack);
+        var (before, after) = RegrexReplace.Replace(path, @"<VersionPrefix>.*</VersionPrefix>", $@"<VersionPrefix>{version}</VersionPrefix>", writeBack);
 
         // validate
         Validate(after, version);

@@ -3,7 +3,6 @@ using Actions.Commands;
 using Actions.Contexts;
 using Actions.Utils;
 using Cysharp.Diagnostics;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 var app = ConsoleApp.Create();
@@ -15,8 +14,6 @@ namespace Actions
     public class ActionsBatch
     {
 #pragma warning disable CA1822 // Mark members as static
-
-        private bool _verbose;
 
         /// <summary>Get version string from tag</summary>
         /// <param name="tag"></param>
@@ -79,12 +76,9 @@ namespace Actions
         /// Validate specified path contains file
         /// </summary>
         /// <param name="pathPattern"></param>
-        /// <param name="verbose"></param>
         [Command("validate-file-exists")]
-        public void ValidateFileExists(string pathPattern, bool verbose)
+        public void ValidateFileExists(string pathPattern)
         {
-            SetOptions(verbose);
-
             WriteLog($"Validating path, {pathPattern} ...");
             WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
             if (string.IsNullOrWhiteSpace(pathPattern))
@@ -103,11 +97,9 @@ namespace Actions
         /// Validate specified path contains nuget packages
         /// </summary>
         /// <param name="pathPattern"></param>
-        /// <param name="verbose"></param>
         [Command("validate-nupkg-exists")]
-        public void ValidateNupkgExists(string pathPattern, bool verbose)
+        public void ValidateNupkgExists(string pathPattern)
         {
-            SetOptions(verbose);
             var fileName = Path.GetFileName(pathPattern);
             var allowMissing = Path.GetExtension(fileName) == ".snupkg";
 
@@ -170,8 +162,8 @@ namespace Actions
             var isBranchCreated = "false";
             try
             {
-                var result = await "git diff --exit-code";
-                WriteLog("There is no git diff, skipping commit");
+                var result = await "git diff --exit-code"; // 0 = no diff, 1 = diff
+                WriteLog("git diff not found, skipping commit.");
             }
             catch (ProcessErrorException)
             {
@@ -184,18 +176,17 @@ namespace Actions
                     await $"git switch -c {branchName}";
                 }
 
-                var commitMessage = $"feat: Update package.json to {tag}\n\nCommit by [GitHub Actions]({GitHubContext.GetWorkflowRunUrl(GitHubContext.Current)})";
                 WriteLog("Committing change. Running following.");
-                WriteLog($"git commit -a -m \"{commitMessage}\"");
                 await $"git config --local user.email \"{email}\"";
                 await $"git config --local user.name \"{user}\"";
-                await $"git commit -a -m \"{EscapeCommandArgString(commitMessage)}\"";
+                await $"git commit -a -m \"{EscapeArg($"feat: Update package.json to {tag}")}\" -m \"{EscapeArg($"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})")}\"";
 
                 commited = "1";
             }
 
+            var sha = await "git rev-parse HEAD";
             GitHubOutput("commited", commited);
-            GitHubOutput("sha", await "git rev-parse HEAD");
+            GitHubOutput("sha", sha);
             GitHubOutput("branch-name", branchName);
             GitHubOutput("is-branch-created", isBranchCreated);
         }
@@ -210,7 +201,7 @@ namespace Actions
         /// </summary>
         /// <param name="command"></param>
         /// <returns></returns>
-        private static string EscapeCommandArgString(string command)
+        private static string EscapeArg(string command)
         {
             // Windows don't need escape (Windows escape is differ from Linux/macOS)
             if (OperatingSystem.IsWindows())
@@ -227,25 +218,20 @@ namespace Actions
             _ => throw new NotImplementedException(nameof(format)),
         };
 
-        private void SetOptions(bool verbose)
-        {
-            _verbose = verbose;
-        }
-
-        private void WriteLog(string value)
+        private static void WriteLog(string value)
         {
             Console.WriteLine($"[{DateTime.Now:s}] {value}");
         }
 
-        private void WriteVerbose(string value)
+        private static void WriteVerbose(string value)
         {
-            if (_verbose)
+            if (ActionsBatchOptions.Verbose)
             {
-                Console.WriteLine($"[{DateTime.Now:s}] {value}");
+                WriteLog(value);
             }
         }
 
-        private void GitHubOutput(string key, string value, [CallerMemberName]string? callerMemberName = null)
+        private static void GitHubOutput(string key, string value, [CallerMemberName]string? callerMemberName = null)
         {
             var input = $"{key}={value}";
             var output = Environment.GetEnvironmentVariable("GITHUB_OUTPUT", EnvironmentVariableTarget.Process) ?? Path.Combine(Directory.GetCurrentDirectory(), $"GitHubOutputs/{callerMemberName}");
@@ -259,7 +245,11 @@ namespace Actions
         }
     }
 
-    public class ActionCommandException(string message, Exception? innterException = null) : Exception(message, innterException)
+    public class ActionCommandException(string message, Exception? innterException = null) : Exception(message, innterException);
+
+    internal static class ActionsBatchOptions
     {
+        public static readonly bool Verbose = bool.Parse(Environment.GetEnvironmentVariable("ACTIONS_BATCH_OPTIONS_VERBOSE") ?? "false");
+        public static readonly string? GitHubContext = Environment.GetEnvironmentVariable("GITHUB_CONTEXT");
     }
 }
