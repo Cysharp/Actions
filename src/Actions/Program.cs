@@ -33,11 +33,42 @@ namespace Actions
         }
 
         /// <summary>
+        /// Validate Tag and remove v prefix if exists
+        /// </summary>
+        /// <param name="tag"></param>
+        /// <param name="requireValidation">Set true to exit 1 on fail. Set false to exit 0 even fail.</param>
+        /// <returns></returns>
+        [ConsoleAppFilter<GitHubCliFilter>]
+        [Command("validate-tag")]
+        public async Task<int> ValidateTag(string tag, bool requireValidation)
+        {
+            var command = new ValidateTagCommand();
+            var normalizedTag = command.Normalize(tag);
+            var (validated, releaseTag) = await command.ValidateTagAsync(normalizedTag);
+            if (!validated)
+            {
+                WriteLog($"Tag is reverting to old version. Please bump the version. tag: {tag}, normalizedTag: {normalizedTag}, releaseTag: {releaseTag}");
+
+                if (requireValidation)
+                {
+                    return 1;
+                }
+            }
+
+            GitHubOutput("tag", tag);
+            GitHubOutput("normalized-tag", normalizedTag);
+            GitHubOutput("validated", validated.ToString().ToLower());
+
+            return 0;
+        }
+
+        /// <summary>
         /// Update Version for specified path and commit
         /// </summary>
         /// <param name="version"></param>
         /// <param name="paths"></param>
         /// <param name="dryRun"></param>
+        [ConsoleAppFilter<GitHubContextFilter>]
         [Command("update-version")]
         public async Task<int> UpdateVersion(string version, string[] paths, bool dryRun)
         {
@@ -242,6 +273,29 @@ namespace Actions
 
             WriteLog($"GitHub Output: {input}");
             File.AppendAllLines(output, [input]);
+        }
+    }
+
+    internal class GitHubCliFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+    {
+        public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+        {
+            // Ensure GH CLI can access on CI.
+            if (Environment.GetEnvironmentVariable("CI") is not null)
+            {
+                _ = Environment.GetEnvironmentVariable("GH_REPO") ?? throw new ActionCommandException("Environment Variable 'GH_REPO' is required");
+                _ = Environment.GetEnvironmentVariable("GH_TOKEN") ?? throw new ActionCommandException("Environment Variable 'GH_TOKEN' is required");
+            }
+            await Next.InvokeAsync(context, cancellationToken);
+        }
+    }
+
+    internal class GitHubContextFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+    {
+        public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
+        {
+            _ = Environment.GetEnvironmentVariable("GITHUB_CONTEXT") ?? throw new ArgumentNullException("Environment Variable 'GITHUB_CONTEXT' is required");
+            await Next.InvokeAsync(context, cancellationToken);
         }
     }
 
