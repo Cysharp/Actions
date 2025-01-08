@@ -103,6 +103,6 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
-          branch: ${{ steps.update.outputs.branch-name }}
+          branch: ${{ steps.update.outputs.branch-name || inputs.ref }}
           tags: false
           force: ${{ inputs.dry-run }}
