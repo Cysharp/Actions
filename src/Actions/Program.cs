@@ -3,6 +3,7 @@ using Actions.Commands;
 using Actions.Contexts;
 using Actions.Utils;
 using Cysharp.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 var app = ConsoleApp.Create();
@@ -145,6 +146,27 @@ namespace Actions
         }
 
         /// <summary>
+        /// debug command
+        /// </summary>
+        /// <returns></returns>
+        [Command("debug")]
+        public async Task Debug()
+        {
+            var str = "git commit -a -m \"feat: Update package.json to 1.0.0\n\nCommit by [GitHub Actions](https://github.com/Actions/actions/runs/11350100787)\"";
+            var (command, argument) = ParseCommand(str);
+            var startInfo = new ProcessStartInfo(command, argument!);
+            using var process = Process.Start(startInfo);
+            process!.WaitForExit();
+            await foreach (var item in ProcessX.StartAsync(str))
+            {
+                Console.WriteLine(item);
+            }
+
+            //// Zx run with `shell + "\"" + command + "\""`, there fore we need double escape for innner quote.
+            //var result = await $"{EscapeCommand(str)}";
+        }
+
+        /// <summary>
         /// Git Commit
         /// </summary>
         /// <param name="dryRun"></param>
@@ -161,24 +183,25 @@ namespace Actions
             try
             {
                 var result = await "git diff --exit-code";
-                WriteLog("There is no git diff.");
+                WriteLog("There is no git diff, skipping commit");
             }
             catch (ProcessErrorException)
             {
                 WriteLog("Detected git diff.");
                 if (dryRun)
                 {
-                    WriteLog("Dryrun Mode detected, creating branch switch to.");
-                    await $"git switch -c test-release/{tag}";
+                    WriteLog("Dryrun Mode detected, creating branch and switch.");
                     branchName = $"test-release/{tag}";
                     isBranchCreated = "true";
+                    await $"git switch -c {branchName}";
                 }
 
-                var commitMessage = $"Update package.json to {tag}\n\nCommit by [GitHub Actions]({GitHubContext.GetWorkflowRunUrl(GitHubContext.Current)})";
-                WriteLog("Committing change.");
+                var commitMessage = $"feat: Update package.json to {tag}\n\nCommit by [GitHub Actions]({GitHubContext.GetWorkflowRunUrl(GitHubContext.Current)})";
+                WriteLog("Committing change. Running following.");
+                WriteLog($"git commit -a -m \"{commitMessage}\"");
                 await $"git config --local user.email \"{email}\"";
                 await $"git config --local user.name \"{user}\"";
-                await $"git commit -a -m \"{commitMessage}\"";
+                await $"git commit -a -m \"{EscapeCommandArgString(commitMessage)}\"";
 
                 commited = "1";
             }
@@ -190,7 +213,37 @@ namespace Actions
         }
 
 
+        private static (string fileName, string? arguments) ParseCommand(string command)
+        {
+            int num = command.IndexOf(' ');
+            if (num == -1)
+            {
+                return (command, null);
+            }
+            string item = command.Substring(0, num);
+            string item2 = command.Substring(num + 1, command.Length - (num + 1));
+            return (item, item2);
+        }
+
 #pragma warning restore CA1822 // Mark members as static
+
+        /// <summary>
+        /// Escape command by adding \" on each side if needed. <br/>
+        /// ex. who will be... <br/>
+        /// * Windows: who <br/>
+        /// * Linux/macOS: \"who\"
+        /// </summary>
+        /// <param name="command"></param>
+        /// <returns></returns>
+        private static string EscapeCommandArgString(string command)
+        {
+            // Windows don't need escape (Windows escape is differ from Linux/macOS)
+            if (OperatingSystem.IsWindows())
+                return command;
+
+            // Bash need escape
+            return "\"" + command + "\"";
+        }
 
         private static string OutputFormat(string key, string value, OutputFormatType format) => format switch
         {
