@@ -93,7 +93,6 @@ jobs:
         id: update
         run: |
           file_path_csv=$(echo "${{ inputs.file-path }}" | tr '\n' ',' | sed 's/,$/\n/')
-          echo "file_path_csv: $file_path_csv"
           dotnet run --project "./src/Actions/Actions.csproj" -- update-version --version "${{ needs.validate.outputs.normalized_tag }}" --paths "${file_path_csv}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}

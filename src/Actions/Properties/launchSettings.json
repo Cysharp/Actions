@@ -4,6 +4,15 @@
       "commandName": "Project",
       "commandLineArgs": "--help"
     },
+    // validate-tag
+    "validate-tag (help)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-tag --help"
+    },
+    "validate-tag": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-tag --tag \"1.3.0\" --require-validation"
+    },
     // versioning
     "versioning (help)": {
       "commandName": "Project",

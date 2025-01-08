@@ -13,9 +13,9 @@ on:
         required: true
         type: string
     outputs:
-      normalized_tag:
+      normalized-tag:
         description: normalized tag, tag without v prefix.
-        value: ${{ jobs.validate.outputs.normalized_tag }}
+        value: ${{ jobs.validate.outputs.normalized-tag }}
       tag:
         description: same as input tag
         value: ${{ jobs.validate.outputs.tag }}
@@ -43,49 +43,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      tag: ${{ steps.trim.outputs.tag }}
-      normalized_tag: ${{ steps.trim.outputs.normalized_tag }}
+      normalized-tag: ${{ steps.validate.outputs.normalized-tag }}
+      tag: ${{ steps.validate.outputs.tag }}
       validated: ${{ steps.validate.outputs.validated }}
     steps:
-      - name: Set version without "v" prefix
-        id: trim
-        run: |
-          input_tag="${{ inputs.tag }}"
-          if [[ "$input_tag" == v* ]]; then
-            normalized_tag="${input_tag:1}"
-          else
-            normalized_tag="$input_tag"
-          fi
-          echo "normalized_tag=$normalized_tag" | tee -a "$GITHUB_OUTPUT"
-          echo "tag=${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
-
-      # Only check released tag, allow override draft and pre-release. Old to new sort by version number.
-      - name: Validate tag is not reverting
-        shell: bash
+      - uses: actions/checkout@v4
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+      - name: Validate Tag
         id: validate
-        run: |
-          if [[ "${{ github.repository }}" == "Cysharp/MagicOnion" ]]; then
-            echo "Temporary skip validation on MagicOnion."
-            echo "validated=false" | tee -a "$GITHUB_OUTPUT"
-            exit
-          fi
-
-          release_latest=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest | jq -c -r ".[] | select(.isLatest == true) | .tagName")
-          sorted_latest=$(echo -e "${release_latest}\n${{ steps.trim.outputs.normalized_tag }}" | sort -V | tail -n 1)
-          if [[ "$release_latest" == "" ]]; then
-            echo "There is not release tag."
-            echo "validated=true" | tee -a "$GITHUB_OUTPUT"
-          elif [[ "$sorted_latest" == "$release_latest" ]]; then
-            echo "Tag is reverting to old version. Please bump the version. tag: ${{ inputs.tag }} (normalized_tag: ${{ steps.trim.outputs.normalized_tag }}), latest: $release_latest"
-            echo "validated=false" | tee -a "$GITHUB_OUTPUT"
-
-            if [[ "${{ inputs.require-validation }}" == "true" ]]; then
-              exit 1
-            fi
-          else
-            echo "Great, tag is latest. tag: ${{ inputs.tag }} (normalized_tag: ${{ steps.trim.outputs.normalized_tag }}), latest: $release_latest"
-            echo "validated=true" | tee -a "$GITHUB_OUTPUT"
-          fi
+        run: dotnet run --project "./src/Actions/Actions.csproj" -- validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
