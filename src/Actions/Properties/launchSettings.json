@@ -71,6 +71,11 @@
       "commandName": "Project",
       "commandLineArgs": "create-dummy --base-path dummy/"
     },
+    // debug
+    "debug(multiline)": {
+      "commandName": "Project",
+      "commandLineArgs": "debug --foo foo,bar,piyo"
+    },
     // WSL
     "WSL": {
       "commandName": "WSL2"
