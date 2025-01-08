@@ -5,9 +5,9 @@ using System.Text.Json.Serialization;
 namespace Actions.Commands;
 
 public record struct UpdateVersionCommandResult(string Before, string After);
-public class UpdateVersionCommand(string version, string path)
+public class UpdateVersionCommand(string version)
 {
-    public UpdateVersionCommandResult UpdateVersion(bool dryRun)
+    public UpdateVersionCommandResult UpdateVersion(string path, bool dryRun)
     {
         if (!File.Exists(path)) throw new FileNotFoundException(path);
 
@@ -16,17 +16,17 @@ public class UpdateVersionCommand(string version, string path)
         return fileName switch
         {
             // UPM
-            "package.json" => HandleUpm(writeBack),
+            "package.json" => HandleUpm(path, writeBack),
             // Godot
-            "plugin.cfg" => HandleGodot(writeBack),
+            "plugin.cfg" => HandleGodot(path, writeBack),
             // .NET
-            "Directory.Build.props" => HandleDirectoryBuildProps(writeBack),
+            "Directory.Build.props" => HandleDirectoryBuildProps(path, writeBack),
             // Other
             _ => throw new NotImplementedException(fileName),
         };
     }
 
-    private UpdateVersionCommandResult HandleUpm(bool writeBack)
+    private UpdateVersionCommandResult HandleUpm(string path, bool writeBack)
     {
         // replace
         var (before, after) = Sed.Replace(path, @"""version"":\s*""(.*?)""", $@"""version"": ""{version}""", writeBack);
@@ -44,7 +44,7 @@ public class UpdateVersionCommand(string version, string path)
         }
     }
 
-    private UpdateVersionCommandResult HandleGodot(bool writeBack)
+    private UpdateVersionCommandResult HandleGodot(string path, bool writeBack)
     {
         // replace
         var (before, after) = Sed.Replace(path, @"(version=)""(.*?)""", $@"$1""{version}""", writeBack);
@@ -81,7 +81,7 @@ public class UpdateVersionCommand(string version, string path)
         }
     }
 
-    private UpdateVersionCommandResult HandleDirectoryBuildProps(bool writeBack)
+    private UpdateVersionCommandResult HandleDirectoryBuildProps(string path, bool writeBack)
     {
         // replace
         var (before, after) = Sed.Replace(path, @"<VersionPrefix>.*</VersionPrefix>", $@"<VersionPrefix>{version}</VersionPrefix>", writeBack);

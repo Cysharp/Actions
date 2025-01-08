@@ -46,9 +46,10 @@ namespace Actions
         {
             GitHubContext.ThrowIfNotAvailable();
 
+            // update version
+            var command = new UpdateVersionCommand(version);
             foreach (var path in paths)
             {
-
                 WriteLog($"Update begin, {path} ...");
                 if (string.IsNullOrWhiteSpace(path))
                 {
@@ -56,17 +57,15 @@ namespace Actions
                     continue;
                 }
 
-                // Update Version
-                using (var githubGroup = new GitHubActionsGroupLogger("Before"))
+                using (_ = new GitHubActionsGroupLogger($"Before, {path}"))
                     WriteLog(File.ReadAllText(path));
-                var command = new UpdateVersionCommand(version, path);
-                var result = command.UpdateVersion(dryRun);
-                using (var githubGroup = new GitHubActionsGroupLogger("After"))
+                var result = command.UpdateVersion(path, dryRun);
+                using (_ = new GitHubActionsGroupLogger($"After, {path}"))
                     WriteLog(result.After);
             }
 
             // Git Commit
-            using (var githubGroup = new GitHubActionsGroupLogger("git commit changes"))
+            using (_ = new GitHubActionsGroupLogger("git commit changes"))
             {
                 await GitCommitAsync(dryRun, version);
             }
