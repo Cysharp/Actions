@@ -44,22 +44,16 @@ namespace Actions
         {
             var command = new ValidateTagCommand();
             var normalizedTag = command.Normalize(tag);
-            var (validated, releaseTag) = await command.ValidateTagAsync(normalizedTag);
-            if (!validated)
-            {
-                WriteLog($"Tag is reverting to old version. Please bump the version. tag: {tag}, normalizedTag: {normalizedTag}, releaseTag: {releaseTag}");
+            var (validated, reason, releaseTag) = await command.ValidateTagAsync(normalizedTag);
 
-                if (requireValidation)
-                {
-                    return 1;
-                }
-            }
+            // Show reason
+            WriteError($"{reason.ToReason()}. tag: {tag}");
 
             GitHubOutput("tag", tag);
             GitHubOutput("normalized-tag", normalizedTag);
             GitHubOutput("validated", validated.ToString().ToLower());
 
-            return 0;
+            return requireValidation ? reason.ToExitCode() : 0;
         }
 
         /// <summary>
@@ -72,6 +66,7 @@ namespace Actions
         [Command("update-version")]
         public async Task<int> UpdateVersion(string version, string[] paths, bool dryRun)
         {
+            // TODO: pathsは改行好きの文字列に切り替える
             GitHubContext.ThrowIfNotAvailable();
 
             // update version
@@ -249,10 +244,8 @@ namespace Actions
             _ => throw new NotImplementedException(nameof(format)),
         };
 
-        private static void WriteLog(string value)
-        {
-            Console.WriteLine($"[{DateTime.Now:s}] {value}");
-        }
+        private static void WriteLog(string value) => Console.WriteLine($"[{DateTime.Now:s}] {value}");
+        private static void WriteError(string value) => Console.WriteLine($"[{DateTime.Now:s}] ERROR: {value}");
 
         private static void WriteVerbose(string value)
         {
