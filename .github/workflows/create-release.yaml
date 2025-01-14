@@ -89,16 +89,12 @@ on:
         type: boolean
         default: false
 
-jobs:
-  validate:
-    uses: Cysharp/Actions/.github/workflows/validate-tag.yaml@main
-    with:
-      tag: ${{ inputs.tag }}
-      require-validation: ${{ inputs.require-validation }}
-    secrets: inherit
+permissions:
+  contents: write # required for creating release
+  pull-requests: write
 
+jobs:
   create-release:
-    needs: [validate]
     name: Create Release
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # auto generated token
@@ -127,6 +123,14 @@ jobs:
           ref: ${{ inputs.commit-id }}
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
         if: ${{ inputs.nuget-push }}
+
+      # validate
+      - name: Validate and normalize tag
+        id: validate
+        run: dotnet run --project "./src/Actions/Actions.csproj" -- validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Download(All) Artifacts to current directory
       - uses: Cysharp/Actions/.github/actions/download-artifact@main

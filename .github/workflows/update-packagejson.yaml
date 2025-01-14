@@ -47,16 +47,12 @@ on:
         description: "Git commit sha after package.json has changed."
         value: ${{ jobs.update-packagejson.outputs.sha }}
 
-jobs:
-  validate:
-    uses: Cysharp/Actions/.github/workflows/validate-tag.yaml@main
-    with:
-      tag: ${{ inputs.tag }}
-      require-validation: ${{ inputs.require-validation }}
-    secrets: inherit
+permissions:
+  contents: write
+  actions: read
 
+jobs:
   update-packagejson:
-    needs: [validate]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -69,16 +65,22 @@ jobs:
           ref: ${{ inputs.ref }}
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
 
-      # dotnet run
-      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-        if: ${{ inputs.dotnet-run-path != '' }}
-      - name: Execute dotnet run with --version ${{ needs.validate.outputs.normalized_tag }}
+      # validate
+      - name: Validate and normalize tag
+        id: validate
+        run: dotnet run --project "./src/Actions/Actions.csproj" -- validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # dotnet run external
+      - name: Execute external dotnet run with --version ${{ steps.validate.outputs.normalized_tag }}
         run: |
           while read -r file_path; do
             if [[ "$file_path" == "" ]]; then continue; fi
             echo "Start $file_path"
             echo "::group::Execute"
-              dotnet run --project "$file_path" -- --version "${{ needs.validate.outputs.normalized_tag }}"
+              dotnet run --project "$file_path" -- --version "${{ steps.validate.outputs.normalized_tag }}"
             echo "::endgroup::"
           done <<< "${{ inputs.dotnet-run-path }}"
         if: ${{ inputs.dotnet-run-path != '' }}
@@ -89,11 +91,11 @@ jobs:
       # version="1.2.3" -> version="2.0.0"
       #
       # TIPS: Converting file-oath from \n to ,
-      - name: Update files to version ${{ needs.validate.outputs.normalized_tag }}
+      - name: Update files to version ${{ steps.validate.outputs.normalized_tag }}
         id: update
         run: |
           file_path_csv=$(echo "${{ inputs.file-path }}" | tr '\n' ',' | sed 's/,$/\n/')
-          dotnet run --project "./src/Actions/Actions.csproj" -- update-version --version "${{ needs.validate.outputs.normalized_tag }}" --paths "${file_path_csv}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
+          dotnet run --project "./src/Actions/Actions.csproj" -- update-version --version "${{ steps.validate.outputs.normalized_tag }}" --paths "${file_path_csv}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
 
