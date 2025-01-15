@@ -41,20 +41,14 @@ namespace Actions
         /// <returns></returns>
         [ConsoleAppFilter<GitHubCliFilter>]
         [Command("validate-tag")]
-        public async Task<int> ValidateTag(string tag, bool requireValidation)
+        public async Task ValidateTag(string tag, bool requireValidation)
         {
             var command = new ValidateTagCommand();
             var normalizedTag = command.Normalize(tag);
-            var (validated, reason, releaseTag) = await command.ValidateTagAsync(normalizedTag);
-
-            // Show reason
-            WriteError($"{reason.ToReason()}. tag: {tag}");
+            await command.ValidateTagAsync(normalizedTag);
 
             GitHubOutput("tag", tag);
             GitHubOutput("normalized-tag", normalizedTag);
-            GitHubOutput("validated", validated.ToString().ToLower());
-
-            return requireValidation ? reason.ToExitCode() : 0;
         }
 
         /// <summary>
