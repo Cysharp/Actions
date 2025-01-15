@@ -1,4 +1,4 @@
-using Actions;
+﻿using Actions;
 using Actions.Commands;
 using Actions.Contexts;
 using Actions.Utils;
@@ -102,20 +102,24 @@ namespace Actions
         /// <summary>
         /// Validate specified path contains file
         /// </summary>
-        /// <param name="pathPatterns">Glob style path pattern to find</param>
+        /// <param name="pathPatternString">Glob style path pattern(./nuget/*.nupkg) and NewLine deliminated strings (./nuget/*.nupkg\n./nuget/*.snupkg).</param>
         [Command("validate-file-exists")]
-        public void ValidateFileExists(string pathPatterns)
+        public void ValidateFileExists(string pathPatternString)
         {
-            WriteLog($"Validating path, {pathPatterns} ...");
-            WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPatterns)}");
-            if (string.IsNullOrWhiteSpace(pathPatterns))
+            var pathPatterns = SplitByNewLine(pathPatternString);
+            foreach (var pathPattern in pathPatterns)
             {
-                WriteLog("Empty path detected, skip execution.");
-                return;
-            }
+                WriteLog($"Validating path, {pathPattern} ...");
+                WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
+                if (string.IsNullOrWhiteSpace(pathPatternString))
+                {
+                    WriteLog("Empty path detected, skip execution.");
+                    return;
+                }
 
-            var command = new FileExsistsCommand(pathPatterns);
-            command.Validate();
+                var command = new FileExsistsCommand(pathPattern);
+                command.Validate();
+            }
 
             WriteLog($"Completed ...");
         }
@@ -123,27 +127,32 @@ namespace Actions
         /// <summary>
         /// Validate specified path contains nuget packages
         /// </summary>
-        /// <param name="pathPattern"></param>
+        /// <param name="pathPatternString">Glob style path pattern(./nuget/*.nupkg) and NewLine deliminated strings (./nuget/*.nupkg\n./nuget/*.snupkg).</param>
         [Command("validate-nupkg-exists")]
-        public void ValidateNupkgExists(string pathPattern)
+        public void ValidateNupkgExists(string pathPatternString)
         {
-            var fileName = Path.GetFileName(pathPattern);
-            var allowMissing = Path.GetExtension(fileName) == ".snupkg";
-
-            WriteLog($"Validating path, {pathPattern} ...");
-            WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
-            if (string.IsNullOrWhiteSpace(pathPattern))
+            var pathPatterns = SplitByNewLine(pathPatternString);
+            foreach (var pathPattern in pathPatterns)
             {
-                WriteLog("Empty path detected, skip execution.");
-                return;
-            }
-            if (allowMissing)
-            {
-                WriteLog(".snupkg detected, allow missing file.");
-            }
+                var fileName = Path.GetFileName(pathPattern);
 
-            var command = new FileExsistsCommand(pathPattern, allowMissing);
-            command.Validate();
+                WriteLog($"Validating path, {pathPattern} ...");
+                WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
+                if (string.IsNullOrWhiteSpace(pathPattern))
+                {
+                    WriteLog("Empty path detected, skip execution.");
+                    continue;
+                }
+
+                var allowMissing = Path.GetExtension(fileName) == ".snupkg";
+                if (allowMissing)
+                {
+                    WriteLog(".snupkg detected, allow missing file.");
+                }
+
+                var command = new FileExsistsCommand(pathPattern, allowMissing);
+                command.Validate();
+            }
 
             WriteLog($"Completed ...");
         }

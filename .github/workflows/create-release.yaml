@@ -127,7 +127,7 @@ jobs:
       # validate
       - name: Validate and normalize tag
         id: validate
-        run: dotnet run --project "./src/Actions/Actions.csproj" -- validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
+        run: dotnet run --project "./src/Actions/Actions.csproj" --no-launch-profile -- validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -138,16 +138,10 @@ jobs:
         run: ls -lR
       - name: Validate package exists in artifact - release assets
         if: ${{ inputs.release-upload }}
-        run: |
-          while read -r asset_path; do
-            dotnet run --project "./src/Actions/Actions.csproj" -- validate-file-exists --path-pattern "$asset_path"
-          done <<< "${{ inputs.release-asset-path }}"
+        run: dotnet run --project "./src/Actions/Actions.csproj" --no-launch-profile -- validate-file-exists --path-pattern-string "${{ inputs.release-asset-path }}"
       - name: Validate package exists in artifact - NuGet
         if: ${{ inputs.nuget-push }}
-        run: |
-          while read -r nuget_path; do
-            dotnet run --project "./src/Actions/Actions.csproj" -- validate-nupkg-exists --path-pattern "$nuget_path"
-          done <<< "${{ inputs.nuget-path }}"
+        run: dotnet run --project "./src/Actions/Actions.csproj" --no-launch-profile -- validate-nupkg-exists --path-pattern-string "${{ inputs.nuget-path }}"
 
       # Create Releases
       - name: Create Tag

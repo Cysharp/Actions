@@ -92,9 +92,7 @@
     "WSL (update-version)": {
       "commandName": "WSL2",
       "distributionName": "",
-      "commandLineArgs": "\"{OutDir}/Actions.dll\" update-version --version 1.0.0 --path-string \"./dummy/package.json
-        ./dummy/plugin.cfg
-        ./dummy/Directory.Build.props\"",
+      "commandLineArgs": "\"{OutDir}/Actions.dll\" update-version --version 1.0.0 --path-string \"./dummy/package.json\n./dummy/plugin.cfg\n./dummy/Directory.Build.props\"",
       "environmentVariables": {
         "GITHUB_CONTEXT": "{\"server_url\":\"https://github.com\", \"run_id\":\"11350100787\", \"repository\":\"Actions\", \"repository_owner\":\"Cysharp\", \"event_name\": \"pull_request\"}"
       }
