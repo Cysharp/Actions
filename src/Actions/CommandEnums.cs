@@ -1,4 +1,4 @@
-namespace Actions;
+﻿namespace Actions;
 
 public enum VersionIncrement
 {
@@ -11,5 +11,5 @@ public enum VersionIncrement
 public enum OutputFormatType
 {
     Console,
-    GitHubActions,
+    GitHubActionsOutput,
 }

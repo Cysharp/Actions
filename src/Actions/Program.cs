@@ -1,4 +1,4 @@
-﻿using Actions;
+using Actions;
 using Actions.Commands;
 using Actions.Contexts;
 using Actions.Utils;
@@ -15,17 +15,17 @@ namespace Actions
     {
 #pragma warning disable CA1822 // Mark members as static
 
-        /// <summary>Get version string from tag</summary>
-        /// <param name="tag"></param>
-        /// <param name="prefix"></param>
-        /// <param name="versionIncrement"></param>
-        /// <param name="isPrelease"></param>
-        /// <param name="prerelease"></param>
-        /// <param name="outputFormat"></param>
+        /// <summary>Get version string by versionIncrement. If tag is 1.0.0 and Patch is selected 1.0.1 will be return, Minor will be 1.1.0 and Major will be 2.0.0</summary>
+        /// <param name="tag">version string. ex) 1.0.0</param>
+        /// <param name="prefix">version prefix to add. ex) v will be v1.0.0</param>
+        /// <param name="versionIncrement">Specify increment mode. Available Values wil be Major, Minor and Patch</param>
+        /// <param name="isPrerelease">Specify if version is PreRelease</param>
+        /// <param name="prerelease">Prerelease suffix</param>
+        /// <param name="outputFormat">Select how to output. Console or GitHubActions Output</param>
         [Command("versioning")]
-        public void Versioning(string tag, string prefix = "", VersionIncrement versionIncrement = VersionIncrement.Patch, bool isPrelease = false, string prerelease = "preview", bool withoutPrefix = false, OutputFormatType outputFormat = OutputFormatType.Console)
+        public void Versioning(string tag, string prefix = "", VersionIncrement versionIncrement = VersionIncrement.Patch, bool isPrerelease = false, string prerelease = "preview", bool withoutPrefix = false, OutputFormatType outputFormat = OutputFormatType.Console)
         {
-            var command = new VersioningCommand(tag, prefix, versionIncrement, isPrelease, prerelease);
+            var command = new VersioningCommand(tag, prefix, versionIncrement, isPrerelease, prerelease);
             var versioning = command.Versioning(withoutPrefix);
 
             var output = OutputFormat("version", versioning, outputFormat);
@@ -35,7 +35,7 @@ namespace Actions
         /// <summary>
         /// Validate Tag and remove v prefix if exists
         /// </summary>
-        /// <param name="tag"></param>
+        /// <param name="tag">version string. ex) 1.0.0 OR v1.0.0</param>
         /// <param name="requireValidation">Set true to exit 1 on fail. Set false to exit 0 even fail.</param>
         /// <returns></returns>
         [ConsoleAppFilter<GitHubCliFilter>]
@@ -57,20 +57,21 @@ namespace Actions
         }
 
         /// <summary>
-        /// Update Version for specified path and commit
+        /// Update Version for specified path and commit.
         /// </summary>
-        /// <param name="version"></param>
-        /// <param name="paths"></param>
-        /// <param name="dryRun"></param>
+        /// <param name="version">version string. ex) 1.0.0</param>
+        /// <param name="pathString">string (./package.json) and NewLine deliminated strings (./package.json\n./plugin.cfg).</param>
+        /// <param name="dryRun">dryRun mode not changes actual file but shows plan.</param>
+        /// <remarks>
+        /// Because GitHub Actions workflow dispatch passes arguments as string, you need to split path by NewLine. It means use `string[] pathString` is un-natural for GitHub Actions.
+        /// </remarks>
         [ConsoleAppFilter<GitHubContextFilter>]
         [Command("update-version")]
-        public async Task<int> UpdateVersion(string version, string[] paths, bool dryRun)
+        public async Task<int> UpdateVersion(string version, string pathString, bool dryRun)
         {
-            // TODO: pathsは改行好きの文字列に切り替える
-            GitHubContext.ThrowIfNotAvailable();
-
             // update version
             var command = new UpdateVersionCommand(version);
+            var paths = SplitByNewLine(pathString);
             foreach (var path in paths)
             {
                 WriteLog($"Update begin, {path} ...");
@@ -101,19 +102,19 @@ namespace Actions
         /// <summary>
         /// Validate specified path contains file
         /// </summary>
-        /// <param name="pathPattern"></param>
+        /// <param name="pathPatterns">Glob style path pattern to find</param>
         [Command("validate-file-exists")]
-        public void ValidateFileExists(string pathPattern)
+        public void ValidateFileExists(string pathPatterns)
         {
-            WriteLog($"Validating path, {pathPattern} ...");
-            WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
-            if (string.IsNullOrWhiteSpace(pathPattern))
+            WriteLog($"Validating path, {pathPatterns} ...");
+            WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPatterns)}");
+            if (string.IsNullOrWhiteSpace(pathPatterns))
             {
                 WriteLog("Empty path detected, skip execution.");
                 return;
             }
 
-            var command = new FileExsistsCommand(pathPattern);
+            var command = new FileExsistsCommand(pathPatterns);
             command.Validate();
 
             WriteLog($"Completed ...");
@@ -240,10 +241,11 @@ namespace Actions
         private static string OutputFormat(string key, string value, OutputFormatType format) => format switch
         {
             OutputFormatType.Console => value,
-            OutputFormatType.GitHubActions => $"{key}={value}",
+            OutputFormatType.GitHubActionsOutput => $"{key}={value}",
             _ => throw new NotImplementedException(nameof(format)),
         };
 
+        private static string[] SplitByNewLine(string stringsValue) => stringsValue.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
         private static void WriteLog(string value) => Console.WriteLine($"[{DateTime.Now:s}] {value}");
         private static void WriteError(string value) => Console.WriteLine($"[{DateTime.Now:s}] ERROR: {value}");
 
@@ -255,7 +257,7 @@ namespace Actions
             }
         }
 
-        private static void GitHubOutput(string key, string value, [CallerMemberName]string? callerMemberName = null)
+        private static void GitHubOutput(string key, string value, [CallerMemberName] string? callerMemberName = null)
         {
             var input = $"{key}={value}";
             var output = Environment.GetEnvironmentVariable("GITHUB_OUTPUT", EnvironmentVariableTarget.Process) ?? Path.Combine(Directory.GetCurrentDirectory(), $"GitHubOutputs/{callerMemberName}");
@@ -287,7 +289,10 @@ namespace Actions
     {
         public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
         {
-            _ = Environment.GetEnvironmentVariable("GITHUB_CONTEXT") ?? throw new ArgumentNullException("Environment Variable 'GITHUB_CONTEXT' is required");
+            if (!(context.Arguments.Contains("-h") || context.Arguments.Contains("--help")))
+            {
+                _ = Environment.GetEnvironmentVariable("GITHUB_CONTEXT") ?? throw new ArgumentNullException("Environment Variable 'GITHUB_CONTEXT' is required");
+            }
             await Next.InvokeAsync(context, cancellationToken);
         }
     }

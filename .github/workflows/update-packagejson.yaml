@@ -74,13 +74,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # dotnet run external
-      - name: Execute external dotnet run with --version ${{ steps.validate.outputs.normalized_tag }}
+      - name: Execute external dotnet run with --version ${{ steps.validate.outputs.normalized-tag }}
         run: |
           while read -r file_path; do
             if [[ "$file_path" == "" ]]; then continue; fi
             echo "Start $file_path"
             echo "::group::Execute"
-              dotnet run --project "$file_path" -- --version "${{ steps.validate.outputs.normalized_tag }}"
+              dotnet run --project "$file_path" -- --version "${{ steps.validate.outputs.normalized-tag }}"
             echo "::endgroup::"
           done <<< "${{ inputs.dotnet-run-path }}"
         if: ${{ inputs.dotnet-run-path != '' }}
@@ -91,11 +91,9 @@ jobs:
       # version="1.2.3" -> version="2.0.0"
       #
       # TIPS: Converting file-oath from \n to ,
-      - name: Update files to version ${{ steps.validate.outputs.normalized_tag }}
+      - name: Update files to version ${{ steps.validate.outputs.normalized-tag }}
         id: update
-        run: |
-          file_path_csv=$(echo "${{ inputs.file-path }}" | tr '\n' ',' | sed 's/,$/\n/')
-          dotnet run --project "./src/Actions/Actions.csproj" -- update-version --version "${{ steps.validate.outputs.normalized_tag }}" --paths "${file_path_csv}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
+        run: dotnet run --project "./src/Actions/Actions.csproj" -- update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${{ inputs.file-path }}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
 
