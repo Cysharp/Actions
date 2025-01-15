@@ -122,7 +122,6 @@ jobs:
         with:
           ref: ${{ inputs.commit-id }}
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-        if: ${{ inputs.nuget-push }}
 
       # validate
       - name: Validate and normalize tag
@@ -144,39 +143,12 @@ jobs:
         run: dotnet run --project "./src/Actions/Actions.csproj" --no-launch-profile -- validate-nupkg-exists --path-pattern-string "${{ inputs.nuget-path }}"
 
       # Create Releases
-      - name: Create Tag
-        run: |
-          git tag ${{ inputs.tag }}
-          git push origin ${{ inputs.tag }}
       - name: Create Release
-        run: gh release create ${{ inputs.tag }} --draft --verify-tag --title "${{ format(inputs.release-format, inputs.tag) }}" --generate-notes
-      - name: Wait and Verify Release Name is expected
-        run: |
-          sleep 5s
-          actual=$(gh api --paginate /repos/${{ github.repository }}/releases?per_page=100 --jq '.[] | select(.tag_name == "${{ inputs.tag }}") | .name')
-          expected="${{ format(inputs.release-format, inputs.tag) }}"
-          if [[ "$actual" != "$expected" ]]; then
-            echo "Release name is not as expected. expected: $expected, actual: $actual"
-            exit 1
-          else
-            echo "Release name is expected! expected: $expected, actual: $actual"
-          fi
-      - name: Upload asset files to release
-        run: |
-          while read -r asset_path; do
-            if [[ "${asset_path}" == "" ]]; then continue; fi
-            # is it a wildcard?
-            # shellcheck disable=SC2086
-            if [[ "$asset_path" == *\** || "$asset_path" == *\?* ]]; then
-              for file in ${asset_path}; do
-                gh release upload ${{ inputs.tag }} "${file}"
-              done
-              continue
-            fi
-            # is it a file?
-            gh release upload ${{ inputs.tag }} "${asset_path}"
-          done <<< "${{ inputs.release-asset-path }}"
-        if: ${{ inputs.release-upload }}
+        run: dotnet run --project "./src/Actions/Actions.csproj" --no-launch-profile -- create-release --tag "${{ inputs.tag }}" --release-title "${{ format(inputs.release-format, inputs.tag) }}" --release-asset-path-string "${{ inputs.release-asset-path }}"
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_CONTEXT: ${{ toJson(github) }}
 
       # Upload to NuGet
       - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})

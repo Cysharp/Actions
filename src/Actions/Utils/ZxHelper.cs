@@ -20,4 +20,6 @@ public static class ZxHelper
         return "\"" + command + "\"";
     }
 
+    public static string[] SplitByNewLine(string stringsValue) => stringsValue.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
+
 }

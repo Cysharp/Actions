@@ -158,16 +158,20 @@ namespace Actions
         /// <param name="releaseTitle">Release title</param>
         /// <param name="releaseAssetPathString">Release assets to upload</param>
         [ConsoleAppFilter<GitHubContextFilter>]
+        [ConsoleAppFilter<GitHubCliFilter>]
         [Command("create-release")]
-        public async void CreateRelease(string tag, string releaseTitle, string releaseAssetPathString)
+        public async Task CreateRelease(string tag, string releaseTitle, string releaseAssetPathString)
         {
             var releaseAssets = SplitByNewLine(releaseAssetPathString);
 
             var command = new CreateReleaseCommand(tag, releaseTitle);
             await command.CreateReleaseAsync();
 
-            WriteLog($"Uploading assets ...");
-            await command.UploadAssetFiles(tag, releaseAssets);
+            if (releaseAssets.Length > 0)
+            {
+                WriteLog($"Uploading assets ...");
+                await command.UploadAssetFiles(releaseAssets);
+            }
 
             WriteLog($"Completed ...");
         }
@@ -177,7 +181,7 @@ namespace Actions
         /// </summary>
         /// <param name="basePath"></param>
         [Command("create-dummy")]
-        public void CreateDummy(string basePath)
+        public async Task CreateDummy(string basePath)
         {
             WriteLog($"Creating dummy files, under {basePath} ...");
 
@@ -248,7 +252,6 @@ namespace Actions
             _ => throw new NotImplementedException(nameof(format)),
         };
 
-        private static string[] SplitByNewLine(string stringsValue) => stringsValue.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
         private static void WriteLog(string value) => Console.WriteLine($"[{DateTime.Now:s}] {value}");
         private static void WriteError(string value) => Console.WriteLine($"[{DateTime.Now:s}] ERROR: {value}");
 
