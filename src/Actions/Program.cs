@@ -62,7 +62,7 @@ namespace Actions
         /// </remarks>
         [ConsoleAppFilter<GitHubContextFilter>]
         [Command("update-version")]
-        public async Task<int> UpdateVersion(string version, string pathString, bool dryRun)
+        public async Task UpdateVersion(string version, string pathString, bool dryRun)
         {
             // update version
             var command = new UpdateVersionCommand(version);
@@ -86,12 +86,15 @@ namespace Actions
             // Git Commit
             using (_ = new GitHubActionsGroupLogger("git commit changes"))
             {
-                await GitCommitAsync(dryRun, version);
+                var (commited, sha, branchName, isBranchCreated) = await GitCommitAsync(dryRun, version);
+
+                GitHubOutput("commited", commited ? "1" : "0");
+                GitHubOutput("sha", sha);
+                GitHubOutput("branch-name", branchName);
+                GitHubOutput("is-branch-created", isBranchCreated);
             }
 
             WriteLog($"Completed ...");
-
-            return 0;
         }
 
         /// <summary>
@@ -202,10 +205,10 @@ namespace Actions
         /// <param name="email"></param>
         /// <param name="user"></param>
         /// <returns></returns>
-        private async Task GitCommitAsync(bool dryRun, string tag, string email = "41898282+github-actions[bot]@users.noreply.github.com", string user = "github-actions[bot]")
+        private async Task<(bool commited, string sha, string branchName, string isBranchCreated)> GitCommitAsync(bool dryRun, string tag, string email = "41898282+github-actions[bot]@users.noreply.github.com", string user = "github-actions[bot]")
         {
             WriteLog($"Checking File change has been happen ...");
-            var commited = "0";
+            var commited = false;
             var branchName = "";
             var isBranchCreated = "false";
             try
@@ -229,14 +232,11 @@ namespace Actions
                 await $"git config --local user.name \"{user}\"";
                 await $"git commit -a -m \"{EscapeArg($"feat: Update package.json to {tag}")}\" -m \"{EscapeArg($"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})")}\"";
 
-                commited = "1";
+                commited = true;
             }
 
             var sha = await "git rev-parse HEAD";
-            GitHubOutput("commited", commited);
-            GitHubOutput("sha", sha);
-            GitHubOutput("branch-name", branchName);
-            GitHubOutput("is-branch-created", isBranchCreated);
+            return (commited, sha, branchName, isBranchCreated);
         }
 
 #pragma warning restore CA1822 // Mark members as static
