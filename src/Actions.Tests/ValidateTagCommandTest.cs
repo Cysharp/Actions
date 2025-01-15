@@ -18,18 +18,21 @@ public class ValidateTagCommandTest
     }
 
     [Theory]
-    [InlineData("", ValidateTagResult.InvalidMissingTag, 1, false)]
-    [InlineData("0.1.0", ValidateTagResult.InvalidReverting, 1, false)]
-    [InlineData("1.0.0", ValidateTagResult.InvalidReverting, 1, false)]
-    [InlineData("1.2.0", ValidateTagResult.ValidVersionSame, 0, true)]// Current Release Tag is 1.2.0
-    [InlineData("999.0.0", ValidateTagResult.ValidVersionNewer, 0, true)]
-    public async Task ValidateTest(string tag, ValidateTagResult expectedResult, int expectedExitCode, bool expected)
+    [InlineData("1.2.0")]// Current Release Tag is 1.2.0
+    [InlineData("999.0.0")]
+    public async Task ValidateSuccessTest(string tag)
     {
         var command = new ValidateTagCommand();
-        var (validated, reason, _) = await command.ValidateTagAsync(tag);
+        await command.ValidateTagAsync(tag);
+    }
 
-        reason.Should().Be(expectedResult);
-        reason.ToExitCode().Should().Be(expectedExitCode);
-        validated.Should().Be(expected);
+    [Theory]
+    [InlineData("")]
+    [InlineData("0.1.0")]
+    [InlineData("1.0.0")]
+    public async Task ValidateFailTest(string tag)
+    {
+        var command = new ValidateTagCommand();
+        await Assert.ThrowsAsync<ActionCommandException>(() => command.ValidateTagAsync(tag));
     }
 }
