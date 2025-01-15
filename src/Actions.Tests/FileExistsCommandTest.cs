@@ -7,20 +7,39 @@ public class FileExistsCommandTest
     [Fact]
     public void SkipEmptyPathTest()
     {
-        var command = new FileExsistsCommand("");
-        command.Validate();
+        var command = new FileExsistsCommand();
+        command.Validate("");
+    }
+
+    [Fact]
+    public void AllowMissingTest()
+    {
+        var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(FullPathTest)}";
+        var items = new[] { "foo", "bar", "piyo" };
+        foreach (var item in items)
+        {
+            // file not exists, but test should pass
+            var command = new FileExsistsCommand(allowMissing: true);
+            command.Validate(Path.Combine(dir, item));
+            command.Validate(Path.Combine(dir, "**", item));
+        }
     }
 
     [Fact]
     public void FullPathTest()
     {
-        var path = $".tests/{nameof(FileExistsCommandTest)}/{nameof(FullPathTest)}/dummy.nupkg";
-        var dir = Path.GetDirectoryName(path)!;
-        if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-        File.WriteAllText(path, "");
-
-        var command = new FileExsistsCommand(path);
-        command.Validate();
+        var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(FullPathTest)}";
+        var item = "dummy.nupkg";
+        try
+        {
+            CreateFiles(dir, [item], false);
+            var command = new FileExsistsCommand();
+            command.Validate(Path.Combine(dir, item));
+        }
+        finally
+        {
+            SafeDeleteDirectory(dir);
+        }
     }
 
     [Fact]
@@ -28,23 +47,22 @@ public class FileExistsCommandTest
     {
         var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(WildcardFileTest)}";
         var items = new[] { "foo", "bar", "piyo", "test.txt", "hoge.txt" };
-        foreach (var item in items)
+        try
         {
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            File.WriteAllText(Path.Combine(dir, item), "");
+            CreateFiles(dir, items, false);
+            var command = new FileExsistsCommand();
+            command.Validate($"{dir}/*");
+            foreach (var item in items)
+            {
+                command.Validate($"{dir}/{item}");
+            }
+            command.Validate($"{dir}/*.txt");
+            command.Validate($"{dir}/hoge.*");
         }
-
-        var command = new FileExsistsCommand($"{dir}/*");
-        command.Validate();
-
-        var command2 = new FileExsistsCommand($"{dir}/foo");
-        command2.Validate();
-
-        var command3 = new FileExsistsCommand($"{dir}/*.txt");
-        command3.Validate();
-
-        var command4 = new FileExsistsCommand($"{dir}/hoge.*");
-        command4.Validate();
+        finally
+        {
+            SafeDeleteDirectory(dir);
+        }
     }
 
     [Fact]
@@ -52,20 +70,21 @@ public class FileExistsCommandTest
     {
         var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(WildcardDirectoryTest)}";
         var items = new[] { "foo", "bar", "piyo" };
-        foreach (var item in items)
+        try
         {
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            File.WriteAllText(Path.Combine(dir, item), "");
+            CreateFiles(dir, items, false);
+            var command = new FileExsistsCommand();
+            foreach (var item in items)
+            {
+                command.Validate($"{Path.GetDirectoryName(dir)}/*/{item}");
+                command.Validate($"{dir}/{item}");
+                Assert.Throws<ActionCommandException>(() => command.Validate($"{dir}/*/{item}"));
+            }
         }
-
-        var command = new FileExsistsCommand($".tests/{nameof(FileExistsCommandTest)}/*/foo");
-        command.Validate();
-
-        var command2 = new FileExsistsCommand($".tests/{nameof(FileExistsCommandTest)}/{nameof(WildcardDirectoryTest)}/foo");
-        command2.Validate();
-
-        var failCommand = new FileExsistsCommand($".tests/{nameof(FileExistsCommandTest)}/{nameof(WildcardDirectoryTest)}/*/foo");
-        Assert.Throws<ActionCommandException>(() => failCommand.Validate());
+        finally
+        {
+            SafeDeleteDirectory(dir);
+        }
     }
 
     [Fact]
@@ -73,35 +92,59 @@ public class FileExistsCommandTest
     {
         var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(RecursiveWildcardDirectoryTest)}";
         var items = new[] { "foo", "bar", "piyo" };
-        foreach (var item in items)
+        try
         {
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            File.WriteAllText(Path.Combine(dir, item), "");
+            CreateFiles(dir, items, false);
+            var command = new FileExsistsCommand();
+            foreach (var item in items)
+            {
+                command.Validate($"{Path.GetDirectoryName(dir)}/**/{item}");
+                command.Validate($"{dir}/**/{item}");
+            }
         }
-
-        var command = new FileExsistsCommand($".tests/{nameof(FileExistsCommandTest)}/**/foo");
-        command.Validate();
-
-        var command2 = new FileExsistsCommand($".tests/{nameof(FileExistsCommandTest)}/{nameof(WildcardDirectoryTest)}/**/foo");
-        command2.Validate();
+        finally
+        {
+            SafeDeleteDirectory(dir);
+        }
     }
 
     [Fact]
     public void RecursiveWildcardDirectoryAndFileTest()
     {
-        var dirBase = $".tests/{nameof(FileExistsCommandTest)}/{nameof(RecursiveWildcardDirectoryAndFileTest)}";
+        var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(RecursiveWildcardDirectoryAndFileTest)}";
         var items = new[] { "foo", "bar", "piyo" };
+        try
+        {
+            CreateFiles(dir, items, true);
+            var command = new FileExsistsCommand();            
+            command.Validate($"{dir}/**/*");
+            foreach (var item in items)
+            {
+                command.Validate(Path.Combine(dir, item, item));
+            }
+        }
+        finally
+        {
+            SafeDeleteDirectory(dir);
+        }
+    }
+
+    private void CreateFiles(string dir, string[] items, bool recursiveDir)
+    {
         foreach (var item in items)
         {
-            var dir = Path.Combine(dirBase, item);
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            File.WriteAllText(Path.Combine(dir, item), "");
+            var tempDir = recursiveDir ? Path.Combine(dir, item) : dir;
+            var file = Path.Combine(tempDir, item);
+            if (!Directory.Exists(tempDir)) Directory.CreateDirectory(tempDir);
+            File.WriteAllText(file, "");
         }
+    }
 
-        var command = new FileExsistsCommand($"{dirBase}/**/*");
-        command.Validate();
-
-        var command2 = new FileExsistsCommand($"{dirBase}/foo/foo");
-        command2.Validate();
+    private void SafeDeleteDirectory(string dir)
+    {
+        if (Directory.Exists(dir))
+        {
+            Directory.Delete(dir, true);
+        }
     }
 }

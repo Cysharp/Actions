@@ -2,35 +2,56 @@
 
 public static class GlobFiles
 {
+    /// <summary>
+    /// Check if pattern is glob pattern.
+    /// </summary>
+    /// <param name="pattern"></param>
+    /// <returns></returns>
     public static bool IsGlobPattern(string pattern) => pattern.Contains('*') || pattern.Contains('?');
-    public static bool Exists(string pattern)
-    {
-        try
-        {
-            var directory = GetParentDirectoryPath(pattern) ?? Directory.GetCurrentDirectory();
-            var searchPattern = Path.GetFileName(pattern);
 
-            if (pattern.Contains("/**/"))
-            {
-                return Directory.EnumerateFiles(directory, searchPattern, SearchOption.AllDirectories).Any();
-            }
-            if (pattern.Contains("*/"))
-            {
-                return EnumerateFileWildcard(pattern, searchPattern, SearchOption.AllDirectories).Any();
-            }
-            else
-            {
-                return Directory.EnumerateFiles(directory, searchPattern, SearchOption.TopDirectoryOnly).Any();
-            }
-        }
-        catch (Exception ex)
+    /// <summary>
+    /// Enumerate files with glob pattern.
+    /// </summary>
+    /// <param name="pattern"></param>
+    /// <returns></returns>
+    public static IEnumerable<string> EnumerateFiles(string pattern)
+    {
+        var directory = GetParentDirectoryPath(pattern) ?? Directory.GetCurrentDirectory();
+        var searchPattern = Path.GetFileName(pattern);
+
+        if (pattern.Contains("/**/"))
         {
-            throw new ActionCommandException($"Error happen on checking file. Is specified path correct? path: {pattern}", ex);
+            return Directory.EnumerateFiles(directory, searchPattern, SearchOption.AllDirectories);
+        }
+        if (pattern.Contains("*/"))
+        {
+            return EnumerateFileWildcard(pattern, searchPattern, SearchOption.AllDirectories);
+        }
+        else
+        {
+            return Directory.EnumerateFiles(directory, searchPattern, SearchOption.TopDirectoryOnly);
         }
     }
 
     /// <summary>
-    /// Normalize \r\n to \n
+    /// Check if file exists with glob pattern.
+    /// </summary>
+    /// <param name="pattern"></param>
+    /// <returns></returns>
+    public static bool Exists(string pattern)
+    {
+        try
+        {
+            return EnumerateFiles(pattern).Any();
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Normalize \ to /
     /// </summary>
     /// <param name="pattern"></param>
     /// <returns></returns>

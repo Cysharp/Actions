@@ -2,9 +2,9 @@
 
 namespace Actions.Commands;
 
-public class FileExsistsCommand(string pathPattern, bool allowMissing = false)
+public class FileExsistsCommand(bool allowMissing = false)
 {
-    public void Validate()
+    public void Validate(string pathPattern)
     {
         // do nothing for empty input
         if (string.IsNullOrWhiteSpace(pathPattern))
@@ -12,26 +12,33 @@ public class FileExsistsCommand(string pathPattern, bool allowMissing = false)
 
         var pattern = GlobFiles.Normalize(pathPattern);
 
-        // Handle glob path pattern.
-        // /foo/bar/**/*
-        // /foo/bar/*.txt
         if (GlobFiles.IsGlobPattern(pattern))
         {
-            if (!GlobFiles.Exists(pattern))
-            {
-                // allow file not exists option
-                if (allowMissing)
-                    return;
+            // Handle glob path pattern.
+            // /foo/bar/**/*
+            // /foo/bar/*.txt
 
-                throw new ActionCommandException(pattern, new FileNotFoundException(pathPattern));
-            }
-            return;
+            // file found
+            if (GlobFiles.Exists(pattern))
+                return;
+            // allow file not exists
+            if (allowMissing)
+                return;
+
+            throw new ActionCommandException(pattern, new FileNotFoundException(pathPattern));
         }
-
-        // Specified full path pattern...
-        // /foo/bar/piyo/poyo.txt
-        if (!File.Exists(pattern))
+        else
         {
+            // Handle full path pattern...
+            // /foo/bar/piyo/poyo.txt
+
+            // file found
+            if (File.Exists(pattern))
+                return;
+            // allow file not exists
+            if (allowMissing)
+                return;
+
             throw new ActionCommandException(pattern, new FileNotFoundException(pathPattern));
         }
     }

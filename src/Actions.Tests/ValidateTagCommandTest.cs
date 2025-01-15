@@ -26,7 +26,7 @@ public class ValidateTagCommandTest
     public async Task ValidateTest(string tag, ValidateTagResult expectedResult, int expectedExitCode, bool expected)
     {
         var command = new ValidateTagCommand();
-        var (validated, reason, releaseTag) = await command.ValidateTagAsync(tag);
+        var (validated, reason, _) = await command.ValidateTagAsync(tag);
 
         reason.Should().Be(expectedResult);
         reason.ToExitCode().Should().Be(expectedExitCode);

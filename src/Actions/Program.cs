@@ -4,6 +4,7 @@ using Actions.Contexts;
 using Actions.Utils;
 using Cysharp.Diagnostics;
 using System.Runtime.CompilerServices;
+using static Actions.Utils.ZxHelper;
 
 var app = ConsoleApp.Create();
 app.Add<ActionsBatch>();
@@ -109,16 +110,12 @@ namespace Actions
             var pathPatterns = SplitByNewLine(pathPatternString);
             foreach (var pathPattern in pathPatterns)
             {
-                WriteLog($"Validating path, {pathPattern} ...");
-                WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
-                if (string.IsNullOrWhiteSpace(pathPatternString))
+                using var _ = new GitHubActionsGroupLogger($"Validating path, {pathPattern}");
                 {
-                    WriteLog("Empty path detected, skip execution.");
-                    return;
+                    WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
+                    var command = new FileExsistsCommand();
+                    command.Validate(pathPattern);
                 }
-
-                var command = new FileExsistsCommand(pathPattern);
-                command.Validate();
             }
 
             WriteLog($"Completed ...");
@@ -134,10 +131,10 @@ namespace Actions
             var pathPatterns = SplitByNewLine(pathPatternString);
             foreach (var pathPattern in pathPatterns)
             {
-                var fileName = Path.GetFileName(pathPattern);
-
-                WriteLog($"Validating path, {pathPattern} ...");
+                using var _ = new GitHubActionsGroupLogger($"Validating path, {pathPattern}");
                 WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
+
+                var fileName = Path.GetFileName(pathPattern);
                 if (string.IsNullOrWhiteSpace(pathPattern))
                 {
                     WriteLog("Empty path detected, skip execution.");
@@ -150,9 +147,30 @@ namespace Actions
                     WriteLog(".snupkg detected, allow missing file.");
                 }
 
-                var command = new FileExsistsCommand(pathPattern, allowMissing);
-                command.Validate();
+                var command = new FileExsistsCommand(allowMissing);
+                command.Validate(pathPattern);
             }
+
+            WriteLog($"Completed ...");
+        }
+
+        /// <summary>
+        /// Create Release
+        /// </summary>
+        /// <param name="tag">version string. ex) 1.0.0</param>
+        /// <param name="releaseTitle">Release title</param>
+        /// <param name="releaseAssetPathString">Release assets to upload</param>
+        [ConsoleAppFilter<GitHubContextFilter>]
+        [Command("create-release")]
+        public async void CreateRelease(string tag, string releaseTitle, string releaseAssetPathString)
+        {
+            var releaseAssets = SplitByNewLine(releaseAssetPathString);
+
+            var command = new CreateReleaseCommand(tag, releaseTitle);
+            await command.CreateReleaseAsync();
+
+            WriteLog($"Uploading assets ...");
+            await command.UploadAssetFiles(tag, releaseAssets);
 
             WriteLog($"Completed ...");
         }
@@ -228,24 +246,6 @@ namespace Actions
         }
 
 #pragma warning restore CA1822 // Mark members as static
-
-        /// <summary>
-        /// Escape command by adding \" on each side if needed. <br/>
-        /// ex. who will be... <br/>
-        /// * Windows: who <br/>
-        /// * Linux/macOS: \"who\"
-        /// </summary>
-        /// <param name="command"></param>
-        /// <returns></returns>
-        private static string EscapeArg(string command)
-        {
-            // Windows don't need escape (Windows escape is differ from Linux/macOS)
-            if (OperatingSystem.IsWindows())
-                return command;
-
-            // Bash need escape
-            return "\"" + command + "\"";
-        }
 
         private static string OutputFormat(string key, string value, OutputFormatType format) => format switch
         {
