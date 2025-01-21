@@ -1,6 +1,4 @@
-﻿using Actions.Commands;
-
-namespace Actions.Tests;
+﻿namespace Actions.Tests;
 
 public class FileExistsCommandTest
 {
@@ -133,22 +131,5 @@ public class FileExistsCommandTest
         }
     }
 
-    private void CreateFiles(string dir, string[] items, bool recursiveDir)
-    {
-        foreach (var item in items)
-        {
-            var tempDir = recursiveDir ? Path.Combine(dir, item) : dir;
-            var file = Path.Combine(tempDir, item);
-            if (!Directory.Exists(tempDir)) Directory.CreateDirectory(tempDir);
-            File.WriteAllText(file, "");
-        }
-    }
 
-    private void SafeDeleteDirectory(string dir)
-    {
-        if (Directory.Exists(dir))
-        {
-            Directory.Delete(dir, true);
-        }
-    }
 }

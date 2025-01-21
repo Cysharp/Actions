@@ -1,6 +1,4 @@
-﻿using FluentAssertions;
-
-namespace Actions.Tests;
+﻿namespace Actions.Tests;
 
 public class RegexReplacerTest
 {
@@ -23,7 +21,7 @@ public class RegexReplacerTest
         var input = @"Hello world!";
         var (_, after) = Utils.RegrexReplace.Replace(input, "world", "Japan");
 
-        after.Should().Be("Hello Japan!");
+        Assert.Equal("Hello Japan!", after);
     }
 
     [Fact]
@@ -34,9 +32,9 @@ public class RegexReplacerTest
         var (_, after2) = Utils.RegrexReplace.Replace(after, "b", "B");
         var (_, after3) = Utils.RegrexReplace.Replace(after2, "c", "C");
 
-        after.Should().Be("/A/b/c");
-        after2.Should().Be("/A/B/c");
-        after3.Should().Be("/A/B/C");
+        Assert.Equal("/A/b/c", after);
+        Assert.Equal("/A/B/c", after2);
+        Assert.Equal("/A/B/C", after3);
     }
 
     [Fact]
@@ -45,7 +43,7 @@ public class RegexReplacerTest
         var input = @"ABC DEF";
         var (_, after) = Utils.RegrexReplace.Replace(input, "ABC", "ABCD");
 
-        after.Should().Be("ABCD DEF");
+        Assert.Equal("ABCD DEF", after);
     }
 
     [Fact]
@@ -54,7 +52,7 @@ public class RegexReplacerTest
         var input = @"ABC DEF";
         var (_, after) = Utils.RegrexReplace.Replace(input, "ABC", "");
 
-        after.Should().Be(" DEF");
+        Assert.Equal(" DEF", after);
     }
 
     [Fact]
@@ -65,14 +63,14 @@ public class RegexReplacerTest
         // insert sentence before the line contains `abcde`
         var (_, after) = Utils.RegrexReplace.Replace(input, $"^(.*?abcde.*?$)", "foo\n$1");
 
-        after.Should().Be("""
+        Assert.Equal("""
             1 foobar
             foo
             2 abcde
             3 piyopiyo
             4 okonomiyaki
             5 takoyaki
-            """.NormalizeEol());
+            """.NormalizeEol(), after);
     }
 
     [Fact]
@@ -82,13 +80,13 @@ public class RegexReplacerTest
         // delete the line contains `abcde`, but keep brank line as is
         var (_, after) = Utils.RegrexReplace.Replace(input, $"^(.*?abcde.*?$)", "");
 
-        after.Should().Be("""
+        Assert.Equal("""
             1 foobar
 
             3 piyopiyo
             4 okonomiyaki
             5 takoyaki
-            """.NormalizeEol());
+            """.NormalizeEol(), after);
     }
 
     [Fact]
@@ -99,12 +97,12 @@ public class RegexReplacerTest
         // delete the line contains `abcde`, then compaction deleted line.
         var (_, after) = Utils.RegrexReplace.Replace(input, $"^(.*?abcde.*?$).*(\r?\n)?", "");
 
-        after.Should().Be("""
+        Assert.Equal("""
             1 foobar
             3 piyopiyo
             4 okonomiyaki
             5 takoyaki
-            """.NormalizeEol());
+            """.NormalizeEol(), after);
     }
 
     [Fact]
@@ -118,13 +116,13 @@ public class RegexReplacerTest
         // delete the line contains `abcde`, then compaction deleted line.
         var (before, after) = Utils.RegrexReplace.Replace(path, $"^(.*?abcde.*?$).*(\r?\n)?", "", false);
 
-        after.Should().Be("""
+        Assert.Equal("""
             1 foobar
             3 piyopiyo
             4 okonomiyaki
             5 takoyaki
-            """.NormalizeEol());
-        File.ReadAllText(path).Should().Be(before);
+            """.NormalizeEol(), after);
+        Assert.Equal(before, File.ReadAllText(path));
     }
 
     [Fact]
@@ -138,20 +136,12 @@ public class RegexReplacerTest
         // delete the line contains `abcde`, then compaction deleted line.
         var (_, after) = Utils.RegrexReplace.Replace(path, $"^(.*?abcde.*?$).*(\r?\n)?", "", true);
 
-        after.Should().Be("""
+        Assert.Equal("""
             1 foobar
             3 piyopiyo
             4 okonomiyaki
             5 takoyaki
-            """.NormalizeEol());
-        File.ReadAllText(path).Should().Be(after);
-    }
-}
-
-public static class StringExtentions
-{
-    public static string NormalizeEol(this string input)
-    {
-        return input.Replace("\r\n", "\n");
+            """.NormalizeEol(), after);
+        Assert.Equal(after, File.ReadAllText(path));
     }
 }

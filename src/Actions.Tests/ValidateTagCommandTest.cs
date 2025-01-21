@@ -1,7 +1,4 @@
-﻿using Actions.Commands;
-using FluentAssertions;
-
-namespace Actions.Tests;
+﻿namespace Actions.Tests;
 
 public class ValidateTagCommandTest
 {
@@ -14,7 +11,7 @@ public class ValidateTagCommandTest
         var command = new ValidateTagCommand();
         var actual = command.Normalize(tag);
 
-        actual.Should().Be(expected);
+        Assert.Equal(expected, actual);
     }
 
     [Theory]
