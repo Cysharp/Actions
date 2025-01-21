@@ -45,7 +45,10 @@ namespace Actions
         {
             var command = new ValidateTagCommand();
             var normalizedTag = command.Normalize(tag);
-            await command.ValidateTagAsync(normalizedTag);
+            if (requireValidation)
+            {
+                await command.ValidateTagAsync(normalizedTag);
+            }
 
             GitHubOutput("tag", tag);
             GitHubOutput("normalized-tag", normalizedTag);
@@ -253,7 +256,6 @@ namespace Actions
         };
 
         private static void WriteLog(string value) => Console.WriteLine($"[{DateTime.Now:s}] {value}");
-        private static void WriteError(string value) => Console.WriteLine($"[{DateTime.Now:s}] ERROR: {value}");
 
         private static void WriteVerbose(string value)
         {
