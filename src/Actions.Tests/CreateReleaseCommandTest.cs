@@ -1,5 +1,4 @@
-﻿using Actions.Commands;
-using Zx;
+﻿using Zx;
 
 namespace Actions.Tests;
 
@@ -31,7 +30,7 @@ public class CreateReleaseCommandTest
         }
         finally
         {
-            SafeDeleteDir(dir);
+            SafeDeleteDirectory(dir);
 
             // clean up release
             var list = await $"gh release list";
@@ -47,22 +46,4 @@ public class CreateReleaseCommandTest
     }
 
     private static string[] SplitByNewLine(string stringsValue) => stringsValue.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
-
-    private void CreateFiles(string dir, string[] files)
-    {
-        if (!Directory.Exists(dir))
-        {
-            Directory.CreateDirectory(dir);
-            foreach (var file in files)
-            {
-                File.WriteAllText(file, "");
-            }
-        }
-    }
-
-    private void SafeDeleteDir(string dir)
-    {
-        if (Directory.Exists(dir))
-            Directory.Delete(dir);
-    }
 }

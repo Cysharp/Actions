@@ -1,7 +1,4 @@
-﻿using Actions.Commands;
-using FluentAssertions;
-
-namespace Actions.Tests;
+﻿namespace Actions.Tests;
 
 public class UpdateVersionCommandTest
 {
@@ -41,7 +38,7 @@ public class UpdateVersionCommandTest
         var command = new UpdateVersionCommand(version);
         var (before, after) = command.UpdateVersion(path, false);
 
-        after.Should().Be("""
+        Assert.Equal("""
             {
               "name": "com.unity.plugin.example",
               "version": "1.0.0",
@@ -63,7 +60,7 @@ public class UpdateVersionCommandTest
                 "url": "https://www.unity3d.com"
               }
             }
-            """);
+            """, after);
     }
 
     [Fact]
@@ -89,7 +86,7 @@ public class UpdateVersionCommandTest
         var command = new UpdateVersionCommand(version);
         var (before, after) = command.UpdateVersion(path, false);
 
-        after.Should().Be("""
+        Assert.Equal("""
             [plugin]
             
             name="Sandbox.Godot"
@@ -98,7 +95,7 @@ public class UpdateVersionCommandTest
             version="1.0.0"
             language="C-sharp"
             script="GodotPlugin.cs"
-            """);
+            """, after);
     }
 
     [Fact]
@@ -121,12 +118,12 @@ public class UpdateVersionCommandTest
         var command = new UpdateVersionCommand(version);
         var (before, after) = command.UpdateVersion(path, false);
 
-        after.Should().Be("""
+        Assert.Equal("""
             <Project>
               <PropertyGroup>
                 <VersionPrefix>1.0.0</VersionPrefix>
               </PropertyGroup>
             </Project>
-            """);
+            """, after);
     }
 }

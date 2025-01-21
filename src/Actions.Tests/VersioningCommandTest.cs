@@ -1,7 +1,4 @@
-﻿using Actions.Commands;
-using FluentAssertions;
-
-namespace Actions.Tests;
+﻿namespace Actions.Tests;
 
 public class VersioningCommandTest
 {
@@ -12,9 +9,9 @@ public class VersioningCommandTest
     public void VersionIncrementTest(string tag, VersionIncrement versionIncrement, string expected)
     {
         var command = new VersioningCommand(tag, prefix: "", versionIncrement: versionIncrement, isPrelease: false, prerelease: "");
-        var versioning = command.Versioning();
+        var actual = command.Versioning();
 
-        versioning.Should().Be(expected);
+        Assert.Equal(expected, actual);
     }
 
     [Theory]
@@ -27,9 +24,9 @@ public class VersioningCommandTest
     public void VersionPrefixTest(string tag, string prefix, bool withoutPrefix, string expected)
     {
         var command = new VersioningCommand(tag, prefix: prefix, versionIncrement: VersionIncrement.Patch, isPrelease: false, prerelease: "");
-        var versioning = command.Versioning(withoutPrefix);
+        var actual = command.Versioning(withoutPrefix);
 
-        versioning.Should().Be(expected);
+        Assert.Equal(expected, actual);
     }
 
     [Theory]
@@ -39,8 +36,8 @@ public class VersioningCommandTest
     public void VersionPrereleaseTest(string tag, string prerelease, string expected)
     {
         var command = new VersioningCommand(tag, prefix: "", versionIncrement: VersionIncrement.Patch, isPrelease: true, prerelease: prerelease);
-        var versioning = command.Versioning();
+        var actual = command.Versioning();
 
-        versioning.Should().Be(expected);
+        Assert.Equal(expected, actual);
     }
 }
