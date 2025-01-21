@@ -1,6 +1,6 @@
-﻿using Actions.Utils;
+﻿using CysharpActions.Utils;
 
-namespace Actions.Tests;
+namespace CysharpActions.Tests;
 
 public class GlobFilesTest
 {

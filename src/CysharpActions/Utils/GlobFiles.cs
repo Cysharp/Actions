@@ -1,4 +1,4 @@
-﻿namespace Actions.Utils;
+﻿namespace CysharpActions.Utils;
 
 public static class GlobFiles
 {
@@ -21,7 +21,7 @@ public static class GlobFiles
           .AddInclude(includePattern)
           .Execute(new Microsoft.Extensions.FileSystemGlobbing.Abstractions.DirectoryInfoWrapper(new DirectoryInfo(rootDirectory)))
           .Files
-          .Select(x => Path.Combine(rootDirectory, x.Path));
+          .Select(x => Path.Combine(rootDirectory, x.Path)); // Matcher returns relative path from root directory.
         return files;
     }
 

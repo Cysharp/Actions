@@ -126,7 +126,7 @@ jobs:
       # validate
       - name: Validate and normalize tag
         id: validate
-        run: dotnet run --project "./src/Actions/Actions.csproj" --no-launch-profile -- validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
+        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -137,14 +137,14 @@ jobs:
         run: ls -lR
       - name: Validate package exists in artifact - release assets
         if: ${{ inputs.release-upload }}
-        run: dotnet run --project "./src/Actions/Actions.csproj" --no-launch-profile -- validate-file-exists --path-pattern-string "${{ inputs.release-asset-path }}"
+        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- validate-file-exists --path-pattern-string "${{ inputs.release-asset-path }}"
       - name: Validate package exists in artifact - NuGet
         if: ${{ inputs.nuget-push }}
-        run: dotnet run --project "./src/Actions/Actions.csproj" --no-launch-profile -- validate-nupkg-exists --path-pattern-string "${{ inputs.nuget-path }}"
+        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- validate-nupkg-exists --path-pattern-string "${{ inputs.nuget-path }}"
 
       # Create Releases
       - name: Create Release
-        run: dotnet run --project "./src/Actions/Actions.csproj" --no-launch-profile -- create-release --tag "${{ inputs.tag }}" --release-title "${{ format(inputs.release-format, inputs.tag) }}" --release-asset-path-string "${{ inputs.release-asset-path }}"
+        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- create-release --tag "${{ inputs.tag }}" --release-title "${{ format(inputs.release-format, inputs.tag) }}" --release-asset-path-string "${{ inputs.release-asset-path }}"
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

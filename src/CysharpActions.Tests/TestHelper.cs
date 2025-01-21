@@ -1,4 +1,4 @@
-﻿namespace Actions.Tests;
+﻿namespace CysharpActions.Tests;
 
 public static class TestHelper
 {

@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Actions.Utils;
+namespace CysharpActions.Utils;
 
 public static class DebugTools
 {

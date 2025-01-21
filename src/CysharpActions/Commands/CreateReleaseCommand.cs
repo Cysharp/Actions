@@ -1,7 +1,7 @@
-﻿using Actions.Utils;
-using static Actions.Utils.ZxHelper;
+﻿using CysharpActions.Utils;
+using static CysharpActions.Utils.ZxHelper;
 
-namespace Actions.Commands;
+namespace CysharpActions.Commands;
 
 public class CreateReleaseCommand(string tag, string releaseTitle)
 {

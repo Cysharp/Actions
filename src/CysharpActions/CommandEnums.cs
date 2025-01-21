@@ -1,4 +1,4 @@
-﻿namespace Actions;
+﻿namespace CysharpActions;
 
 public enum VersionIncrement
 {

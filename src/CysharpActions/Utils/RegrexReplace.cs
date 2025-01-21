@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Actions.Utils;
+namespace CysharpActions.Utils;
 
 /// <summary>
 /// Similar to GNU sed
