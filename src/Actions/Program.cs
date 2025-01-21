@@ -168,6 +168,8 @@ namespace Actions
             var releaseAssets = SplitByNewLine(releaseAssetPathString);
 
             var command = new CreateReleaseCommand(tag, releaseTitle);
+
+            WriteLog($"Creating Release ...");
             await command.CreateReleaseAsync();
 
             if (releaseAssets.Length > 0)

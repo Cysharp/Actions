@@ -49,11 +49,11 @@ public class FileExistsCommandTest
         {
             CreateFiles(dir, items, false);
             var command = new FileExsistsCommand();
-            command.Validate($"{dir}/*");
             foreach (var item in items)
             {
                 command.Validate($"{dir}/{item}");
             }
+            command.Validate($"{dir}/*");
             command.Validate($"{dir}/*.txt");
             command.Validate($"{dir}/hoge.*");
             command.Validate($"{dir}/**/hoge.*");
@@ -130,6 +130,4 @@ public class FileExistsCommandTest
             SafeDeleteDirectory(dir);
         }
     }
-
-
 }
