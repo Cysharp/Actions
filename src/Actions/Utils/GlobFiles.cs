@@ -54,13 +54,14 @@ public static class GlobFiles
         var indexOfRoot = 0;
         foreach (var item in splitted)
         {
-            if (item.Contains("*")) // Microsoft.Extensions.FileSystemGlobbing not accept ? for glob pattern.
+            if (item.Contains('*')) // Microsoft.Extensions.FileSystemGlobbing not accept ? for glob pattern.
                 break;
             indexOfRoot++;
         }
         var rootDirectory = Path.Combine(splitted[..indexOfRoot]);
-        var includePattern = normalizedPattern.Substring(rootDirectory.Length, normalizedPattern.Length - rootDirectory.Length);
-        return (rootDirectory, includePattern);
+        var fullRootDirectory = Path.GetFullPath(rootDirectory);
+        var includePattern = normalizedPattern[rootDirectory.Length..];
+        return (fullRootDirectory, includePattern);
     }
 
     private static string NormalizePath(string path) => path.Replace('\\', '/');

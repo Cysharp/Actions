@@ -10,7 +10,7 @@ public class ValidateTagCommand()
     /// </summary>
     /// <param name="tag"></param>
     /// <returns></returns>
-    public string Normalize(string tag) => tag.StartsWith("v") ? tag.Substring(1) : tag;
+    public string Normalize(string tag) => tag.StartsWith('v') ? tag[1..] : tag;
 
     /// <summary>
     /// Validate input tag. If the input tag is older than the latest release tag, it will return false. Otherwise, it will return true.
