@@ -21,7 +21,7 @@ public static class GlobFiles
           .AddInclude(includePattern)
           .Execute(new Microsoft.Extensions.FileSystemGlobbing.Abstractions.DirectoryInfoWrapper(new DirectoryInfo(rootDirectory)))
           .Files
-          .Select(x => x.Path);
+          .Select(x => Path.Combine(rootDirectory, x.Path));
         return files;
     }
 
