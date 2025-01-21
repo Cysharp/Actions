@@ -31,7 +31,6 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
     /// <summary>
     /// Upload asset files to the release
     /// </summary>
-    /// <param name="tag"></param>
     /// <param name="assetPaths"></param>
     /// <returns></returns>
     public async Task UploadAssetFiles(string[] assetPaths)

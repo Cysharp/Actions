@@ -16,21 +16,13 @@ public static class GlobFiles
     /// <returns></returns>
     public static IEnumerable<string> EnumerateFiles(string pattern)
     {
-        var directory = GetParentDirectoryPath(pattern) ?? Directory.GetCurrentDirectory();
-        var searchPattern = Path.GetFileName(pattern);
-
-        if (pattern.Contains("/**/"))
-        {
-            return Directory.EnumerateFiles(directory, searchPattern, SearchOption.AllDirectories);
-        }
-        if (pattern.Contains("*/"))
-        {
-            return EnumerateFileWildcard(pattern, searchPattern, SearchOption.AllDirectories);
-        }
-        else
-        {
-            return Directory.EnumerateFiles(directory, searchPattern, SearchOption.TopDirectoryOnly);
-        }
+        var (rootDirectory, includePattern) = GetGlobRootAndInputPattern(pattern);
+        var files = new Microsoft.Extensions.FileSystemGlobbing.Matcher()
+          .AddInclude(includePattern)
+          .Execute(new Microsoft.Extensions.FileSystemGlobbing.Abstractions.DirectoryInfoWrapper(new DirectoryInfo(rootDirectory)))
+          .Files
+          .Select(x => x.Path);
+        return files;
     }
 
     /// <summary>
@@ -51,43 +43,25 @@ public static class GlobFiles
     }
 
     /// <summary>
-    /// Normalize \ to /
+    /// Get glob root directory and input pattern
     /// </summary>
     /// <param name="pattern"></param>
     /// <returns></returns>
-    public static string Normalize(string pattern) => pattern.Replace("\\", "/");
-
-    private static string GetParentDirectoryPath(string path)
+    private static (string rootDirectory, string includePattern) GetGlobRootAndInputPattern(string pattern)
     {
-        var limit = 5;
-        var current = 0;
-        var dir = path;
-        bool next;
-        do
+        var normalizedPattern = NormalizePath(pattern);
+        var splitted = normalizedPattern.Split('/', StringSplitOptions.TrimEntries).AsSpan();
+        var indexOfRoot = 0;
+        foreach (var item in splitted)
         {
-            if (current >= limit)
-                throw new ActionCommandException($"Recursively approaced parent directory but reached limit. {current}/{limit}");
-
-            dir = Path.GetDirectoryName(dir) ?? "";
-            var fileName = Path.GetFileName(dir);
-            next = fileName == "**" || fileName == "*";
-            current++;
-        } while (next);
-
-        return dir;
+            if (item.Contains("*")) // Microsoft.Extensions.FileSystemGlobbing not accept ? for glob pattern.
+                break;
+            indexOfRoot++;
+        }
+        var rootDirectory = Path.Combine(splitted[..indexOfRoot]);
+        var includePattern = normalizedPattern.Substring(rootDirectory.Length, normalizedPattern.Length - rootDirectory.Length);
+        return (rootDirectory, includePattern);
     }
 
-    private static IEnumerable<string> EnumerateFileWildcard(string path, string searchPattern, SearchOption searchOption)
-    {
-        var fileName = Path.GetFileName(path);
-        if (fileName == "*")
-        {
-            return Directory.GetDirectories(Path.GetDirectoryName(path)!).SelectMany(x => Directory.GetFiles(x, searchPattern, searchOption));
-        }
-        else
-        {
-            return EnumerateFileWildcard(Path.GetDirectoryName(path)!, searchPattern, searchOption);
-        }
-    }
-
+    private static string NormalizePath(string path) => path.Replace('\\', '/');
 }
