@@ -4,13 +4,11 @@ namespace Actions.Commands;
 
 public class FileExsistsCommand(bool allowMissing = false)
 {
-    public void Validate(string pathPattern)
+    public void Validate(string pattern)
     {
         // do nothing for empty input
-        if (string.IsNullOrWhiteSpace(pathPattern))
+        if (string.IsNullOrWhiteSpace(pattern))
             return;
-
-        var pattern = GlobFiles.Normalize(pathPattern);
 
         if (GlobFiles.IsGlobPattern(pattern))
         {
@@ -25,7 +23,7 @@ public class FileExsistsCommand(bool allowMissing = false)
             if (allowMissing)
                 return;
 
-            throw new ActionCommandException(pattern, new FileNotFoundException(pathPattern));
+            throw new ActionCommandException(pattern, new FileNotFoundException(pattern));
         }
         else
         {
@@ -39,7 +37,7 @@ public class FileExsistsCommand(bool allowMissing = false)
             if (allowMissing)
                 return;
 
-            throw new ActionCommandException(pattern, new FileNotFoundException(pathPattern));
+            throw new ActionCommandException(pattern, new FileNotFoundException(pattern));
         }
     }
 }

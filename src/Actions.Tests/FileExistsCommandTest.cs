@@ -58,6 +58,7 @@ public class FileExistsCommandTest
             }
             command.Validate($"{dir}/*.txt");
             command.Validate($"{dir}/hoge.*");
+            command.Validate($"{Path.GetDirectoryName(dir)}/**/hoge.*");
         }
         finally
         {
@@ -78,6 +79,7 @@ public class FileExistsCommandTest
             {
                 command.Validate($"{Path.GetDirectoryName(dir)}/*/{item}");
                 command.Validate($"{dir}/{item}");
+                command.Validate($"{dir}/**/{item}");
                 Assert.Throws<ActionCommandException>(() => command.Validate($"{dir}/*/{item}"));
             }
         }
