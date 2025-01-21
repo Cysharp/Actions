@@ -1,4 +1,4 @@
-﻿namespace Actions.Utils;
+﻿namespace CysharpActions.Utils;
 
 public static class ZxHelper
 {

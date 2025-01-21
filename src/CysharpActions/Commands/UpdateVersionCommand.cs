@@ -1,8 +1,8 @@
-﻿using Actions.Utils;
+﻿using CysharpActions.Utils;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Actions.Commands;
+namespace CysharpActions.Commands;
 
 public record struct UpdateVersionCommandResult(string Before, string After);
 public class UpdateVersionCommand(string version)

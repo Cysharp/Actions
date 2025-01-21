@@ -1,16 +1,16 @@
-﻿using Actions;
-using Actions.Commands;
-using Actions.Contexts;
-using Actions.Utils;
+﻿using CysharpActions;
+using CysharpActions.Commands;
+using CysharpActions.Contexts;
+using CysharpActions.Utils;
 using Cysharp.Diagnostics;
 using System.Runtime.CompilerServices;
-using static Actions.Utils.ZxHelper;
+using static CysharpActions.Utils.ZxHelper;
 
 var app = ConsoleApp.Create();
 app.Add<ActionsBatch>();
 app.Run(args);
 
-namespace Actions
+namespace CysharpActions
 {
     public class ActionsBatch
     {

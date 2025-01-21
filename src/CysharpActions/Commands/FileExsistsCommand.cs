@@ -1,6 +1,6 @@
-﻿using Actions.Utils;
+﻿using CysharpActions.Utils;
 
-namespace Actions.Commands;
+namespace CysharpActions.Commands;
 
 public class FileExsistsCommand(bool allowMissing = false)
 {

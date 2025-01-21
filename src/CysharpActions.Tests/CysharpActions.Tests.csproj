@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Actions\Actions.csproj" />
+    <ProjectReference Include="..\CysharpActions\CysharpActions.csproj" />
   </ItemGroup>
 
   <ItemGroup>

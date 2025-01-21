@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.12.35527.113
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Actions", "src\Actions\Actions.csproj", "{0371D0AA-BB43-4136-B9AA-A311A3E4615B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CysharpActions", "src\CysharpActions\CysharpActions.csproj", "{0371D0AA-BB43-4136-B9AA-A311A3E4615B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Actions.Tests", "src\Actions.Tests\Actions.Tests.csproj", "{8DAE3F25-F3B7-4F98-A0FA-5585EDD0C22E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CysharpActions.Tests", "src\CysharpActions.Tests\CysharpActions.Tests.csproj", "{8DAE3F25-F3B7-4F98-A0FA-5585EDD0C22E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

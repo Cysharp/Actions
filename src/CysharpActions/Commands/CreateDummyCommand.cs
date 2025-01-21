@@ -1,4 +1,4 @@
-﻿namespace Actions.Commands;
+﻿namespace CysharpActions.Commands;
 
 public class CreateDummyCommand
 {

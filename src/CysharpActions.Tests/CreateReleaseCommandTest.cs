@@ -1,6 +1,6 @@
 ﻿using Zx;
 
-namespace Actions.Tests;
+namespace CysharpActions.Tests;
 
 public class CreateReleaseCommandTest
 {
