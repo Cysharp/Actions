@@ -126,7 +126,7 @@ jobs:
       # validate
       - name: Validate and normalize tag
         id: validate
-        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- validate-tag --tag "${{ inputs.tag }}"
+        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

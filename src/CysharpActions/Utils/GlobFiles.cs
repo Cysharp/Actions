@@ -1,13 +1,13 @@
 ﻿namespace CysharpActions.Utils;
 
-public static class GlobSearch
+public static class GlobFiles
 {
     /// <summary>
     /// Check if pattern is glob pattern.
     /// </summary>
     /// <param name="pattern"></param>
     /// <returns></returns>
-    public static bool IsGlobPattern(string pattern) => pattern.Contains('*');  // Not supporting ?
+    public static bool IsGlobPattern(string pattern) => pattern.Contains('*') || pattern.Contains('?');
 
     /// <summary>
     /// Enumerate files with glob pattern.
@@ -17,7 +17,7 @@ public static class GlobSearch
     public static IEnumerable<string> EnumerateFiles(string pattern)
     {
         var (rootDirectory, includePattern) = GetGlobRootAndInputPattern(pattern);
-        IEnumerable<string> files = new Microsoft.Extensions.FileSystemGlobbing.Matcher()
+        var files = new Microsoft.Extensions.FileSystemGlobbing.Matcher()
           .AddInclude(includePattern)
           .Execute(new Microsoft.Extensions.FileSystemGlobbing.Abstractions.DirectoryInfoWrapper(new DirectoryInfo(rootDirectory)))
           .Files
@@ -32,7 +32,14 @@ public static class GlobSearch
     /// <returns></returns>
     public static bool Exists(string pattern)
     {
-        return EnumerateFiles(pattern).Any();
+        try
+        {
+            return EnumerateFiles(pattern).Any();
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     /// <summary>
@@ -42,24 +49,20 @@ public static class GlobSearch
     /// <returns></returns>
     private static (string rootDirectory, string includePattern) GetGlobRootAndInputPattern(string pattern)
     {
-        var normalizedPattern = Path.GetFullPath(pattern).Replace('\\', '/');
+        var normalizedPattern = NormalizePath(pattern);
         var splitted = normalizedPattern.Split('/', StringSplitOptions.TrimEntries).AsSpan();
         var indexOfRoot = 0;
         foreach (var item in splitted)
         {
-            if (IsGlobPattern(item))
+            if (item.Contains('*')) // Microsoft.Extensions.FileSystemGlobbing not accept ? for glob pattern.
                 break;
             indexOfRoot++;
         }
-        // Its not glob pattern
-        if (indexOfRoot == splitted.Length)
-            return (Path.GetDirectoryName(normalizedPattern) ?? Directory.GetCurrentDirectory(), Path.GetFileName(pattern));
-
-        // Non-Windows root directory may become emptry string
-        var rootMarker = normalizedPattern[0] == '/' ? "/" : "";
-        var rootDirectory = rootMarker + Path.Combine(splitted[..indexOfRoot]);
+        var rootDirectory = Path.Combine(splitted[..indexOfRoot]);
         var fullRootDirectory = Path.GetFullPath(rootDirectory);
-        var includePattern = normalizedPattern[(rootDirectory.Length + rootMarker.Length)..];
+        var includePattern = normalizedPattern[rootDirectory.Length..];
         return (fullRootDirectory, includePattern);
     }
+
+    private static string NormalizePath(string path) => path.Replace('\\', '/');
 }

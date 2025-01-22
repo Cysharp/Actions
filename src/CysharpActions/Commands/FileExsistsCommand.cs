@@ -10,14 +10,14 @@ public class FileExsistsCommand(bool allowMissing = false)
         if (string.IsNullOrWhiteSpace(pattern))
             return;
 
-        if (GlobSearch.IsGlobPattern(pattern))
+        if (GlobFiles.IsGlobPattern(pattern))
         {
             // Handle glob path pattern.
             // /foo/bar/**/*
             // /foo/bar/*.txt
 
             // file found
-            if (GlobSearch.Exists(pattern))
+            if (GlobFiles.Exists(pattern))
                 return;
             // allow file not exists
             if (allowMissing)
