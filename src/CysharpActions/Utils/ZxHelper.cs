@@ -20,6 +20,5 @@ public static class ZxHelper
         return "\"" + command + "\"";
     }
 
-    public static string[] ToMultiLine(this string stringsValue) => stringsValue.Split(["\\r\\n", "\\n"], StringSplitOptions.RemoveEmptyEntries);
-
+    public static string[] ToMultiLine(this string stringsValue) => stringsValue.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
 }
