@@ -10,7 +10,7 @@ public static class ZxHelper
     /// </summary>
     /// <param name="command"></param>
     /// <returns></returns>
-    public static string EscapeArg(string command)
+    public static string EscapeArg(this string command)
     {
         // Windows don't need escape (Windows escape is differ from Linux/macOS)
         if (OperatingSystem.IsWindows())
@@ -20,6 +20,28 @@ public static class ZxHelper
         return "\"" + command + "\"";
     }
 
-    public static string[] SplitByNewLine(string stringsValue) => stringsValue.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
+    /// <summary>
+    /// Split string by new line.
+    /// </summary>
+    /// <param name="stringsValue"></param>
+    /// <returns></returns>
+    public static string[] SplitByNewLine(this string stringsValue) => stringsValue.Split(["\\r\\n", "\\n"], StringSplitOptions.RemoveEmptyEntries);
 
+    /// <summary>
+    /// Write log to console with timestamp.
+    /// </summary>
+    /// <param name="value"></param>
+    public static void WriteLog(string value) => Console.WriteLine($"[{DateTime.Now:s}] {value}");
+
+    /// <summary>
+    /// Write log to console with timestamp if verbose is enabled.
+    /// </summary>
+    /// <param name="value"></param>
+    public static void WriteVerbose(string value)
+    {
+        if (ActionsBatchOptions.Verbose)
+        {
+            WriteLog(value);
+        }
+    }
 }
