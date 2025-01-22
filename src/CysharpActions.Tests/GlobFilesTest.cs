@@ -14,7 +14,7 @@ public class GlobFilesTest
             CreateFiles(dir, items, false);
             foreach (var item in items)
             {
-                foreach (var file in GlobSearch.EnumerateFiles($"{dir}/{item}"))
+                foreach (var file in GlobFiles.EnumerateFiles($"{dir}/{item}"))
                 {
                     // should be full path
                     File.Exists(file);
@@ -23,7 +23,7 @@ public class GlobFilesTest
 
             foreach (var item in new[] { $"{dir}/*", $"{dir}/*.txt", $"{dir}/hoge.*", $"{dir}/**/hoge.*", $"{dir}/**/*" })
             {
-                foreach (var file in GlobSearch.EnumerateFiles(item))
+                foreach (var file in GlobFiles.EnumerateFiles(item))
                 {
                     // should be full path
                     File.Exists(file);
@@ -48,7 +48,7 @@ public class GlobFilesTest
             {
                 foreach (var pattern in new[] { $"{Path.GetDirectoryName(dir)}/*/{item}", $"{dir}/{item}", $"{dir}/**/{item}", $"{dir}/**/*", $"{dir}/*/{item}" })
                 {
-                    foreach (var file in GlobSearch.EnumerateFiles(pattern))
+                    foreach (var file in GlobFiles.EnumerateFiles(pattern))
                     {
                         // should be full path
                         File.Exists(file);
@@ -74,7 +74,7 @@ public class GlobFilesTest
             {
                 foreach (var pattern in new[] { $"{Path.GetDirectoryName(dir)}/**/{item}", $"{dir}/**/{item}" })
                 {
-                    foreach (var file in GlobSearch.EnumerateFiles(pattern))
+                    foreach (var file in GlobFiles.EnumerateFiles(pattern))
                     {
                         // should be full path
                         File.Exists(file);
@@ -96,7 +96,7 @@ public class GlobFilesTest
         try
         {
             CreateFiles(dir, items, true);
-            foreach (var file in GlobSearch.EnumerateFiles($"{dir}/**/*"))
+            foreach (var file in GlobFiles.EnumerateFiles($"{dir}/**/*"))
             {
                 // should be full path
                 File.Exists(file);

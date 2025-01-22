@@ -3,15 +3,8 @@ using CysharpActions.Commands;
 using CysharpActions.Contexts;
 using CysharpActions.Utils;
 using Cysharp.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
-using Actions.Core.Extensions;
-using Actions.Core.Services;
-using System.Collections;
-
-await using var serviceProvider = new ServiceCollection()
-    .AddGitHubActionsCore()
-    .BuildServiceProvider();
-ConsoleApp.ServiceProvider = serviceProvider;
+using System.Runtime.CompilerServices;
+using static CysharpActions.Utils.ZxHelper;
 
 var app = ConsoleApp.Create();
 app.Add<ActionsBatch>();
@@ -19,7 +12,7 @@ app.Run(args);
 
 namespace CysharpActions
 {
-    public class ActionsBatch(ICoreService githubactions)
+    public class ActionsBatch
     {
 #pragma warning disable CA1822 // Mark members as static
 
@@ -48,13 +41,8 @@ namespace CysharpActions
         /// <returns></returns>
         [ConsoleAppFilter<GitHubCliFilter>]
         [Command("validate-tag")]
-        public async Task ValidateTag(string tag, bool requireValidation = false)
+        public async Task ValidateTag(string tag, bool requireValidation)
         {
-            foreach (DictionaryEntry item in Environment.GetEnvironmentVariables())
-            {
-                WriteLog($"{item.Key} {item.Value}");
-            }
-            requireValidation = githubactions.GetBoolInput("require-validation", new InputOptions(false));
             var command = new ValidateTagCommand();
             var normalizedTag = command.Normalize(tag);
             if (requireValidation)
@@ -62,8 +50,8 @@ namespace CysharpActions
                 await command.ValidateTagAsync(normalizedTag);
             }
 
-            await githubactions.SetOutputAsync("tag", tag);
-            await githubactions.SetOutputAsync("normalized-tag", normalizedTag);
+            GitHubOutput("tag", tag);
+            GitHubOutput("normalized-tag", normalizedTag);
         }
 
         /// <summary>
@@ -77,23 +65,13 @@ namespace CysharpActions
         /// </remarks>
         [ConsoleAppFilter<GitHubContextFilter>]
         [Command("update-version")]
-        public async Task UpdateVersion(string version, string pathString, bool dryRun = false)
+        public async Task UpdateVersion(string version, string pathString, bool dryRun)
         {
-            foreach (DictionaryEntry item in Environment.GetEnvironmentVariables())
-            {
-                WriteLog($"{item.Key} {item.Value}");
-            }
-            dryRun = githubactions.GetBoolInput("dry-run", new InputOptions(false));
-            var command = new UpdateVersionCommand(version);
-
             // update version
-            var paths = pathString.SplitByNewLine();
+            var command = new UpdateVersionCommand(version);
+            var paths = SplitByNewLine(pathString);
             foreach (var path in paths)
             {
-                var fullPath = Path.GetFullPath(path);
-                if (!File.Exists(path))
-                    throw new ActionCommandException($"Upload target file not found", new FileNotFoundException(path));
-
                 WriteLog($"Update begin, {path} ...");
                 if (string.IsNullOrWhiteSpace(path))
                 {
@@ -113,10 +91,10 @@ namespace CysharpActions
             {
                 var (commited, sha, branchName, isBranchCreated) = await GitCommitAsync(dryRun, version);
 
-                await githubactions.SetOutputAsync("commited", commited ? "1" : "0");
-                await githubactions.SetOutputAsync("sha", sha);
-                await githubactions.SetOutputAsync("branch-name", branchName);
-                await githubactions.SetOutputAsync("is-branch-created", isBranchCreated);
+                GitHubOutput("commited", commited ? "1" : "0");
+                GitHubOutput("sha", sha);
+                GitHubOutput("branch-name", branchName);
+                GitHubOutput("is-branch-created", isBranchCreated);
             }
 
             WriteLog($"Completed ...");
@@ -129,7 +107,7 @@ namespace CysharpActions
         [Command("validate-file-exists")]
         public void ValidateFileExists(string pathPatternString)
         {
-            var pathPatterns = pathPatternString.SplitByNewLine();
+            var pathPatterns = SplitByNewLine(pathPatternString);
             foreach (var pathPattern in pathPatterns)
             {
                 using var _ = new GitHubActionsGroupLogger($"Validating path, {pathPattern}");
@@ -150,7 +128,7 @@ namespace CysharpActions
         [Command("validate-nupkg-exists")]
         public void ValidateNupkgExists(string pathPatternString)
         {
-            var pathPatterns = pathPatternString.SplitByNewLine();
+            var pathPatterns = SplitByNewLine(pathPatternString);
             foreach (var pathPattern in pathPatterns)
             {
                 using var _ = new GitHubActionsGroupLogger($"Validating path, {pathPattern}");
@@ -187,7 +165,7 @@ namespace CysharpActions
         [Command("create-release")]
         public async Task CreateRelease(string tag, string releaseTitle, string releaseAssetPathString)
         {
-            var releaseAssets = releaseAssetPathString.SplitByNewLine();
+            var releaseAssets = SplitByNewLine(releaseAssetPathString);
 
             var command = new CreateReleaseCommand(tag, releaseTitle);
 
@@ -261,7 +239,7 @@ namespace CysharpActions
                 WriteLog("Committing change. Running following.");
                 await $"git config --local user.email \"{email}\"";
                 await $"git config --local user.name \"{user}\"";
-                await $"git commit -a -m \"{$"feat: Update package.json to {tag}".EscapeArg()}\" -m \"{$"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})".EscapeArg()}\"";
+                await $"git commit -a -m \"{EscapeArg($"feat: Update package.json to {tag}")}\" -m \"{EscapeArg($"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})")}\"";
 
                 commited = true;
             }
@@ -278,6 +256,29 @@ namespace CysharpActions
             OutputFormatType.GitHubActionsOutput => $"{key}={value}",
             _ => throw new NotImplementedException(nameof(format)),
         };
+
+        private static void WriteLog(string value) => Console.WriteLine($"[{DateTime.Now:s}] {value}");
+
+        private static void WriteVerbose(string value)
+        {
+            if (ActionsBatchOptions.Verbose)
+            {
+                WriteLog(value);
+            }
+        }
+
+        private static void GitHubOutput(string key, string value, [CallerMemberName] string? callerMemberName = null)
+        {
+            var input = $"{key}={value}";
+            var output = Environment.GetEnvironmentVariable("GITHUB_OUTPUT", EnvironmentVariableTarget.Process) ?? Path.Combine(Directory.GetCurrentDirectory(), $"GitHubOutputs/{callerMemberName}");
+            if (!Directory.Exists(Path.GetDirectoryName(output)))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+            }
+
+            WriteLog($"GitHub Output: {input}");
+            File.AppendAllLines(output, [input]);
+        }
     }
 
     internal class GitHubCliFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)

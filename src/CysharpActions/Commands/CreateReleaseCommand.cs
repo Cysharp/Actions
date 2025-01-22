@@ -1,4 +1,5 @@
 ﻿using CysharpActions.Utils;
+using static CysharpActions.Utils.ZxHelper;
 
 namespace CysharpActions.Commands;
 
@@ -30,16 +31,26 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
     /// <summary>
     /// Upload asset files to the release
     /// </summary>
-    /// <param name="assetPaths">Specify upload files, file path can be glob pattern.</param>
+    /// <param name="assetPaths"></param>
     /// <returns></returns>
     public async Task UploadAssetFiles(string[] assetPaths)
     {
         foreach (var assetPath in assetPaths)
         {
-            foreach (var file in GlobSearch.EnumerateFiles(assetPath))
+            if (GlobFiles.IsGlobPattern(assetPath))
             {
-                using var _ = new GitHubActionsGroupLogger($"Uploading asset. tag: {tag}. assetPath: {file}");
-                await $"gh release upload {tag} \"{file.EscapeArg()}\"";
+                // Is Wildcard?
+                foreach (var file in GlobFiles.EnumerateFiles(assetPath))
+                {
+                    using var _ = new GitHubActionsGroupLogger($"Uploading asset. tag: {tag}. assetPath: {file}");
+                    await $"gh release upload {tag} \"{EscapeArg(file)}\"";
+                }
+            }
+            else
+            {
+                // Is File?
+                using var _ = new GitHubActionsGroupLogger($"Uploading asset. tag: {tag}. assetPath: {assetPath}");
+                await $"gh release upload {tag} \"{EscapeArg(assetPath)}\"";
             }
         }
     }
