@@ -60,7 +60,7 @@
     },
     "update-version": {
       "commandName": "Project",
-      "commandLineArgs": "update-version --version 1.0.0 --path-string \"./dummy/package.json\\n./dummy/plugin.cfg\\n./dummy/Directory.Build.props\"",
+      "commandLineArgs": "update-version --version 1.0.0 --path-string \"./dummy/package.json\"",
       "environmentVariables": {
         "GITHUB_EVENT_NAME": "pull_request",
         "GITHUB_REPOSITORY": "Cysharp/Actions",
@@ -109,19 +109,19 @@
     },
     "WSL (update-version)": {
       "commandName": "WSL2",
-      "distributionName": "",
-      "commandLineArgs": "\"{OutDir}/Actions.dll\" update-version --version 1.0.0 --path-string \"./dummy/package.json\n./dummy/plugin.cfg\n./dummy/Directory.Build.props\"",
+      "commandLineArgs": "\"{OutDir}/CysharpActions.dll\" update-version --version 1.0.0 --path-string \"./dummy/package.json\n./dummy/plugin.cfg\n./dummy/Directory.Build.props\"",
       "environmentVariables": {
         "GITHUB_EVENT_NAME": "pull_request",
         "GITHUB_REPOSITORY": "Cysharp/Actions",
         "GITHUB_RUN_ID": "11350100787",
         "GITHUB_SERVER_URL": "https://github.com"
-      }
+      },
+      "distributionName": ""
     },
     "WSL (debug)": {
       "commandName": "WSL2",
-      "distributionName": "",
-      "commandLineArgs": "\"{OutDir}/Actions.dll\" debug"
+      "commandLineArgs": "\"{OutDir}/CysharpActions.dll\" debug",
+      "distributionName": ""
     }
   }
 }
