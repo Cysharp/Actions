@@ -13,7 +13,10 @@
       "commandName": "Project",
       "commandLineArgs": "create-release --tag 1.3.0 --release-title \"Ver.1.3.0\" --release-asset-path-string \"\"",
       "environmentVariables": {
-        "GITHUB_CONTEXT": "{\"server_url\":\"https://github.com\", \"run_id\":\"11350100787\", \"repository\":\"Cysharp/Actions\", \"repository_owner\":\"Cysharp\", \"event_name\": \"pull_request\"}"
+        "GITHUB_EVENT_NAME": "pull_request",
+        "GITHUB_REPOSITORY": "Cysharp/Actions",
+        "GITHUB_RUN_ID": "11350100787",
+        "GITHUB_SERVER_URL": "https://github.com"
       }
     },
     // validate-tag
@@ -59,7 +62,10 @@
       "commandName": "Project",
       "commandLineArgs": "update-version --version 1.0.0 --path-string \"./dummy/package.json\\n./dummy/plugin.cfg\\n./dummy/Directory.Build.props\"",
       "environmentVariables": {
-        "GITHUB_CONTEXT": "{\"server_url\":\"https://github.com\", \"run_id\":\"11350100787\", \"repository\":\"Cysharp/Actions\", \"repository_owner\":\"Cysharp\", \"event_name\": \"pull_request\"}"
+        "GITHUB_EVENT_NAME": "pull_request",
+        "GITHUB_REPOSITORY": "Cysharp/Actions",
+        "GITHUB_RUN_ID": "11350100787",
+        "GITHUB_SERVER_URL": "https://github.com"
       }
     },
     // validate-nupkg-exsits
@@ -106,7 +112,10 @@
       "distributionName": "",
       "commandLineArgs": "\"{OutDir}/Actions.dll\" update-version --version 1.0.0 --path-string \"./dummy/package.json\n./dummy/plugin.cfg\n./dummy/Directory.Build.props\"",
       "environmentVariables": {
-        "GITHUB_CONTEXT": "{\"server_url\":\"https://github.com\", \"run_id\":\"11350100787\", \"repository\":\"Cysharp/Actions\", \"repository_owner\":\"Cysharp\", \"event_name\": \"pull_request\"}"
+        "GITHUB_EVENT_NAME": "pull_request",
+        "GITHUB_REPOSITORY": "Cysharp/Actions",
+        "GITHUB_RUN_ID": "11350100787",
+        "GITHUB_SERVER_URL": "https://github.com"
       }
     },
     "WSL (debug)": {
