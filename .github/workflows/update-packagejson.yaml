@@ -94,8 +94,6 @@ jobs:
       - name: Update files to version ${{ steps.validate.outputs.normalized-tag }}
         id: update
         run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${{ inputs.file-path }}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
 
       - name: Push changes
         if: ${{ steps.update.outputs.commited == '1' }}

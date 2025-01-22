@@ -69,7 +69,7 @@ namespace CysharpActions
         {
             // update version
             var command = new UpdateVersionCommand(version);
-            var paths = SplitByNewLine(pathString);
+            var paths = pathString.ToMultiLine();
             foreach (var path in paths)
             {
                 WriteLog($"Update begin, {path} ...");
@@ -107,7 +107,7 @@ namespace CysharpActions
         [Command("validate-file-exists")]
         public void ValidateFileExists(string pathPatternString)
         {
-            var pathPatterns = SplitByNewLine(pathPatternString);
+            var pathPatterns = pathPatternString.ToMultiLine();
             foreach (var pathPattern in pathPatterns)
             {
                 using var _ = new GitHubActionsGroupLogger($"Validating path, {pathPattern}");
@@ -128,7 +128,7 @@ namespace CysharpActions
         [Command("validate-nupkg-exists")]
         public void ValidateNupkgExists(string pathPatternString)
         {
-            var pathPatterns = SplitByNewLine(pathPatternString);
+            var pathPatterns = pathPatternString.ToMultiLine();
             foreach (var pathPattern in pathPatterns)
             {
                 using var _ = new GitHubActionsGroupLogger($"Validating path, {pathPattern}");
@@ -165,7 +165,7 @@ namespace CysharpActions
         [Command("create-release")]
         public async Task CreateRelease(string tag, string releaseTitle, string releaseAssetPathString)
         {
-            var releaseAssets = SplitByNewLine(releaseAssetPathString);
+            var releaseAssets = releaseAssetPathString.ToMultiLine();
 
             var command = new CreateReleaseCommand(tag, releaseTitle);
 
@@ -301,7 +301,8 @@ namespace CysharpActions
         {
             if (!(context.Arguments.Contains("-h") || context.Arguments.Contains("--help")))
             {
-                _ = Environment.GetEnvironmentVariable("GITHUB_CONTEXT") ?? throw new ArgumentNullException("Environment Variable 'GITHUB_CONTEXT' is required");
+                // Ensure GitHubContext can be resolved
+                _ = GitHubContext.Current;
             }
             await Next.InvokeAsync(context, cancellationToken);
         }
@@ -312,6 +313,5 @@ namespace CysharpActions
     internal static class ActionsBatchOptions
     {
         public static readonly bool Verbose = bool.Parse(Environment.GetEnvironmentVariable("ACTIONS_BATCH_OPTIONS_VERBOSE") ?? "false");
-        public static readonly string? GitHubContext = Environment.GetEnvironmentVariable("GITHUB_CONTEXT");
     }
 }
