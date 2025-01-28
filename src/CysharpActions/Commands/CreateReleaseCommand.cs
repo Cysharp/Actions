@@ -49,6 +49,9 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
             else
             {
                 // Is File?
+                if (!File.Exists(assetPath))
+                    throw new ActionCommandException($"Asset file not found.", new FileNotFoundException(assetPath));
+
                 using var _ = new GitHubActionsGroupLogger($"Uploading asset. tag: {tag}. assetPath: {assetPath}");
                 await $"gh release upload {tag} \"{EscapeArg(assetPath)}\"";
             }
