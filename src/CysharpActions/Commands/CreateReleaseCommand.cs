@@ -41,7 +41,7 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
                 // Is Wildcard?
                 foreach (var file in GlobFiles.EnumerateFiles(path))
                 {
-                    await UploadCoreAsync(tag, path);
+                    await UploadCoreAsync(tag, file);
                 }
             }
             else
