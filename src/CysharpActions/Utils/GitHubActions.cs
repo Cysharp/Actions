@@ -4,6 +4,7 @@ namespace CysharpActions.Utils;
 
 public static class GitHubActions
 {
+    public static void WriteRawLog(string value) => Console.WriteLine(value);
     public static void WriteLog(string value) => Console.WriteLine($"[{DateTime.Now:s}] {value}");
 
     public static void WriteVerbose(string value)
