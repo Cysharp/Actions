@@ -1,10 +1,11 @@
-﻿using CysharpActions;
+using CysharpActions;
 using CysharpActions.Commands;
 using CysharpActions.Contexts;
 using CysharpActions.Utils;
 using Cysharp.Diagnostics;
 
 var app = ConsoleApp.Create();
+app.UseFilter<GlobalCompleteLogFilter>();
 app.Add<ActionsBatch>();
 app.Run(args);
 
@@ -208,7 +209,7 @@ namespace CysharpActions
             var isMetaCommand = context.Arguments.Contains("--help") || context.Arguments.Contains("-h") || context.Arguments.Contains("--version");
             if (!isMetaCommand)
             {
-                GitHubActions.WriteLog($"Begin {context.CommandName} ...");
+                GitHubActions.WriteLog($"Begin {context.CommandName} command ...");
             }
             await Next.InvokeAsync(context, cancellationToken);
             if (!isMetaCommand)
@@ -225,6 +226,8 @@ namespace CysharpActions
             // Ensure GH CLI can access on CI.
             if (Environment.GetEnvironmentVariable("CI") is not null)
             {
+                GitHubActions.WriteLog($"Validating gh cli environment variables ...");
+
                 _ = Environment.GetEnvironmentVariable("GH_REPO") ?? throw new ActionCommandException("Environment Variable 'GH_REPO' is required");
                 _ = Environment.GetEnvironmentVariable("GH_TOKEN") ?? throw new ActionCommandException("Environment Variable 'GH_TOKEN' is required");
             }
@@ -238,6 +241,7 @@ namespace CysharpActions
         {
             if (!(context.Arguments.Contains("-h") || context.Arguments.Contains("--help")))
             {
+                GitHubActions.WriteLog($"Validating GitHub Context ...");
                 // Ensure GitHubContext can be resolved
                 _ = GitHubContext.Current;
             }
