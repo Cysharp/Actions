@@ -87,15 +87,8 @@ namespace CysharpActions
         public void ValidateFileExists(string pathPatternString)
         {
             var pathPatterns = pathPatternString.ToMultiLine();
-            foreach (var pathPattern in pathPatterns)
-            {
-                using var _ = new GitHubActionsGroup($"Validating path, {pathPattern}");
-                {
-                    GitHubActions.WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
-                    var command = new FileExsistsCommand();
-                    command.Validate(pathPattern);
-                }
-            }
+            var command = new FileExsistsCommand();
+            command.ValidateAssetPath(pathPatterns);
         }
 
         /// <summary>
@@ -106,27 +99,8 @@ namespace CysharpActions
         public void ValidateNupkgExists(string pathPatternString)
         {
             var pathPatterns = pathPatternString.ToMultiLine();
-            foreach (var pathPattern in pathPatterns)
-            {
-                using var _ = new GitHubActionsGroup($"Validating path, {pathPattern}");
-                GitHubActions.WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
-
-                var fileName = Path.GetFileName(pathPattern);
-                if (string.IsNullOrWhiteSpace(pathPattern))
-                {
-                    GitHubActions.WriteLog("Empty path detected, skip execution.");
-                    continue;
-                }
-
-                var allowMissing = Path.GetExtension(fileName) == ".snupkg";
-                if (allowMissing)
-                {
-                    GitHubActions.WriteLog(".snupkg detected, allow missing file.");
-                }
-
-                var command = new FileExsistsCommand(allowMissing);
-                command.Validate(pathPattern);
-            }
+            var command = new FileExsistsCommand();
+            command.ValidateNuGetPath(pathPatterns);
         }
 
         /// <summary>
@@ -141,16 +115,15 @@ namespace CysharpActions
         public async Task CreateRelease(string tag, string releaseTitle, string releaseAssetPathString)
         {
             var releaseAssets = releaseAssetPathString.ToMultiLine();
+
             var command = new CreateReleaseCommand(tag, releaseTitle);
 
             GitHubActions.WriteLog($"Creating Release ...");
             await command.CreateReleaseAsync();
 
-            if (releaseAssets.Length > 0)
-            {
+            GitHubActions.WriteLog($"Uploading {releaseAssets.Length} assets ...");
+            await command.UploadAssetFilesAsync(releaseAssets);
                 GitHubActions.WriteLog($"Uploading assets ...");
-                await command.UploadAssetFilesAsync(releaseAssets);
-            }
         }
 
         /// <summary>

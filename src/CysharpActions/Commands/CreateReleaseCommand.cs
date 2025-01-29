@@ -34,26 +34,30 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
     /// <returns></returns>
     public async Task UploadAssetFilesAsync(string[] assetPaths)
     {
-        foreach (var assetPath in assetPaths)
+        foreach (var path in assetPaths)
         {
-            if (GlobFiles.IsGlobPattern(assetPath))
+            if (GlobFiles.IsGlobPattern(path))
             {
                 // Is Wildcard?
-                foreach (var file in GlobFiles.EnumerateFiles(assetPath))
+                foreach (var file in GlobFiles.EnumerateFiles(path))
                 {
-                    using var _ = new GitHubActionsGroup($"Uploading asset. tag: {tag}. assetPath: {file}");
-                    await $"gh release upload {tag} \"{EscapeArg(file)}\"";
+                    await UploadCoreAsync(tag, path);
                 }
             }
             else
             {
                 // Is File?
-                if (!File.Exists(assetPath))
-                    throw new ActionCommandException($"Asset file not found.", new FileNotFoundException(assetPath));
+                if (!File.Exists(path))
+                    throw new ActionCommandException($"Asset file not found.", new FileNotFoundException(path));
 
-                using var _ = new GitHubActionsGroup($"Uploading asset. tag: {tag}. assetPath: {assetPath}");
-                await $"gh release upload {tag} \"{EscapeArg(assetPath)}\"";
+                await UploadCoreAsync(tag, path);
             }
+        }
+
+        static async Task UploadCoreAsync(string tag, string path)
+        {
+            using var _ = new GitHubActionsGroup($"Uploading asset. tag: {tag}. assetPath: {path}");
+            await $"gh release upload {tag} \"{EscapeArg(path)}\"";
         }
     }
 }

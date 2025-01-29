@@ -6,33 +6,52 @@ public class FileExistsCommandTest
     public void SkipEmptyPathTest()
     {
         var command = new FileExsistsCommand();
-        command.Validate("");
+        command.ValidateAssetPath([""]);
+        command.ValidateNuGetPath([""]);
     }
 
     [Fact]
-    public void AllowMissingTest()
+    public void ThrowMissingSnupkgTest()
     {
-        var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(FullPathTest)}";
-        var items = new[] { "foo", "bar", "piyo" };
-        foreach (var item in items)
-        {
-            // file not exists, but test should pass
-            var command = new FileExsistsCommand(allowMissing: true);
-            command.Validate(Path.Combine(dir, item));
-            command.Validate(Path.Combine(dir, "**", item));
-        }
+        var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(ThrowMissingSnupkgTest)}";
+        var snupkgPaths = new[] { "foo", "bar", "piyo" }
+            .Select(x => Path.Combine(dir, x));
+        var snupkgGlobPatterns = new[] { "foo", "bar", "piyo" }
+            .Select(x => Path.Combine(dir, "**", x));
+
+        // .snupkg allows file not found, test should pass
+        var command = new FileExsistsCommand();
+        Assert.Throws<ActionCommandException>(() => command.ValidateNuGetPath(snupkgPaths));
+        Assert.Throws<ActionCommandException>(() => command.ValidateNuGetPath(snupkgGlobPatterns));
+    }
+
+    [Fact]
+    public void AllowMissingSnupkgTest()
+    {
+        var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(AllowMissingSnupkgTest)}";
+        var snupkgPaths = new[] { "foo.snupkg", "bar.snupkg", "piyo.snupkg" }
+            .Select(x => Path.Combine(dir, x));
+        var snupkgGlobPatterns = new[] { "foo.snupkg", "bar.snupkg", "piyo.snupkg" }
+            .Select(x => Path.Combine(dir, "**", x));
+
+        // .snupkg allows file not found, test should pass
+        var command = new FileExsistsCommand();
+        command.ValidateNuGetPath(snupkgPaths);
+        command.ValidateNuGetPath(snupkgGlobPatterns);
     }
 
     [Fact]
     public void FullPathTest()
     {
         var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(FullPathTest)}";
-        var item = "dummy.nupkg";
+        var items = new[] { "dummy.nupkg", "dummy.txt" };
+        var paths = items.Select(x => Path.Combine(dir, x));
         try
         {
-            CreateFiles(dir, [item], false);
+            CreateFiles(dir, items, false);
             var command = new FileExsistsCommand();
-            command.Validate(Path.Combine(dir, item));
+            command.ValidateAssetPath(paths);
+            command.ValidateNuGetPath(paths);
         }
         finally
         {
@@ -41,88 +60,65 @@ public class FileExistsCommandTest
     }
 
     [Fact]
-    public void WildcardFileTest()
+    public void GlobPatternTest()
     {
-        var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(WildcardFileTest)}";
+        var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(GlobPatternTest)}";
         var items = new[] { "foo", "bar", "piyo", "test.txt", "hoge.txt" };
         try
         {
             CreateFiles(dir, items, false);
             var command = new FileExsistsCommand();
-            foreach (var item in items)
-            {
-                command.Validate($"{dir}/{item}");
-            }
-            command.Validate($"{dir}/*");
-            command.Validate($"{dir}/*.txt");
-            command.Validate($"{dir}/hoge.*");
-            command.Validate($"{dir}/**/hoge.*");
-            command.Validate($"{dir}/**/*");
-        }
-        finally
-        {
-            SafeDeleteDirectory(dir);
-        }
-    }
 
-    [Fact]
-    public void WildcardDirectoryTest()
-    {
-        var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(WildcardDirectoryTest)}";
-        var items = new[] { "foo", "bar", "piyo" };
-        try
-        {
-            CreateFiles(dir, items, false);
-            var command = new FileExsistsCommand();
-            foreach (var item in items)
+            // recursive glob
             {
-                command.Validate($"{Path.GetDirectoryName(dir)}/*/{item}");
-                command.Validate($"{dir}/{item}");
-                command.Validate($"{dir}/**/{item}");
-                command.Validate($"{dir}/**/*");
-                Assert.Throws<ActionCommandException>(() => command.Validate($"{dir}/*/{item}"));
+                var path = $"{dir}/**/*";
+                command.ValidateAssetPath([path]);
+                command.ValidateNuGetPath([path]);
             }
-        }
-        finally
-        {
-            SafeDeleteDirectory(dir);
-        }
-    }
 
-    [Fact]
-    public void RecursiveWildcardDirectoryTest()
-    {
-        var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(RecursiveWildcardDirectoryTest)}";
-        var items = new[] { "foo", "bar", "piyo" };
-        try
-        {
-            CreateFiles(dir, items, false);
-            var command = new FileExsistsCommand();
+            // wildcard glob
             foreach (var item in items)
             {
-                command.Validate($"{Path.GetDirectoryName(dir)}/**/{item}");
-                command.Validate($"{dir}/**/{item}");
-            }
-        }
-        finally
-        {
-            SafeDeleteDirectory(dir);
-        }
-    }
+                // wildcard file
+                {
+                    var path = $"{dir}/*";
+                    command.ValidateAssetPath([path]);
+                    command.ValidateNuGetPath([path]);
+                }
+                {
+                    var path = $"{dir}/*.txt";
+                    command.ValidateAssetPath([path]);
+                    command.ValidateNuGetPath([path]);
+                }
+                {
+                    var path = $"{dir}/hoge.*";
+                    command.ValidateAssetPath([path]);
+                    command.ValidateNuGetPath([path]);
+                }
+                {
+                    var path = $"{dir}/**/hoge.*";
+                    command.ValidateAssetPath([path]);
+                    command.ValidateNuGetPath([path]);
+                }
 
-    [Fact]
-    public void RecursiveWildcardDirectoryAndFileTest()
-    {
-        var dir = $".tests/{nameof(FileExistsCommandTest)}/{nameof(RecursiveWildcardDirectoryAndFileTest)}";
-        var items = new[] { "foo", "bar", "piyo" };
-        try
-        {
-            CreateFiles(dir, items, true);
-            var command = new FileExsistsCommand();            
-            command.Validate($"{dir}/**/*");
-            foreach (var item in items)
-            {
-                command.Validate(Path.Combine(dir, item, item));
+                // wildcard directory
+                {
+                    var path = $"{Path.GetDirectoryName(dir)}/*/{item}";
+                    command.ValidateAssetPath([path]);
+                    command.ValidateNuGetPath([path]);
+                }
+                {
+                    var path = $"{dir}/**/{item}";
+                    command.ValidateAssetPath([path]);
+                    command.ValidateNuGetPath([path]);
+                }
+
+                // not found
+                {
+                    var path = $"{dir}/*/{item}";
+                    Assert.Throws<ActionCommandException>(() => command.ValidateAssetPath([path]));
+                    Assert.Throws<ActionCommandException>(() => command.ValidateNuGetPath([path]));
+                }
             }
         }
         finally

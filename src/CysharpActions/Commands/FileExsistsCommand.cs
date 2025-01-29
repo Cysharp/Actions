@@ -2,13 +2,45 @@
 
 namespace CysharpActions.Commands;
 
-public class FileExsistsCommand(bool allowMissing = false)
+public class FileExsistsCommand()
 {
-    public void Validate(string pattern)
+    public void ValidateAssetPath(IEnumerable<string> pathPatterns)
+    {
+        foreach (var path in pathPatterns)
+        {
+            using var _ = new GitHubActionsGroup($"Validating path, {path}");
+            {
+                GitHubActions.WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(path)}");
+                ValidateCore(path, false);
+            }
+        }
+    }
+
+    public void ValidateNuGetPath(IEnumerable<string> pathPatterns)
+    {
+        foreach (var pathPattern in pathPatterns)
+        {
+            using var _ = new GitHubActionsGroup($"Validating path, {pathPattern}");
+            {
+                GitHubActions.WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
+
+                var fileName = Path.GetFileName(pathPattern);
+                var extension = Path.GetExtension(fileName);
+                var allowMissing = extension == ".snupkg";
+
+                ValidateCore(pathPattern, allowMissing);
+            }
+        }
+    }
+
+    private static void ValidateCore(string pattern, bool allowMissing)
     {
         // do nothing for empty input
         if (string.IsNullOrWhiteSpace(pattern))
+        {
+            GitHubActions.WriteLog("Empty path detected, skip execution.");
             return;
+        }
 
         if (GlobFiles.IsGlobPattern(pattern))
         {
@@ -35,7 +67,10 @@ public class FileExsistsCommand(bool allowMissing = false)
                 return;
             // allow file not exists
             if (allowMissing)
+            {
+                GitHubActions.WriteLog($"Missing file detected, it is allowed. pattern: {pattern}");
                 return;
+            }
 
             throw new ActionCommandException(pattern, new FileNotFoundException(pattern));
         }
