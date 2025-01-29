@@ -1,4 +1,5 @@
-﻿using Zx;
+﻿using CysharpActions.Utils;
+using Zx;
 
 namespace CysharpActions.Tests;
 
@@ -17,7 +18,7 @@ public class CreateReleaseCommandTest
         if (Environment.GetEnvironmentVariable("GH_TOKEN") is null)
             throw new Exception("GH_TOKEN is not set");
 
-        var dir = Path.Combine(Path.GetTempPath(), nameof(ReleaseTest));
+        var dir = $".tests/{nameof(CreateReleaseCommand)}/{nameof(ReleaseTest)}";
         var files = Enumerable.Range(0, 3)
             .Select(x => Path.Combine(dir, Path.GetTempFileName()))
             .ToArray();
@@ -34,7 +35,7 @@ public class CreateReleaseCommandTest
 
             // clean up release
             var list = await $"gh release list";
-            var exists = SplitByNewLine(list)
+            var exists = list.ToMultiLine()
                 .Where(x => x.Contains("Draft"))
                 .Where(x => x.Contains("Ver.1.1.0"))
                 .Any();
@@ -44,6 +45,4 @@ public class CreateReleaseCommandTest
             }
         }
     }
-
-    private static string[] SplitByNewLine(string stringsValue) => stringsValue.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
 }

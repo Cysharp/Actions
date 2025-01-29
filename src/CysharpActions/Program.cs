@@ -1,4 +1,4 @@
-using CysharpActions;
+﻿using CysharpActions;
 using CysharpActions.Commands;
 using CysharpActions.Contexts;
 using CysharpActions.Utils;
@@ -123,7 +123,23 @@ namespace CysharpActions
 
             GitHubActions.WriteLog($"Uploading {releaseAssets.Length} assets ...");
             await command.UploadAssetFilesAsync(releaseAssets);
-                GitHubActions.WriteLog($"Uploading assets ...");
+        }
+
+        /// <summary>
+        /// Push NuGet Package
+        /// </summary>
+        /// <param name="nugetPathString">NuGet Packages to push.</param>
+        /// <param name="apiKey">NuGet API Key</param>
+        /// <param name="dryRun">Dry run or not</param>
+        /// <returns></returns>
+        [Command("nuget-push")]
+        public async Task PushNuGetPackage(string nugetPathString, string apiKey, bool dryRun)
+        {
+            var nugetPaths = nugetPathString.ToMultiLine();
+
+            GitHubActions.WriteLog($"Uploading {nugetPaths.Length} nuget packages (dryRun: {dryRun})...");
+            var command = new NuGetCommand(apiKey, dryRun);
+            await command.PushAsync(nugetPaths);
         }
 
         /// <summary>

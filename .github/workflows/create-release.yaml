@@ -152,21 +152,7 @@ jobs:
       # Upload to NuGet
       - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
         if: ${{ inputs.nuget-push }}
-        run: |
-          while read -r nuget_path; do
-            if [[ "$nuget_path" == "" ]]; then continue; fi
-            # shellcheck disable=SC2086
-            if ! ls -l ${nuget_path} >/dev/null 2>&1;then
-              echo "skipping nuget push, $nuget_path not found."
-              continue
-            fi
-
-            if [[ "${{ inputs.dry-run }}" == "true" ]]; then
-              echo "(dry run) dotnet nuget push \"${nuget_path}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k \"${{ steps.op-load-secret.outputs.NUGET_KEY }}\""
-            else
-              dotnet nuget push "${nuget_path}" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${{ steps.op-load-secret.outputs.NUGET_KEY }}"
-            fi
-          done <<< "${{ inputs.nuget-path }}"
+        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --apiKey "${{ steps.op-load-secret.outputs.NUGET_KEY }}" ${{ inputs.dry-run && '--dry-run' || '' }}
 
       # Clean up
       - name: Clean up. Wait 60s and delete release if dry-run or failure. (dry-run=${{ inputs.dry-run }}})
