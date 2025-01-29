@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35527.113
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CysharpActions", "src\CysharpActions\CysharpActions.csproj", "{0371D0AA-BB43-4136-B9AA-A311A3E4615B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CysharpActions.Tests", "src\CysharpActions.Tests\CysharpActions.Tests.csproj", "{8DAE3F25-F3B7-4F98-A0FA-5585EDD0C22E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0371D0AA-BB43-4136-B9AA-A311A3E4615B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0371D0AA-BB43-4136-B9AA-A311A3E4615B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0371D0AA-BB43-4136-B9AA-A311A3E4615B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0371D0AA-BB43-4136-B9AA-A311A3E4615B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DAE3F25-F3B7-4F98-A0FA-5585EDD0C22E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DAE3F25-F3B7-4F98-A0FA-5585EDD0C22E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DAE3F25-F3B7-4F98-A0FA-5585EDD0C22E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DAE3F25-F3B7-4F98-A0FA-5585EDD0C22E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
