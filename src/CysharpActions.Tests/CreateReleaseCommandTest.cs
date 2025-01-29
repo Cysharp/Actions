@@ -26,7 +26,7 @@ public class CreateReleaseCommandTest
             CreateFiles(dir, files);
             var command = new CreateReleaseCommand(tag, releaseTitle);
             await command.CreateReleaseAsync();
-            await command.UploadAssetFiles(files);
+            await command.UploadAssetFilesAsync(files);
         }
         finally
         {

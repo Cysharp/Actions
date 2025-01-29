@@ -20,5 +20,10 @@ public static class ZxHelper
         return "\"" + command + "\"";
     }
 
+    /// <summary>
+    /// Split newline delimited string to string array.
+    /// </summary>
+    /// <param name="stringsValue"></param>
+    /// <returns></returns>
     public static string[] ToMultiLine(this string stringsValue) => stringsValue.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
 }

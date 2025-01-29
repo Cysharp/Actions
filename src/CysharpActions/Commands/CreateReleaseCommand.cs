@@ -1,5 +1,4 @@
 ﻿using CysharpActions.Utils;
-using static CysharpActions.Utils.ZxHelper;
 
 namespace CysharpActions.Commands;
 
@@ -13,14 +12,14 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
     public async Task CreateReleaseAsync()
     {
         // git tag
-        using (_ = new GitHubActionsGroupLogger("Create git tag"))
+        using (_ = new GitHubActionsGroup("Create git tag"))
         {
             await $"git tag {tag}";
             await $"git push origin {tag}";
         }
 
         // create release
-        using (_ = new GitHubActionsGroupLogger("Create Release"))
+        using (_ = new GitHubActionsGroup("Create Release"))
         {
             await $"gh release create {tag} --draft --verify-tag --title \"{releaseTitle}\" --generate-notes";
             // wait a while
@@ -33,7 +32,7 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
     /// </summary>
     /// <param name="assetPaths"></param>
     /// <returns></returns>
-    public async Task UploadAssetFiles(string[] assetPaths)
+    public async Task UploadAssetFilesAsync(string[] assetPaths)
     {
         foreach (var assetPath in assetPaths)
         {
@@ -42,7 +41,7 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
                 // Is Wildcard?
                 foreach (var file in GlobFiles.EnumerateFiles(assetPath))
                 {
-                    using var _ = new GitHubActionsGroupLogger($"Uploading asset. tag: {tag}. assetPath: {file}");
+                    using var _ = new GitHubActionsGroup($"Uploading asset. tag: {tag}. assetPath: {file}");
                     await $"gh release upload {tag} \"{EscapeArg(file)}\"";
                 }
             }
@@ -52,7 +51,7 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
                 if (!File.Exists(assetPath))
                     throw new ActionCommandException($"Asset file not found.", new FileNotFoundException(assetPath));
 
-                using var _ = new GitHubActionsGroupLogger($"Uploading asset. tag: {tag}. assetPath: {assetPath}");
+                using var _ = new GitHubActionsGroup($"Uploading asset. tag: {tag}. assetPath: {assetPath}");
                 await $"gh release upload {tag} \"{EscapeArg(assetPath)}\"";
             }
         }

@@ -1,10 +1,8 @@
-﻿using CysharpActions;
+using CysharpActions;
 using CysharpActions.Commands;
 using CysharpActions.Contexts;
 using CysharpActions.Utils;
 using Cysharp.Diagnostics;
-using System.Runtime.CompilerServices;
-using static CysharpActions.Utils.ZxHelper;
 
 var app = ConsoleApp.Create();
 app.Add<ActionsBatch>();
@@ -15,23 +13,6 @@ namespace CysharpActions
     public class ActionsBatch
     {
 #pragma warning disable CA1822 // Mark members as static
-
-        /// <summary>Get version string by versionIncrement. If tag is 1.0.0 and Patch is selected 1.0.1 will be return, Minor will be 1.1.0 and Major will be 2.0.0</summary>
-        /// <param name="tag">version string. ex) 1.0.0</param>
-        /// <param name="prefix">version prefix to add. ex) v will be v1.0.0</param>
-        /// <param name="versionIncrement">Specify increment mode. Available Values wil be Major, Minor and Patch</param>
-        /// <param name="isPrerelease">Specify if version is PreRelease</param>
-        /// <param name="prerelease">Prerelease suffix</param>
-        /// <param name="outputFormat">Select how to output. Console or GitHubActions Output</param>
-        [Command("versioning")]
-        public void Versioning(string tag, string prefix = "", VersionIncrement versionIncrement = VersionIncrement.Patch, bool isPrerelease = false, string prerelease = "preview", bool withoutPrefix = false, OutputFormatType outputFormat = OutputFormatType.Console)
-        {
-            var command = new VersioningCommand(tag, prefix, versionIncrement, isPrerelease, prerelease);
-            var versioning = command.Versioning(withoutPrefix);
-
-            var output = OutputFormat("version", versioning, outputFormat);
-            WriteLog(output);
-        }
 
         /// <summary>
         /// Validate Tag and remove v prefix if exists
@@ -50,8 +31,8 @@ namespace CysharpActions
                 await command.ValidateTagAsync(normalizedTag);
             }
 
-            GitHubOutput("tag", tag);
-            GitHubOutput("normalized-tag", normalizedTag);
+            GitHubActions.SetOutput("tag", tag);
+            GitHubActions.SetOutput("normalized-tag", normalizedTag);
         }
 
         /// <summary>
@@ -72,32 +53,30 @@ namespace CysharpActions
             var paths = pathString.ToMultiLine();
             foreach (var path in paths)
             {
-                WriteLog($"Update begin, {path} ...");
+                GitHubActions.WriteLog($"Update begin, {path} ...");
                 if (string.IsNullOrWhiteSpace(path))
                 {
-                    WriteLog("Empty path detected, skip execution.");
+                    GitHubActions.WriteLog("Empty path detected, skip execution.");
                     continue;
                 }
 
-                using (_ = new GitHubActionsGroupLogger($"Before, {path}"))
-                    WriteLog(File.ReadAllText(path));
+                using (_ = new GitHubActionsGroup($"Before, {path}"))
+                    GitHubActions.WriteLog(File.ReadAllText(path));
                 var result = command.UpdateVersion(path, dryRun);
-                using (_ = new GitHubActionsGroupLogger($"After, {path}"))
-                    WriteLog(result.After);
+                using (_ = new GitHubActionsGroup($"After, {path}"))
+                    GitHubActions.WriteLog(result.After);
             }
 
             // Git Commit
-            using (_ = new GitHubActionsGroupLogger("git commit changes"))
+            using (_ = new GitHubActionsGroup("git commit changes"))
             {
                 var (commited, sha, branchName, isBranchCreated) = await GitCommitAsync(dryRun, version);
 
-                GitHubOutput("commited", commited ? "1" : "0");
-                GitHubOutput("sha", sha);
-                GitHubOutput("branch-name", branchName);
-                GitHubOutput("is-branch-created", isBranchCreated);
+                GitHubActions.SetOutput("commited", commited ? "1" : "0");
+                GitHubActions.SetOutput("sha", sha);
+                GitHubActions.SetOutput("branch-name", branchName);
+                GitHubActions.SetOutput("is-branch-created", isBranchCreated);
             }
-
-            WriteLog($"Completed ...");
         }
 
         /// <summary>
@@ -110,15 +89,13 @@ namespace CysharpActions
             var pathPatterns = pathPatternString.ToMultiLine();
             foreach (var pathPattern in pathPatterns)
             {
-                using var _ = new GitHubActionsGroupLogger($"Validating path, {pathPattern}");
+                using var _ = new GitHubActionsGroup($"Validating path, {pathPattern}");
                 {
-                    WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
+                    GitHubActions.WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
                     var command = new FileExsistsCommand();
                     command.Validate(pathPattern);
                 }
             }
-
-            WriteLog($"Completed ...");
         }
 
         /// <summary>
@@ -131,27 +108,25 @@ namespace CysharpActions
             var pathPatterns = pathPatternString.ToMultiLine();
             foreach (var pathPattern in pathPatterns)
             {
-                using var _ = new GitHubActionsGroupLogger($"Validating path, {pathPattern}");
-                WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
+                using var _ = new GitHubActionsGroup($"Validating path, {pathPattern}");
+                GitHubActions.WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
 
                 var fileName = Path.GetFileName(pathPattern);
                 if (string.IsNullOrWhiteSpace(pathPattern))
                 {
-                    WriteLog("Empty path detected, skip execution.");
+                    GitHubActions.WriteLog("Empty path detected, skip execution.");
                     continue;
                 }
 
                 var allowMissing = Path.GetExtension(fileName) == ".snupkg";
                 if (allowMissing)
                 {
-                    WriteLog(".snupkg detected, allow missing file.");
+                    GitHubActions.WriteLog(".snupkg detected, allow missing file.");
                 }
 
                 var command = new FileExsistsCommand(allowMissing);
                 command.Validate(pathPattern);
             }
-
-            WriteLog($"Completed ...");
         }
 
         /// <summary>
@@ -166,19 +141,16 @@ namespace CysharpActions
         public async Task CreateRelease(string tag, string releaseTitle, string releaseAssetPathString)
         {
             var releaseAssets = releaseAssetPathString.ToMultiLine();
-
             var command = new CreateReleaseCommand(tag, releaseTitle);
 
-            WriteLog($"Creating Release ...");
+            GitHubActions.WriteLog($"Creating Release ...");
             await command.CreateReleaseAsync();
 
             if (releaseAssets.Length > 0)
             {
-                WriteLog($"Uploading assets ...");
-                await command.UploadAssetFiles(releaseAssets);
+                GitHubActions.WriteLog($"Uploading assets ...");
+                await command.UploadAssetFilesAsync(releaseAssets);
             }
-
-            WriteLog($"Completed ...");
         }
 
         /// <summary>
@@ -188,22 +160,10 @@ namespace CysharpActions
         [Command("create-dummy")]
         public async Task CreateDummy(string basePath)
         {
-            WriteLog($"Creating dummy files, under {basePath} ...");
+            GitHubActions.WriteLog($"Creating dummy files, under {basePath} ...");
 
             var command = new CreateDummyCommand();
             command.CreateDummy(basePath);
-
-            WriteLog($"Completed ...");
-        }
-
-        /// <summary>
-        /// debug command
-        /// </summary>
-        /// <returns></returns>
-        [Command("debug")]
-        public void Debug(string[] foo)
-        {
-            Console.WriteLine($"--foo {string.Join(",", foo)}");
         }
 
         /// <summary>
@@ -216,27 +176,27 @@ namespace CysharpActions
         /// <returns></returns>
         private async Task<(bool commited, string sha, string branchName, string isBranchCreated)> GitCommitAsync(bool dryRun, string tag, string email = "41898282+github-actions[bot]@users.noreply.github.com", string user = "github-actions[bot]")
         {
-            WriteLog($"Checking File change has been happen ...");
+            GitHubActions.WriteLog($"Checking File change has been happen ...");
             var commited = false;
             var branchName = "";
             var isBranchCreated = "false";
             try
             {
                 var result = await "git diff --exit-code"; // 0 = no diff, 1 = diff
-                WriteLog("git diff not found, skipping commit.");
+                GitHubActions.WriteLog("git diff not found, skipping commit.");
             }
             catch (ProcessErrorException)
             {
-                WriteLog("Detected git diff.");
+                GitHubActions.WriteLog("Detected git diff.");
                 if (dryRun)
                 {
-                    WriteLog("Dryrun Mode detected, creating branch and switch.");
+                    GitHubActions.WriteLog("Dryrun Mode detected, creating branch and switch.");
                     branchName = $"test-release/{tag}";
                     isBranchCreated = "true";
                     await $"git switch -c {branchName}";
                 }
 
-                WriteLog("Committing change. Running following.");
+                GitHubActions.WriteLog("Committing change. Running following.");
                 await $"git config --local user.email \"{email}\"";
                 await $"git config --local user.name \"{user}\"";
                 await $"git commit -a -m \"{EscapeArg($"feat: Update package.json to {tag}")}\" -m \"{EscapeArg($"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})")}\"";
@@ -249,35 +209,23 @@ namespace CysharpActions
         }
 
 #pragma warning restore CA1822 // Mark members as static
+    }
 
-        private static string OutputFormat(string key, string value, OutputFormatType format) => format switch
+    internal class GlobalCompleteLogFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+    {
+        public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
         {
-            OutputFormatType.Console => value,
-            OutputFormatType.GitHubActionsOutput => $"{key}={value}",
-            _ => throw new NotImplementedException(nameof(format)),
-        };
-
-        private static void WriteLog(string value) => Console.WriteLine($"[{DateTime.Now:s}] {value}");
-
-        private static void WriteVerbose(string value)
-        {
-            if (ActionsBatchOptions.Verbose)
+            // don't show log on --help and --version
+            var isMetaCommand = context.Arguments.Contains("--help") || context.Arguments.Contains("-h") || context.Arguments.Contains("--version");
+            if (!isMetaCommand)
             {
-                WriteLog(value);
+                GitHubActions.WriteLog($"Begin {context.CommandName} ...");
             }
-        }
-
-        private static void GitHubOutput(string key, string value, [CallerMemberName] string? callerMemberName = null)
-        {
-            var input = $"{key}={value}";
-            var output = Environment.GetEnvironmentVariable("GITHUB_OUTPUT", EnvironmentVariableTarget.Process) ?? Path.Combine(Directory.GetCurrentDirectory(), $"GitHubOutputs/{callerMemberName}");
-            if (!Directory.Exists(Path.GetDirectoryName(output)))
+            await Next.InvokeAsync(context, cancellationToken);
+            if (!isMetaCommand)
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+                GitHubActions.WriteLog($"Completed ...");
             }
-
-            WriteLog($"GitHub Output: {input}");
-            File.AppendAllLines(output, [input]);
         }
     }
 
