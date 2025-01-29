@@ -37,6 +37,22 @@ namespace CysharpActions
         }
 
         /// <summary>
+        /// Delete Git branch
+        /// </summary>
+        /// <param name="branch">branch name to delete</param>
+        /// <returns></returns>
+        [ConsoleAppFilter<GitHubContextFilter>]
+        [ConsoleAppFilter<GitHubCliFilter>]
+        [Command("delete-branch")]
+        public async Task DeleteBranch(string branch)
+        {
+            var command = new GitCommand();
+            var result = await command.DeleteBranchAsync(branch);
+
+            GitHubActions.SetOutput("deleted", result.ToString().ToLower());
+        }
+
+        /// <summary>
         /// Update Version for specified path and commit.
         /// </summary>
         /// <param name="version">version string. ex) 1.0.0</param>
