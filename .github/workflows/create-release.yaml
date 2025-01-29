@@ -152,7 +152,7 @@ jobs:
       # Upload to NuGet
       - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
         if: ${{ inputs.nuget-push }}
-        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --apiKey "${{ steps.op-load-secret.outputs.NUGET_KEY }}" ${{ inputs.dry-run && '--dry-run' || '' }}
+        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --api-key "${{ steps.op-load-secret.outputs.NUGET_KEY }}" ${{ inputs.dry-run && '--dry-run' || '' }}
 
       # Clean up
       - name: Clean up. Wait 60s and delete release if dry-run or failure. (dry-run=${{ inputs.dry-run }}})

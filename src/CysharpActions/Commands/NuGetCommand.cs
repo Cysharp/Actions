@@ -13,7 +13,7 @@ public class NuGetCommand(string apiKey, bool dryRun)
                 // Is Wildcard?
                 foreach (var file in GlobFiles.EnumerateFiles(path))
                 {
-                    await PushCoreAsync(path, apiKey, dryRun);
+                    await PushCoreAsync(file, apiKey, dryRun);
                 }
             }
             else
