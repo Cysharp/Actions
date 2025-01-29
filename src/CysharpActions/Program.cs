@@ -1,4 +1,4 @@
-using CysharpActions;
+﻿using CysharpActions;
 using CysharpActions.Commands;
 using CysharpActions.Contexts;
 using CysharpActions.Utils;
@@ -224,7 +224,7 @@ namespace CysharpActions
         public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
         {
             // Ensure GH CLI can access on CI.
-            if (Environment.GetEnvironmentVariable("CI") is not null)
+            if (GitHubEnv.Current.CI)
             {
                 GitHubActions.WriteLog($"Validating gh cli environment variables ...");
 
@@ -253,6 +253,6 @@ namespace CysharpActions
 
     internal static class ActionsBatchOptions
     {
-        public static readonly bool Verbose = bool.Parse(Environment.GetEnvironmentVariable("ACTIONS_BATCH_OPTIONS_VERBOSE") ?? "false");
+        public static readonly bool Verbose = GitHubEnv.Current.ACTIONS_STEP_DEBUG || GitHubEnv.Current.RUNNER_DEBUG;
     }
 }
