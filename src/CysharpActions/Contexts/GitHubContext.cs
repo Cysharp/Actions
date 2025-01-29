@@ -103,7 +103,7 @@ internal record GitHubEnv
     /// <summary>
     /// The name of the event that triggered the workflow. For example, workflow_dispatch.
     /// </summary>
-    public string GITHUB_EVENT_NAME { get; init; } = Get(nameof(GITHUB_EVENT_NAME)) ?? throw new ArgumentNullException("Environment Variable 'GITHUB_EVENT_NAME' is missing.");
+    public string GITHUB_EVENT_NAME { get; init; } = Get(nameof(GITHUB_EVENT_NAME)) ?? "";
     /// <summary>
     /// The path to the file on the runner that contains the full event webhook payload. For example, /github/workflow/event.json.
     /// </summary>
@@ -140,7 +140,7 @@ internal record GitHubEnv
     /// <summary>
     /// The owner and repository name. For example, octocat/Hello-World.
     /// </summary>
-    public string GITHUB_REPOSITORY { get; init; } = Get(nameof(GITHUB_REPOSITORY)) ?? throw new ArgumentNullException("Environment Variable 'GITHUB_REPOSITORY' is missing.");
+    public string GITHUB_REPOSITORY { get; init; } = Get(nameof(GITHUB_REPOSITORY)) ?? "";
     /// <summary>
     /// The repository owner's name. For example, octocat.
     /// </summary>
@@ -152,7 +152,7 @@ internal record GitHubEnv
     /// <summary>
     /// A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run. For example, 1658821493.
     /// </summary>
-    public string GITHUB_RUN_ID { get; init; } = Get(nameof(GITHUB_RUN_ID)) ?? throw new ArgumentNullException("Environment Variable 'GITHUB_RUN_ID' is missing.");
+    public string GITHUB_RUN_ID { get; init; } = Get(nameof(GITHUB_RUN_ID)) ?? "";
     /// <summary>
     /// A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run. For example, 3.
     /// </summary>
@@ -160,7 +160,7 @@ internal record GitHubEnv
     /// <summary>
     /// The URL of the GitHub server. For example: https://github.com.
     /// </summary>
-    public string GITHUB_SERVER_URL { get; init; } = Get(nameof(GITHUB_SERVER_URL)) ?? throw new ArgumentNullException("Environment Variable 'GITHUB_SERVER_URL' is missing.");
+    public string GITHUB_SERVER_URL { get; init; } = Get(nameof(GITHUB_SERVER_URL)) ?? "";
     /// <summary>
     /// The commit SHA that triggered the workflow. The value of this commit SHA depends on the event that triggered the workflow. For more information, see Events that trigger workflows. For example, ffac537e6cbbf934b08745a378932722df287a53.
     /// </summary>
