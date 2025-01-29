@@ -30,7 +30,7 @@ public class NuGetCommand(string apiKey, bool dryRun)
             using var _ = new GitHubActionsGroup($"Uploading nuget. nugetPath: {path}");
             if (dryRun)
             {
-                GitHubActions.WriteLog($"dotnet nuget push \"{EscapeArg(path)}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k {apiKey}");
+                GitHubActions.WriteRawLog($"dotnet nuget push \"{EscapeArg(path)}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k {apiKey}");
             }
             else
             {
