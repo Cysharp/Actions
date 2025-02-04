@@ -93,7 +93,7 @@ env:
   GH_REPO: ${{ github.repository }}
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  permissions:
+permissions:
   contents: write # required for creating release
   pull-requests: write
 
