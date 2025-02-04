@@ -89,7 +89,11 @@ on:
         type: boolean
         default: false
 
-permissions:
+env:
+  GH_REPO: ${{ github.repository }}
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  permissions:
   contents: write # required for creating release
   pull-requests: write
 
@@ -129,9 +133,6 @@ jobs:
       - name: Validate and normalize tag
         id: validate
         run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
-        env:
-          GH_REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Download(All) Artifacts to current directory
       - uses: Cysharp/Actions/.github/actions/download-artifact@main
@@ -147,9 +148,6 @@ jobs:
       # Create Releases
       - name: Create Release
         run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- create-release --tag "${{ inputs.tag }}" --release-title "${{ format(inputs.release-format, inputs.tag) }}" --release-asset-path-string "${{ inputs.release-asset-path }}"
-        env:
-          GH_REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Upload to NuGet
       - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
