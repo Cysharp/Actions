@@ -18,10 +18,10 @@ public class UpdateVersionCommand(string version)
             }
 
             GitHubActions.WriteLog($"Update begin, {path} ...");
-            using (_ = new GitHubActionsGroup($"Before, {path}"))
+            using (_ = GitHubActions.StartGroup($"Before, {path}"))
                 GitHubActions.WriteLog(File.ReadAllText(path));
             var result = UpdateVersion(path, dryRun);
-            using (_ = new GitHubActionsGroup($"After, {path}"))
+            using (_ = GitHubActions.StartGroup($"After, {path}"))
                 GitHubActions.WriteLog(result.After);
 
             yield return result;

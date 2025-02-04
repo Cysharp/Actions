@@ -54,7 +54,7 @@ namespace CysharpActions
             command.UpdateVersions(paths, dryRun);
 
             // Git Commit
-            using (_ = new GitHubActionsGroup("git commit changes"))
+            using (_ = GitHubActions.StartGroup("git commit changes"))
             {
                 var (commited, sha, branchName, isBranchCreated) = await GitCommitAsync(dryRun, version);
 

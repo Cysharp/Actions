@@ -8,7 +8,7 @@ public class FileExsistsCommand()
     {
         foreach (var path in pathPatterns)
         {
-            using var _ = new GitHubActionsGroup($"Validating path, {path}");
+            using var _ = GitHubActions.StartGroup($"Validating path, {path}");
             {
                 GitHubActions.WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(path)}");
                 ValidateCore(path, false);
@@ -20,7 +20,7 @@ public class FileExsistsCommand()
     {
         foreach (var pathPattern in pathPatterns)
         {
-            using var _ = new GitHubActionsGroup($"Validating path, {pathPattern}");
+            using var _ = GitHubActions.StartGroup($"Validating path, {pathPattern}");
             {
                 GitHubActions.WriteVerbose($"UTF8: {DebugTools.ToUtf8Base64String(pathPattern)}");
 

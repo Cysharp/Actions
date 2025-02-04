@@ -12,7 +12,7 @@ public class GitCommand()
         Env.useShell = false;
 
         // Search branches to delete
-        using (var _ = new GitHubActionsGroup($"Searching branch for repo. branch: {branch}"))
+        using (var _ = GitHubActions.StartGroup($"Searching branch for repo. branch: {branch}"))
         {
             // Check if the branch is the default branch
             var repoJson = await $"gh api /repos/{GitHubContext.Current.Repository}";
@@ -36,7 +36,7 @@ public class GitCommand()
         }
 
         // check branch detail
-        using (var _ = new GitHubActionsGroup($"Branch detail. branch: {branch}"))
+        using (var _ = GitHubActions.StartGroup($"Branch detail. branch: {branch}"))
         {
             var branchJson = await $"gh api /repos/{GitHubContext.Current.Repository}/branches/{branch}";
             var branchDetail = JsonSerializer.Deserialize<GitHubApiBranch>(branchJson) ?? throw new ActionCommandException("gh api could not get branch info.");
@@ -51,7 +51,7 @@ public class GitCommand()
             }
         }
 
-        using (var _ = new GitHubActionsGroup($"Deleteting branch. branch: {branch}"))
+        using (var _ = GitHubActions.StartGroup($"Deleteting branch. branch: {branch}"))
         {
             GitHubActions.WriteLog($"Branch is created by github-actions[bot], deleting branch. branch: {branch}");
             await $"gh api -X DELETE /repos/{GitHubContext.Current.Repository}/git/refs/heads/{branch}";
