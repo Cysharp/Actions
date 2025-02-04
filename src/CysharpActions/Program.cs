@@ -1,4 +1,5 @@
-﻿using CysharpActions;
+﻿#pragma warning disable CA1822 // Mark members as static
+using CysharpActions;
 using CysharpActions.Commands;
 using CysharpActions.Contexts;
 using CysharpActions.Utils;
@@ -13,28 +14,7 @@ namespace CysharpActions
 {
     public class ActionsBatch
     {
-#pragma warning disable CA1822 // Mark members as static
-
-        /// <summary>
-        /// Validate Tag and remove v prefix if exists
-        /// </summary>
-        /// <param name="tag">version string. ex) 1.0.0 OR v1.0.0</param>
-        /// <param name="requireValidation">Set true to exit 1 on fail. Set false to exit 0 even fail.</param>
-        /// <returns></returns>
-        [ConsoleAppFilter<GitHubCliFilter>]
-        [Command("validate-tag")]
-        public async Task ValidateTag(string tag, bool requireValidation)
-        {
-            var command = new ValidateTagCommand();
-            var normalizedTag = command.Normalize(tag);
-            if (requireValidation)
-            {
-                await command.ValidateTagAsync(normalizedTag);
-            }
-
-            GitHubActions.SetOutput("tag", tag);
-            GitHubActions.SetOutput("normalized-tag", normalizedTag);
-        }
+        // Clean package.json branch
 
         /// <summary>
         /// Delete Git branch
@@ -51,6 +31,8 @@ namespace CysharpActions
 
             GitHubActions.SetOutput("deleted", result.ToString().ToLower());
         }
+
+        // Update package.json
 
         /// <summary>
         /// Update Version for specified path and commit.
@@ -80,6 +62,29 @@ namespace CysharpActions
                 GitHubActions.SetOutput("branch-name", branchName);
                 GitHubActions.SetOutput("is-branch-created", isBranchCreated);
             }
+        }
+
+        // Create Release
+
+        /// <summary>
+        /// Validate Tag and remove v prefix if exists
+        /// </summary>
+        /// <param name="tag">version string. ex) 1.0.0 OR v1.0.0</param>
+        /// <param name="requireValidation">Set true to exit 1 on fail. Set false to exit 0 even fail.</param>
+        /// <returns></returns>
+        [ConsoleAppFilter<GitHubCliFilter>]
+        [Command("validate-tag")]
+        public async Task ValidateTag(string tag, bool requireValidation)
+        {
+            var command = new ValidateTagCommand();
+            var normalizedTag = command.Normalize(tag);
+            if (requireValidation)
+            {
+                await command.ValidateTagAsync(normalizedTag);
+            }
+
+            GitHubActions.SetOutput("tag", tag);
+            GitHubActions.SetOutput("normalized-tag", normalizedTag);
         }
 
         /// <summary>
@@ -136,7 +141,7 @@ namespace CysharpActions
         /// <param name="dryRun">Dry run or not</param>
         /// <returns></returns>
         [Command("nuget-push")]
-        public async Task PushNuGetPackage(string nugetPathString, string apiKey, bool dryRun)
+        public async Task NuGetPush(string nugetPathString, string apiKey, bool dryRun)
         {
             var nugetPaths = nugetPathString.ToMultiLine();
 
@@ -201,8 +206,6 @@ namespace CysharpActions
             var sha = await "git rev-parse HEAD";
             return (commited, sha, branchName, isBranchCreated);
         }
-
-#pragma warning restore CA1822 // Mark members as static
     }
 
     internal class GlobalCompleteLogFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
