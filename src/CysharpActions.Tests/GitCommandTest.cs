@@ -7,7 +7,7 @@ public class GitCommandTest
 {
     // Run only on GitHub Actions
     [Fact]
-    public async Task DeleteBranchNotFoundTest()
+    public async Task DeleteBrancFalse_NotGitHubActionsLoginTest()
     {
         if (Environment.GetEnvironmentVariable("CI") is null)
             return;
@@ -18,18 +18,21 @@ public class GitCommandTest
 
         Zx.Env.useShell = false;
 
-        var branchName = "it/should/not/exists/at/all";
+        var branch = "it/should/not/exists/at/all";
 
         try
         {
+            // delete before test
+            await $"gh api -X DELETE /repos/{GitHubContext.Current.Repository}/git/refs/heads/{branch}";
+
             var sha = await "git rev-parse HEAD";
-            await $"gh api --method POST -H \"Accept: application/vnd.github.v3+json\" /repos/{GitHubContext.Current.Repository}/git/refs -f ref=\"refs/heads/{branchName}\" -f sha=\"{sha}\"";
+            await $"gh api --method POST -H \"Accept: application/vnd.github.v3+json\" /repos/{GitHubContext.Current.Repository}/git/refs -f ref=\"refs/heads/{branch}\" -f sha=\"{sha}\"";
         }
         finally
         {
             var command = new GitCommand();
-            var result = await command.DeleteBranchAsync(branchName);
-            Assert.False(result);
+            var result = await command.DeleteBranchAsync(branch);
+            Assert.False(result); // because creater is not github-actions[bot]
         }
     }
 }
