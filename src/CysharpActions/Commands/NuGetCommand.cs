@@ -6,6 +6,7 @@ public class NuGetCommand(string apiKey, bool dryRun)
 {
     public async Task PushAsync(IEnumerable<string> nugetPaths)
     {
+        Env.useShell = false;
         foreach (var path in nugetPaths)
         {
             if (GlobFiles.IsGlobPattern(path))
@@ -30,11 +31,11 @@ public class NuGetCommand(string apiKey, bool dryRun)
             using var _ = new GitHubActionsGroup($"Uploading nuget. nugetPath: {path}");
             if (dryRun)
             {
-                GitHubActions.WriteRawLog($"dotnet nuget push \"{EscapeArg(path)}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k {apiKey}");
+                GitHubActions.WriteRawLog($"dotnet nuget push \"{path}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k {apiKey}");
             }
             else
             {
-                await $"dotnet nuget push \"{EscapeArg(path)}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k {apiKey}";
+                await $"dotnet nuget push \"{path}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k {apiKey}";
             }
         }
     }

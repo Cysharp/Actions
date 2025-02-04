@@ -19,6 +19,8 @@ public class ValidateTagCommand()
     /// <returns></returns>
     public async Task ValidateTagAsync(string tag)
     {
+        Env.useShell = false;
+
         if (string.IsNullOrEmpty(tag))
             throw new ActionCommandException($"Tag is invalid, emptry string is not allowed.");
 

@@ -11,6 +11,8 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
     /// <exception cref="ActionCommandException"></exception>
     public async Task CreateReleaseAsync()
     {
+        Env.useShell = false;
+
         // git tag
         using (_ = new GitHubActionsGroup("Create git tag"))
         {
@@ -32,8 +34,10 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
     /// </summary>
     /// <param name="assetPaths"></param>
     /// <returns></returns>
-    public async Task UploadAssetFilesAsync(string[] assetPaths)
+    public async Task UploadAssetFilesAsync(IEnumerable<string> assetPaths)
     {
+        Env.useShell = false;
+
         foreach (var path in assetPaths)
         {
             if (GlobFiles.IsGlobPattern(path))
@@ -57,7 +61,7 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
         static async Task UploadCoreAsync(string tag, string path)
         {
             using var _ = new GitHubActionsGroup($"Uploading asset. tag: {tag}. assetPath: {path}");
-            await $"gh release upload {tag} \"{EscapeArg(path)}\"";
+            await $"gh release upload {tag} \"{path}\"";
         }
     }
 }

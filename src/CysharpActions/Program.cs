@@ -182,6 +182,8 @@ namespace CysharpActions
         /// <returns></returns>
         private async Task<(bool commited, string sha, string branchName, string isBranchCreated)> GitCommitAsync(bool dryRun, string tag, string email = "41898282+github-actions[bot]@users.noreply.github.com", string user = "github-actions[bot]")
         {
+            Env.useShell = false;
+
             GitHubActions.WriteLog($"Checking File change has been happen ...");
             var commited = false;
             var branchName = "";
@@ -205,7 +207,7 @@ namespace CysharpActions
                 GitHubActions.WriteLog("Committing change. Running following.");
                 await $"git config --local user.email \"{email}\"";
                 await $"git config --local user.name \"{user}\"";
-                await $"git commit -a -m \"{EscapeArg($"feat: Update package.json to {tag}")}\" -m \"{EscapeArg($"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})")}\"";
+                await $"git commit -a -m \"{$"feat: Update package.json to {tag}"}\" -m \"{$"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})"}\"";
 
                 commited = true;
             }

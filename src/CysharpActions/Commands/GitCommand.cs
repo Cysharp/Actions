@@ -9,6 +9,8 @@ public class GitCommand()
 {
     public async Task<bool> DeleteBranchAsync(string branch)
     {
+        Env.useShell = false;
+
         // Search branches to delete
         using (var _ = new GitHubActionsGroup($"Searching branch for repo. branch: {branch}"))
         {

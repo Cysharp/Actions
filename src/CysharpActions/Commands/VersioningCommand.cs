@@ -1,4 +1,4 @@
-namespace CysharpActions.Commands;
+﻿namespace CysharpActions.Commands;
 
 public class VersioningCommand(string tag, string prefix, VersionIncrement versionIncrement, bool isPrelease, string prerelease)
 {
