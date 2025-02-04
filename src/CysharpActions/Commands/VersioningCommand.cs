@@ -1,5 +1,19 @@
 ﻿namespace CysharpActions.Commands;
 
+public enum VersionIncrement
+{
+    Major,
+    Minor,
+    Patch,
+    //Prerelease, // TODO: how to calculate count since last tag?
+}
+
+public enum OutputFormatType
+{
+    Console,
+    GitHubActionsOutput,
+}
+
 public class VersioningCommand(string tag, string prefix, VersionIncrement versionIncrement, bool isPrelease, string prerelease)
 {
     /// <summary>

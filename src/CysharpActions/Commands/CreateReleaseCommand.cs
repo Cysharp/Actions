@@ -14,14 +14,14 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
         Env.useShell = false;
 
         // git tag
-        using (_ = new GitHubActionsGroup("Create git tag"))
+        using (_ = GitHubActions.StartGroup("Create git tag"))
         {
             await $"git tag {tag}";
             await $"git push origin {tag}";
         }
 
         // create release
-        using (_ = new GitHubActionsGroup("Create Release"))
+        using (_ = GitHubActions.StartGroup("Create Release"))
         {
             await $"gh release create {tag} --draft --verify-tag --title \"{releaseTitle}\" --generate-notes";
             // wait a while
@@ -60,7 +60,7 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
 
         static async Task UploadCoreAsync(string tag, string path)
         {
-            using var _ = new GitHubActionsGroup($"Uploading asset. tag: {tag}. assetPath: {path}");
+            using var _ = GitHubActions.StartGroup($"Uploading asset. tag: {tag}. assetPath: {path}");
             await $"gh release upload {tag} \"{path}\"";
         }
     }
