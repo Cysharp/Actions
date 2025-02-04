@@ -48,7 +48,7 @@ public class FileExistsCommandTest
         var paths = items.Select(x => Path.Combine(dir, x));
         try
         {
-            CreateFiles(dir, items, false);
+            CreateFiles(dir, items, recursiveDir: false);
             var command = new FileExsistsCommand();
             command.ValidateAssetPath(paths);
             command.ValidateNuGetPath(paths);
@@ -66,7 +66,7 @@ public class FileExistsCommandTest
         var items = new[] { "foo", "bar", "piyo", "test.txt", "hoge.txt" };
         try
         {
-            CreateFiles(dir, items, false);
+            CreateFiles(dir, items, recursiveDir: false);
             var command = new FileExsistsCommand();
 
             // recursive glob

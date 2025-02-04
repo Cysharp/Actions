@@ -68,21 +68,7 @@ namespace CysharpActions
             // update version
             var command = new UpdateVersionCommand(version);
             var paths = pathString.ToMultiLine();
-            foreach (var path in paths)
-            {
-                GitHubActions.WriteLog($"Update begin, {path} ...");
-                if (string.IsNullOrWhiteSpace(path))
-                {
-                    GitHubActions.WriteLog("Empty path detected, skip execution.");
-                    continue;
-                }
-
-                using (_ = new GitHubActionsGroup($"Before, {path}"))
-                    GitHubActions.WriteLog(File.ReadAllText(path));
-                var result = command.UpdateVersion(path, dryRun);
-                using (_ = new GitHubActionsGroup($"After, {path}"))
-                    GitHubActions.WriteLog(result.After);
-            }
+            command.UpdateVersions(paths, dryRun);
 
             // Git Commit
             using (_ = new GitHubActionsGroup("git commit changes"))

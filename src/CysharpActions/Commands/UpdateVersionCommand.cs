@@ -4,10 +4,31 @@ using System.Text.Json.Serialization;
 
 namespace CysharpActions.Commands;
 
-public record struct UpdateVersionCommandResult(string Before, string After);
+public record struct UpdateVersionCommandResult(string Path, string Before, string After);
 public class UpdateVersionCommand(string version)
 {
-    public UpdateVersionCommandResult UpdateVersion(string path, bool dryRun)
+    public IEnumerable<UpdateVersionCommandResult> UpdateVersions(IEnumerable<string> paths, bool dryRun)
+    {
+        foreach (var path in paths)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                GitHubActions.WriteLog("Empty path detected, skip execution.");
+                continue;
+            }
+
+            GitHubActions.WriteLog($"Update begin, {path} ...");
+            using (_ = new GitHubActionsGroup($"Before, {path}"))
+                GitHubActions.WriteLog(File.ReadAllText(path));
+            var result = UpdateVersion(path, dryRun);
+            using (_ = new GitHubActionsGroup($"After, {path}"))
+                GitHubActions.WriteLog(result.After);
+
+            yield return result;
+        }
+    }
+
+    private UpdateVersionCommandResult UpdateVersion(string path, bool dryRun)
     {
         if (!File.Exists(path)) throw new FileNotFoundException(path);
 
@@ -34,7 +55,7 @@ public class UpdateVersionCommand(string version)
         // validate
         Validate(after, version);
 
-        return new UpdateVersionCommandResult(before, after);
+        return new UpdateVersionCommandResult(path, before, after);
 
         static void Validate(string contents, string version)
         {
@@ -52,7 +73,7 @@ public class UpdateVersionCommand(string version)
         // validate
         Validate(after, version);
 
-        return new UpdateVersionCommandResult(before, after);
+        return new UpdateVersionCommandResult(path, before, after);
 
         static void Validate(string contents, string version)
         {
@@ -89,7 +110,7 @@ public class UpdateVersionCommand(string version)
         // validate
         Validate(after, version);
 
-        return new UpdateVersionCommandResult(before, after);
+        return new UpdateVersionCommandResult(path, before, after);
 
         static void Validate(string contents, string version)
         {
