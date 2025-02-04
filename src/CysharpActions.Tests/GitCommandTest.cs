@@ -22,9 +22,6 @@ public class GitCommandTest
 
         try
         {
-            // delete before test
-            await $"gh api -X DELETE /repos/{GitHubContext.Current.Repository}/git/refs/heads/{branch}";
-
             var sha = await "git rev-parse HEAD";
             await $"gh api --method POST -H \"Accept: application/vnd.github.v3+json\" /repos/{GitHubContext.Current.Repository}/git/refs -f ref=\"refs/heads/{branch}\" -f sha=\"{sha}\"";
         }
@@ -32,6 +29,10 @@ public class GitCommandTest
         {
             var command = new GitCommand();
             var result = await command.DeleteBranchAsync(branch);
+
+            // delete before test
+            await $"gh api -X DELETE /repos/{GitHubContext.Current.Repository}/git/refs/heads/{branch}";
+
             Assert.False(result); // because creater is not github-actions[bot]
         }
     }
