@@ -18,12 +18,14 @@ public class CreateReleaseCommandTest
         if (Environment.GetEnvironmentVariable("GH_TOKEN") is null)
             throw new Exception("GH_TOKEN is not set");
 
+        Zx.Env.useShell = false;
+
         var dir = $".tests/{nameof(CreateReleaseCommand)}/{nameof(ReleaseTest)}";
         var file = $"{tag}.txt";
         var path = Path.Combine(dir, file);
         try
         {
-            CreateFile(dir, file);
+            CreateFile(path, tag);
             var command = new CreateReleaseCommand(tag, releaseTitle);
             await command.CreateReleaseAsync();
             await command.UploadAssetFilesAsync([path]);
