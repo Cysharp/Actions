@@ -11,7 +11,7 @@ public class GlobFilesTest
         var items = new[] { "foo", "bar", "piyo", "test.txt", "hoge.txt" };
         try
         {
-            CreateFiles(dir, items, false);
+            CreateFiles(dir, items, recursiveDir: false);
             foreach (var item in items)
             {
                 foreach (var file in GlobFiles.EnumerateFiles($"{dir}/{item}"))
@@ -43,7 +43,7 @@ public class GlobFilesTest
         var items = new[] { "foo", "bar", "piyo" };
         try
         {
-            CreateFiles(dir, items, false);
+            CreateFiles(dir, items, recursiveDir: false);
             foreach (var item in items)
             {
                 foreach (var pattern in new[] { $"{Path.GetDirectoryName(dir)}/*/{item}", $"{dir}/{item}", $"{dir}/**/{item}", $"{dir}/**/*", $"{dir}/*/{item}" })
@@ -69,7 +69,7 @@ public class GlobFilesTest
         var items = new[] { "foo", "bar", "piyo" };
         try
         {
-            CreateFiles(dir, items, false);
+            CreateFiles(dir, items, recursiveDir: false);
             foreach (var item in items)
             {
                 foreach (var pattern in new[] { $"{Path.GetDirectoryName(dir)}/**/{item}", $"{dir}/**/{item}" })
@@ -95,7 +95,7 @@ public class GlobFilesTest
         var items = new[] { "foo", "bar", "piyo" };
         try
         {
-            CreateFiles(dir, items, true);
+            CreateFiles(dir, items, recursiveDir: true);
             foreach (var file in GlobFiles.EnumerateFiles($"{dir}/**/*"))
             {
                 // should be full path

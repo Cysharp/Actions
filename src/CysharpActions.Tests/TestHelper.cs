@@ -2,14 +2,21 @@
 
 public static class TestHelper
 {
-    public static void CreateFiles(string dir, string[] items, bool recursiveDir = false)
+    public static void CreateFile(string path, string contents = "")
+    {
+        var tempDir = Path.GetDirectoryName(path) ?? throw new NullReferenceException(path);
+        if (!Directory.Exists(tempDir)) Directory.CreateDirectory(tempDir);
+        File.WriteAllText(path, contents);
+    }
+
+    public static void CreateFiles(string dir, string[] items, string contents = "", bool recursiveDir = false)
     {
         foreach (var item in items)
         {
             var tempDir = recursiveDir ? Path.Combine(dir, item) : dir;
             var file = Path.Combine(tempDir, item);
             if (!Directory.Exists(tempDir)) Directory.CreateDirectory(tempDir);
-            File.WriteAllText(file, "");
+            File.WriteAllText(file, contents);
         }
     }
 
