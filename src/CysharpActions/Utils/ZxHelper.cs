@@ -3,11 +3,17 @@
 public static class ZxHelper
 {
     /// <summary>
+    /// **CAUTION**
+    /// CONSIDER USE `Zx.Env.useShell = false` INSTEAD IF ESCAPE BY THIS METHOD.<br/>
+    /// This method is needed only if you need run command with `Zx.Env.useShell = true`.<br/>
+    /// 
     /// Escape command by adding \" on each side if needed. <br/>
-    /// ex. who will be... <br/>
+    /// </summary>
+    /// <remarks>
+    /// ex. EscapeArgs("who") will be output as follows.<br/>
     /// * Windows: who <br/>
     /// * Linux/macOS: \"who\"
-    /// </summary>
+    /// </remarks>
     /// <param name="command"></param>
     /// <returns></returns>
     public static string EscapeArg(string command)
