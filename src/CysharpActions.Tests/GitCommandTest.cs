@@ -19,11 +19,17 @@ public class GitCommandTest
         Zx.Env.useShell = false;
 
         var branchName = "it/should/not/exists/at/all";
-        var sha = await "git rev-parse HEAD";
-        await $"gh api --method POST -H \"Accept: application/vnd.github.v3+json\" /repos/{GitHubContext.Current.Repository}/git/refs -f ref=\"refs/heads/{branchName}\" -f sha=\"{sha}\"";
 
-        var command = new GitCommand();
-        var result = await command.DeleteBranchAsync(branchName);
-        Assert.False(result);
+        try
+        {
+            var sha = await "git rev-parse HEAD";
+            await $"gh api --method POST -H \"Accept: application/vnd.github.v3+json\" /repos/{GitHubContext.Current.Repository}/git/refs -f ref=\"refs/heads/{branchName}\" -f sha=\"{sha}\"";
+        }
+        finally
+        {
+            var command = new GitCommand();
+            var result = await command.DeleteBranchAsync(branchName);
+            Assert.False(result);
+        }
     }
 }
