@@ -5,6 +5,7 @@ namespace CysharpActions.Tests;
 
 public class GitCommandTest
 {
+    // Run only on GitHub Actions
     [Fact]
     public async Task DeleteBranchNotFoundTest()
     {

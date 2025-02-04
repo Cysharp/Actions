@@ -5,6 +5,7 @@ namespace CysharpActions.Tests;
 
 public class CreateReleaseCommandTest
 {
+    // Run only on GitHub Actions
     [Theory]
     [InlineData("test.0.1.0", "Ver.test.0.1.0")]
     [InlineData("test.1.0.0", "Ver.test.1.0.0")]
