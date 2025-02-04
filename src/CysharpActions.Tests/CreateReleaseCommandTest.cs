@@ -19,15 +19,14 @@ public class CreateReleaseCommandTest
             throw new Exception("GH_TOKEN is not set");
 
         var dir = $".tests/{nameof(CreateReleaseCommand)}/{nameof(ReleaseTest)}";
-        var files = Enumerable.Range(0, 3)
-            .Select(x => Path.Combine(dir, Path.GetTempFileName()))
-            .ToArray();
+        var file = $"{tag}.txt";
+        var path = Path.Combine(dir, file);
         try
         {
-            CreateFiles(dir, files);
+            CreateFile(dir, file);
             var command = new CreateReleaseCommand(tag, releaseTitle);
             await command.CreateReleaseAsync();
-            await command.UploadAssetFilesAsync(files);
+            await command.UploadAssetFilesAsync([path]);
         }
         finally
         {
@@ -37,7 +36,7 @@ public class CreateReleaseCommandTest
             var list = await $"gh release list";
             var exists = list.ToMultiLine()
                 .Where(x => x.Contains("Draft"))
-                .Where(x => x.Contains("Ver.1.1.0"))
+                .Where(x => x.Contains(releaseTitle))
                 .Any();
             if (exists)
             {
