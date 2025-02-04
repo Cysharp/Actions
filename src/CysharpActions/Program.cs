@@ -47,9 +47,10 @@ namespace CysharpActions
         [Command("update-version")]
         public async Task UpdateVersion(string version, string pathString, bool dryRun)
         {
+            var paths = pathString.ToMultiLine();
+
             // update version
             var command = new UpdateVersionCommand(version);
-            var paths = pathString.ToMultiLine();
             command.UpdateVersions(paths, dryRun);
 
             // Git Commit
@@ -95,6 +96,7 @@ namespace CysharpActions
         public void ValidateFileExists(string pathPatternString)
         {
             var pathPatterns = pathPatternString.ToMultiLine();
+
             var command = new FileExsistsCommand();
             command.ValidateAssetPath(pathPatterns);
         }
@@ -107,6 +109,7 @@ namespace CysharpActions
         public void ValidateNupkgExists(string pathPatternString)
         {
             var pathPatterns = pathPatternString.ToMultiLine();
+
             var command = new FileExsistsCommand();
             command.ValidateNuGetPath(pathPatterns);
         }
