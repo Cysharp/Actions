@@ -21,6 +21,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
       - name: Delete branch
         id: delete-branch
         run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- delete-branch --branch "${{ inputs.branch }}"
