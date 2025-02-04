@@ -15,7 +15,8 @@ public class GitCommandTest
             throw new Exception("GH_TOKEN is not set");
 
         var branchName = "it/should/not/exists/at/all";
-        await $"git push origin main:{branchName}";
+        var currentBranch = await "git branch --show-current";
+        await $"git push origin {currentBranch}:{branchName}";
 
         var command = new GitCommand();
         var result = await command.DeleteBranchAsync(branchName);
