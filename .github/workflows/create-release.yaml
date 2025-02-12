@@ -82,7 +82,7 @@ on:
         description: "Release format. (if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred.)"
         required: false
         type: string
-        default: 'Ver.{0}'
+        default: 'v.{0}'
       release-upload:
         description: "true = upload assets. false = not upload"
         required: false
