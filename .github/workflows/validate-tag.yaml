@@ -64,6 +64,12 @@ jobs:
         shell: bash
         id: validate
         run: |
+          if [[ "${{ github.repository }}" == "Cysharp/MagicOnion" ]]; then
+            echo "Temporary skip validation on MagicOnion."
+            echo "validated=false" | tee -a "$GITHUB_OUTPUT"
+            exit
+          fi
+
           release_latest=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest | jq -c -r ".[] | select(.isLatest == true) | .tagName")
           sorted_latest=$(echo -e "${release_latest}\n${{ steps.trim.outputs.normalized_tag }}" | sort -V | tail -n 1)
           if [[ "$release_latest" == "" ]]; then
