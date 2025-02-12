@@ -1,0 +1,111 @@
+{
+  "profiles": {
+    "help": {
+      "commandName": "Project",
+      "commandLineArgs": "--help"
+    },
+    // create-release
+    "create-release (help)": {
+      "commandName": "Project",
+      "commandLineArgs": "create-release --help"
+    },
+    "create-release (1.3.0)": {
+      "commandName": "Project",
+      "commandLineArgs": "create-release --tag 1.3.0 --release-title \"Ver.1.3.0\" --release-asset-path-string \"\"",
+      "environmentVariables": {
+        "GITHUB_EVENT_NAME": "pull_request",
+        "GITHUB_REPOSITORY": "Cysharp/Actions",
+        "GITHUB_RUN_ID": "11350100787",
+        "GITHUB_SERVER_URL": "https://github.com"
+      }
+    },
+    // nuget-push
+    "nuget-push (help)": {
+      "commandName": "Project",
+      "commandLineArgs": "nuget-push --help"
+    },
+    "nuget-push (dryrun)": {
+      "commandName": "Project",
+      "commandLineArgs": "nuget-push --nuget-path-string \"\" --api-key \"\" --dry-run"
+    },
+    // validate-tag
+    "validate-tag (help)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-tag --help"
+    },
+    "validate-tag": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-tag --tag \"1.3.0\" --require-validation"
+    },
+    // update-version (run create-dummy before run these)
+    "update-version (help)": {
+      "commandName": "Project",
+      "commandLineArgs": "update-version --help"
+    },
+    "update-version": {
+      "commandName": "Project",
+      "commandLineArgs": "update-version --version 1.0.0 --path-string \"./dummy/package.json\"",
+      "environmentVariables": {
+        "GITHUB_EVENT_NAME": "pull_request",
+        "GITHUB_REPOSITORY": "Cysharp/Actions",
+        "GITHUB_RUN_ID": "11350100787",
+        "GITHUB_SERVER_URL": "https://github.com"
+      }
+    },
+    // validate-nupkg-exsits
+    "validate-file-exsits (path: foo)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-file-exists --path-pattern ./dummy/downloads/foo"
+    },
+    "validate-file-exsits (path: *)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-file-exists --path-pattern ./dummy/downloads/*"
+    },
+    "validate-file-exsits (path: */foo)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-file-exists --path-pattern ./dummy/*/foo"
+    },
+    "validate-file-exsits (path: **/foo)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-file-exists --path-pattern ./dummy/**/foo"
+    },
+    "validate-nupkg-exsits (path: *.nupkg)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-nupkg-exists --path-pattern ./dummy/downloads/*.nupkg"
+    },
+    "validate-nupkg-exsits (path: *.snupkg)": {
+      "commandName": "Project",
+      "commandLineArgs": "validate-nupkg-exists --path-pattern ./dummy/downloads/*.snupkg"
+    },
+    // create-dummy
+    "create-dummy (init)": {
+      "commandName": "Project",
+      "commandLineArgs": "create-dummy --base-path dummy/"
+    },
+    // debug
+    "debug(multiline)": {
+      "commandName": "Project",
+      "commandLineArgs": "debug --foo foo,bar,piyo"
+    },
+    // WSL
+    "WSL": {
+      "commandName": "WSL2"
+    },
+    "WSL (update-version)": {
+      "commandName": "WSL2",
+      "commandLineArgs": "\"{OutDir}/CysharpActions.dll\" update-version --version 1.0.0 --path-string \"./dummy/package.json\n./dummy/plugin.cfg\n./dummy/Directory.Build.props\"",
+      "environmentVariables": {
+        "GITHUB_EVENT_NAME": "pull_request",
+        "GITHUB_REPOSITORY": "Cysharp/Actions",
+        "GITHUB_RUN_ID": "11350100787",
+        "GITHUB_SERVER_URL": "https://github.com"
+      },
+      "distributionName": ""
+    },
+    "WSL (debug)": {
+      "commandName": "WSL2",
+      "commandLineArgs": "\"{OutDir}/CysharpActions.dll\" debug",
+      "distributionName": ""
+    }
+  }
+}

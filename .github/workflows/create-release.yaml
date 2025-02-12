@@ -89,16 +89,16 @@ on:
         type: boolean
         default: false
 
-jobs:
-  validate:
-    uses: Cysharp/Actions/.github/workflows/validate-tag.yaml@main
-    with:
-      tag: ${{ inputs.tag }}
-      require-validation: ${{ inputs.require-validation }}
-    secrets: inherit
+env:
+  GH_REPO: ${{ github.repository }}
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+permissions:
+  contents: write # required for creating release
+  pull-requests: write
+
+jobs:
   create-release:
-    needs: [validate]
     name: Create Release
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # auto generated token
@@ -126,7 +126,13 @@ jobs:
         with:
           ref: ${{ inputs.commit-id }}
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-        if: ${{ inputs.nuget-push }}
+        with:
+          dotnet-version: 9.0.x
+
+      # validate
+      - name: Validate and normalize tag
+        id: validate
+        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
 
       # Download(All) Artifacts to current directory
       - uses: Cysharp/Actions/.github/actions/download-artifact@main
@@ -134,96 +140,19 @@ jobs:
         run: ls -lR
       - name: Validate package exists in artifact - release assets
         if: ${{ inputs.release-upload }}
-        run: |
-          while read -r asset_path; do
-            if [[ "${asset_path}" == "" ]]; then continue; fi
-            # is it a wildcard?
-            # shellcheck disable=SC2086
-            if [[ "$asset_path" == *\** || "$asset_path" == *\?* ]]; then
-              # shellcheck disable=SC2086
-              if ! ls -l ${asset_path}; then
-                echo "Specified nuget package not found. path: $asset_path"
-                if [[ "${asset_path}" == *.nupkg ]]; then
-                  echo ".nupkg must be included in the artifact."
-                  exit 1
-                fi
-              fi
-              continue
-            fi
-            # is it a file?
-            if [[ ! -f "${asset_path}" ]]; then
-              echo "Specified asset not found. path: ${asset_path}"
-              exit 1
-            fi
-          done <<< "${{ inputs.release-asset-path }}"
+        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- validate-file-exists --path-pattern-string "${{ inputs.release-asset-path }}"
       - name: Validate package exists in artifact - NuGet
         if: ${{ inputs.nuget-push }}
-        run: |
-          while read -r nuget_path; do
-            if [[ "${nuget_path}" == "" ]]; then continue; fi
-            # shellcheck disable=SC2086
-            if ! ls -l ${nuget_path}; then
-              echo "Specified nuget package not found. path: $nuget_path"
-              if [[ "${nuget_path}" == *.nupkg ]]; then
-                echo ".nupkg must be included in the artifact."
-                exit 1
-              fi
-            fi
-          done <<< "${{ inputs.nuget-path }}"
+        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- validate-nupkg-exists --path-pattern-string "${{ inputs.nuget-path }}"
 
       # Create Releases
-      - name: Create Tag
-        run: |
-          git tag ${{ inputs.tag }}
-          git push origin ${{ inputs.tag }}
       - name: Create Release
-        run: gh release create ${{ inputs.tag }} --draft --verify-tag --title "${{ format(inputs.release-format, inputs.tag) }}" --generate-notes
-      - name: Wait and Verify Release Name is expected
-        run: |
-          sleep 5s
-          actual=$(gh api --paginate /repos/${{ github.repository }}/releases?per_page=100 --jq '.[] | select(.tag_name == "${{ inputs.tag }}") | .name')
-          expected="${{ format(inputs.release-format, inputs.tag) }}"
-          if [[ "$actual" != "$expected" ]]; then
-            echo "Release name is not as expected. expected: $expected, actual: $actual"
-            exit 1
-          else
-            echo "Release name is expected! expected: $expected, actual: $actual"
-          fi
-      - name: Upload asset files to release
-        run: |
-          while read -r asset_path; do
-            if [[ "${asset_path}" == "" ]]; then continue; fi
-            # is it a wildcard?
-            # shellcheck disable=SC2086
-            if [[ "$asset_path" == *\** || "$asset_path" == *\?* ]]; then
-              for file in ${asset_path}; do
-                gh release upload ${{ inputs.tag }} "${file}"
-              done
-              continue
-            fi
-            # is it a file?
-            gh release upload ${{ inputs.tag }} "${asset_path}"
-          done <<< "${{ inputs.release-asset-path }}"
-        if: ${{ inputs.release-upload }}
+        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- create-release --tag "${{ inputs.tag }}" --release-title "${{ format(inputs.release-format, inputs.tag) }}" --release-asset-path-string "${{ inputs.release-asset-path }}"
 
       # Upload to NuGet
       - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
         if: ${{ inputs.nuget-push }}
-        run: |
-          while read -r nuget_path; do
-            if [[ "$nuget_path" == "" ]]; then continue; fi
-            # shellcheck disable=SC2086
-            if ! ls -l ${nuget_path} >/dev/null 2>&1;then
-              echo "skipping nuget push, $nuget_path not found."
-              continue
-            fi
-
-            if [[ "${{ inputs.dry-run }}" == "true" ]]; then
-              echo "(dry run) dotnet nuget push \"${nuget_path}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k \"${{ steps.op-load-secret.outputs.NUGET_KEY }}\""
-            else
-              dotnet nuget push "${nuget_path}" --skip-duplicate -s https://api.nuget.org/v3/index.json -k "${{ steps.op-load-secret.outputs.NUGET_KEY }}"
-            fi
-          done <<< "${{ inputs.nuget-path }}"
+        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --api-key "${{ steps.op-load-secret.outputs.NUGET_KEY }}" ${{ inputs.dry-run && '--dry-run' || '' }}
 
       # Clean up
       - name: Clean up. Wait 60s and delete release if dry-run or failure. (dry-run=${{ inputs.dry-run }}})
