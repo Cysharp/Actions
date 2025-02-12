@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using CysharpActions.Contexts;
+using CysharpActions.Utils;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace CysharpActions.Commands;
@@ -23,6 +25,13 @@ public class ValidateTagCommand()
 
         if (string.IsNullOrEmpty(tag))
             throw new ActionCommandException($"Tag is invalid, emptry string is not allowed.");
+
+        // tmporary skip validation on MagicOnion. There are no implementation for validation on each Major Version.
+        if (GitHubContext.Current.Repository == "Cysharp/MagicOnion")
+        {
+            GitHubActions.WriteLog("Temporary skip validation on MagicOnion.");
+            return;
+        }
 
         // release_latest=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest | jq -c -r ".[] | select(.isLatest == true) | .tagName")
         // sorted_latest=$(echo - e "${release_latest}\n${{ steps.trim.outputs.normalized_tag }}" | sort - V | tail - n 1)
