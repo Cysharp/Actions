@@ -7,6 +7,7 @@ indent_size = 2
 end_of_line = lf
 
 [*.cs]
+end_of_line = unset
 charset = utf-8-bom
 indent_style = space
 indent_size = 4
