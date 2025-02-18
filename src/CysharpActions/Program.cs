@@ -96,7 +96,6 @@ namespace CysharpActions
         public void ValidateFileExists(string pathPatternString)
         {
             var pathPatterns = pathPatternString.ToMultiLine();
-
             var command = new FileExsistsCommand();
             command.ValidateAssetPath(pathPatterns);
         }
@@ -109,7 +108,6 @@ namespace CysharpActions
         public void ValidateNupkgExists(string pathPatternString)
         {
             var pathPatterns = pathPatternString.ToMultiLine();
-
             var command = new FileExsistsCommand();
             command.ValidateNuGetPath(pathPatterns);
         }
@@ -127,9 +125,8 @@ namespace CysharpActions
         {
             var releaseAssets = releaseAssetPathString.ToMultiLine();
 
-            var command = new CreateReleaseCommand(tag, releaseTitle);
-
             GitHubActions.WriteLog($"Creating Release ...");
+            var command = new CreateReleaseCommand(tag, releaseTitle);
             await command.CreateReleaseAsync();
 
             GitHubActions.WriteLog($"Uploading {releaseAssets.Length} assets ...");
@@ -161,7 +158,6 @@ namespace CysharpActions
         public async Task CreateDummy(string basePath)
         {
             GitHubActions.WriteLog($"Creating dummy files, under {basePath} ...");
-
             var command = new CreateDummyCommand();
             command.CreateDummy(basePath);
         }
