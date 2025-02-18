@@ -575,7 +575,7 @@ jobs:
         with:
           name: my-artifact
       - name: Display structure of downloaded files
-        run: ls -R path/to/
+        run: ls -R
 ```
 
 
