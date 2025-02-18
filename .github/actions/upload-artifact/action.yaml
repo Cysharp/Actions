@@ -41,6 +41,11 @@ inputs:
       If false, the action will fail if an artifact for the given name already exists.
       Does not fail if the artifact does not exist.
     default: 'false'
+  include-hidden-files:
+    description: >
+      If true, hidden files will be included in the artifact.
+      If false, hidden files will be excluded from the artifact.
+    default: 'false'
 
 runs:
   using: "composite"
@@ -54,3 +59,4 @@ runs:
         retention-days: ${{ inputs.retention-days }}
         compression-level: ${{ inputs.compression-level }} # v4+
         overwrite: ${{ inputs.overwrite }} # v4+
+        include-hidden-files: ${{ inputs.include-hidden-files }} # v4.4.0+
