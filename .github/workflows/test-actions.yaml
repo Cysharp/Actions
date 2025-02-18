@@ -9,7 +9,7 @@ env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  test:
+  setup-dotnet:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -21,3 +21,27 @@ jobs:
         run: dotnet build -c Release
       - name: dotnet test
         run: dotnet test
+
+  upload-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p path/to/artifact
+      - run: echo hello > path/to/artifact/world.txt
+      - uses: Cysharp/Actions/.github/actions/upload-artifact@main
+        with:
+          name: my-artifact
+          path: path/to/artifact/world.txt
+
+  download-artifact:
+    needs: [upload-artifact]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Cysharp/Actions/.github/actions/download-artifact@main
+        with:
+          name: my-artifact
+      - name: Display structure of downloaded files
+        run: ls -R path/to/
