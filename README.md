@@ -24,8 +24,10 @@ Cysharp OSS repository uses and maintained GitHub Actions "reusable workflows" a
 - [Actions](#actions)
   - [check-benchmarkable](#check-benchmarkable)
   - [check-metas](#check-metas)
+  - [download-artifact](#download-artifact)
   - [setup-dotnet](#setup-dotnet)
   - [unity-builder](#unity-builder)
+  - [upload-artifact](#upload-artifact)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
