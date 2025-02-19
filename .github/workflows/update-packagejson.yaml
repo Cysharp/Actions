@@ -7,11 +7,6 @@ on:
         description: "package.json path to update. You can input multiline paths. Supported files are `package.json`, `plugin.cfg` and `Directory.Build.props`"
         required: true
         type: string
-      ref:
-        description: "checkout ref"
-        required: false
-        type: string
-        default: ''
       require-validation:
         description: "true require validation must pass, false to keep going even validation failed."
         required: false
@@ -36,72 +31,141 @@ on:
         required: false
         type: boolean
         default: true
+      ref:
+        description: "checkout ref"
+        required: false
+        type: string
+        default: ''
     outputs:
+      sha:
+        description: "Git commit sha after package.json has changed."
+        value: ${{ jobs.update-packagejson.outputs.sha }}
       branch-name:
         description: Git branch name created.
         value: ${{ jobs.update-packagejson.outputs.branch-name }}
       is-branch-created:
         description: Indicate is Git branch created or not.
         value: ${{ jobs.update-packagejson.outputs.is-branch-created }}
-      sha:
-        description: "Git commit sha after package.json has changed."
-        value: ${{ jobs.update-packagejson.outputs.sha }}
-
-permissions:
-  contents: write
-  actions: read
 
 jobs:
+  validate:
+    uses: Cysharp/Actions/.github/workflows/validate-tag.yaml@main
+    with:
+      tag: ${{ inputs.tag }}
+      require-validation: ${{ inputs.require-validation }}
+    secrets: inherit
+
   update-packagejson:
+    needs: [validate]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      branch-name: ${{ steps.update.outputs.branch-name }}
-      is-branch-created: ${{ steps.update.outputs.is-branch-created }}
-      sha: ${{ steps.update.outputs.sha }}
+      sha: ${{ steps.commit.outputs.sha }}
+      branch-name: ${{ steps.configure.outputs.branch-name }}
+      is-branch-created: ${{ steps.commit.outputs.is-branch-created }}
     steps:
+      - name: Configure Output variables
+        id: configure
+        run: |
+          echo "branch-name=test-release/${{ inputs.tag }}" | tee -a "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-        with:
-          dotnet-version: 9.0.x
-
-      # validate
-      - name: Validate and normalize tag
-        id: validate
-        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
-        env:
-          GH_REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # dotnet run external
-      - name: Execute external dotnet run with --version ${{ steps.validate.outputs.normalized-tag }}
-        run: |
-          while read -r file_path; do
-            if [[ "$file_path" == "" ]]; then continue; fi
-            echo "Start $file_path"
-            echo "::group::Execute"
-              dotnet run --project "$file_path" --no-launch-profile -- --version "${{ steps.validate.outputs.normalized-tag }}"
-            echo "::endgroup::"
-          done <<< "${{ inputs.dotnet-run-path }}"
-        if: ${{ inputs.dotnet-run-path != '' }}
 
       # package.json
       # "version": 1.2.3 -> "version": 2.0.0
       # plugin.cfg
       # version="1.2.3" -> version="2.0.0"
       #
-      # TIPS: Converting file-oath from \n to ,
-      - name: Update files to version ${{ steps.validate.outputs.normalized-tag }}
-        id: update
-        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${{ inputs.file-path }}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
+      # TIPS: `grep -v "^$"` is used to remove empty line.
+      - name: Update files to version ${{ needs.validate.outputs.normalized_tag }}
+        run: |
+          expected="${{ needs.validate.outputs.normalized_tag }}"
+          while read -r file_path; do
+            if [[ "$file_path" == "" ]]; then continue; fi
+
+            echo "Start $file_path"
+            file_name=$(basename "$file_path")
+
+            echo "::group::Before"
+              cat "$file_path"
+            echo "::endgroup::"
+
+            echo "::group::Updating"
+              if [[ "${file_name}" == "package.json" ]]; then
+                # Unity `"version": "VersionString",`
+                sed -i -e "s/\(\"version\":\) \"\(.*\)\",/\1 \"${{ needs.validate.outputs.normalized_tag }}\",/" "${file_path}"
+                actual=$(grep "version" "$file_path" | cut -d ':' -f 2 | tr -d ',' | tr -d '"' | tr -d ' ')
+              elif [[ "${file_name}" == "plugin.cfg" ]]; then
+                # Godot `version="VersionString"`
+                sed -i -e "s/\(version=\)\"\(.*\)\"/\1\"${{ needs.validate.outputs.normalized_tag }}\"/" "${file_path}"
+                actual=$(grep "version=" "$file_path" | cut -d '=' -f 2 | tr -d '"')
+              elif [[ "${file_name}" == "Directory.Build.props" ]]; then
+                # .NET `<VersionPrefix>VersionString</VersionPrefix>`
+                sed -i -e 's|<VersionPrefix>.*</VersionPrefix>|<VersionPrefix>${{ needs.validate.outputs.normalized_tag }}</VersionPrefix>|g' "${file_path}"
+                # -P is for perl regex, only available in GNU grep
+                actual=$(grep -oP '<VersionPrefix>\K.*(?=</VersionPrefix>)' "$file_path")
+              else
+                echo "Unknown file name ${file_name} is specified."
+                exit 1
+              fi
+            echo "::endgroup::"
+
+            echo "::group::After"
+              cat "$file_path"
+            echo "::endgroup::"
+
+            echo "::group::Validate Change"
+              if [[ "$actual" != "$expected" ]]; then
+                echo "Failed. Path: $file_path, Expected: $expected, Actual: $actual"
+                exit 1
+              else
+                echo "Success. Path: $file_path, Expected: $expected, Actual: $actual"
+              fi
+            echo "::endgroup::"
+          done <<< "${{ inputs.file-path }}"
+
+      # dotnet run
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        if: ${{ inputs.dotnet-run-path != '' }}
+      - name: Execute dotnet run with --version ${{ needs.validate.outputs.normalized_tag }}
+        run: |
+          while read -r file_path; do
+            if [[ "$file_path" == "" ]]; then continue; fi
+            echo "Start $file_path"
+            echo "::group::Execute"
+              dotnet run --project "$file_path" -- --version "${{ needs.validate.outputs.normalized_tag }}"
+            echo "::endgroup::"
+          done <<< "${{ inputs.dotnet-run-path }}"
+        if: ${{ inputs.dotnet-run-path != '' }}
+
+      - name: Check update on git
+        id: check_update
+        run: git diff --exit-code || echo "changed=1" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Commit files (updated? = ${{ steps.check_update.outputs.changed == '1' }})
+        id: commit
+        run: |
+          if [[ "${{ steps.check_update.outputs.changed }}" == "1" ]]; then
+            git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config --local user.name "github-actions[bot]"
+            git commit -m "feat: Update package.json to ${{ needs.validate.outputs.normalized_tag }}" -m "Commit by [GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" -a
+            echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
+            echo "is-branch-created=${{ inputs.dry-run }}" | tee -a "$GITHUB_OUTPUT"
+          elif [[ "${{ inputs.ref }}" != "" ]]; then
+            echo "sha=$(git rev-parse HEAD)" | tee -a "$GITHUB_OUTPUT"
+            echo "is-branch-created=false" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo "sha=" | tee -a "$GITHUB_OUTPUT"
+            echo "is-branch-created=false" | tee -a "$GITHUB_OUTPUT"
+          fi
 
       - name: Push changes
-        if: ${{ steps.update.outputs.commited == '1' }}
+        if: ${{ steps.check_update.outputs.changed == '1' }}
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
-          branch: ${{ steps.update.outputs.branch-name || inputs.ref }}
+          branch: ${{ inputs.ref }}
           tags: false
           force: ${{ inputs.dry-run }}

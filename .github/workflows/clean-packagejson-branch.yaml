@@ -14,18 +14,41 @@ on:
 
 jobs:
   cleanup:
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # auto generated token
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      branch-deleted: ${{ steps.delete-branch.outputs.deleted }}
+      branch-deleted: ${{ steps.check-branch.outputs.deletable }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-        with:
-          dotnet-version: 9.0.x
+      - name: Check branch is deletable
+        id: check-branch
+        run: |
+          # Check if the branch is the default branch
+          if [[ "$(gh api /repos/${{ github.repository }} | jq -r '.default_branch')" == "${{ inputs.branch }}" ]]; then
+            echo "Branch is default, you cannot delete this branch. branch: ${{ inputs.branch }}"
+            exit 1
+          fi
+
+          # Check if the branch is created by github-actions[bot]
+          if gh api /repos/${{ github.repository }}/branches | jq -r '.[].name' | grep "${{ inputs.branch }}" >/dev/null; then
+            echo "branch exists. branch: ${{ inputs.branch }}"
+
+            # Check info of the branch
+            gh api /repos/${{ github.repository }}/branches/${{ inputs.branch }} | jq
+
+            if [[ "$(gh api /repos/${{ github.repository }}/branches/${{ inputs.branch }} | jq -r '.commit.author.login')" != "github-actions[bot]" ]]; then
+              echo "Branch is not created by github-actions[bot], you cannot delete this branch. branch: ${{ inputs.branch }}"
+              exit 1
+            fi
+
+            branch_deletable=true
+          else
+            echo "branch not exists. branch: ${{ inputs.branch }}"
+            branch_deletable=false
+          fi
+
+          echo "deletable=${branch_deletable}" | tee -a "${GITHUB_OUTPUT}"
       - name: Delete branch
-        id: delete-branch
-        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- delete-branch --branch "${{ inputs.branch }}"
-        env:
-          GH_REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ steps.check-branch.outputs.deletable == 'true' }}
+        run: gh api -X DELETE /repos/${{ github.repository }}/git/refs/heads/${{ inputs.branch }}
