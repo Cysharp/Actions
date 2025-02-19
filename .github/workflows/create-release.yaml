@@ -128,11 +128,19 @@ jobs:
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
         with:
           dotnet-version: 9.0.x
+      - name: Set Cysharp/Actions binary path
+        id: actions-caller
+        run: |
+          if [[ -d "${{ github.workspace }}/../../_actions/Cysharp/Actions" ]]; then
+            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
+          fi
 
       # validate
       - name: Validate and normalize tag
         id: validate
-        run: ${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
+        run: ${{ steps.actions-caller.outputs.path }} validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
 
       # Download(All) Artifacts to current directory
       - uses: Cysharp/Actions/.github/actions/download-artifact@main
@@ -140,19 +148,19 @@ jobs:
         run: ls -lR
       - name: Validate package exists in artifact - release assets
         if: ${{ inputs.release-upload }}
-        run: ${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe validate-file-exists --path-pattern-string "${{ inputs.release-asset-path }}"
+        run: ${{ steps.actions-caller.outputs.path }} validate-file-exists --path-pattern-string "${{ inputs.release-asset-path }}"
       - name: Validate package exists in artifact - NuGet
         if: ${{ inputs.nuget-push }}
-        run: ${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe validate-nupkg-exists --path-pattern-string "${{ inputs.nuget-path }}"
+        run: ${{ steps.actions-caller.outputs.path }} validate-nupkg-exists --path-pattern-string "${{ inputs.nuget-path }}"
 
       # Create Releases
       - name: Create Release
-        run: ${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe create-release --tag "${{ inputs.tag }}" --release-title "${{ format(inputs.release-format, inputs.tag) }}" --release-asset-path-string "${{ inputs.release-asset-path }}"
+        run: ${{ steps.actions-caller.outputs.path }} create-release --tag "${{ inputs.tag }}" --release-title "${{ format(inputs.release-format, inputs.tag) }}" --release-asset-path-string "${{ inputs.release-asset-path }}"
 
       # Upload to NuGet
       - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
         if: ${{ inputs.nuget-push }}
-        run: ${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --api-key "${{ steps.op-load-secret.outputs.NUGET_KEY }}" ${{ inputs.dry-run && '--dry-run' || '' }}
+        run: ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --api-key "${{ steps.op-load-secret.outputs.NUGET_KEY }}" ${{ inputs.dry-run && '--dry-run' || '' }}
 
       # Clean up
       - name: Clean up. Wait 60s and delete release if dry-run or failure. (dry-run=${{ inputs.dry-run }}})

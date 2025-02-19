@@ -66,11 +66,19 @@ jobs:
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
         with:
           dotnet-version: 9.0.x
+      - name: Set Cysharp/Actions binary path
+        id: actions-caller
+        run: |
+          if [[ -d "${{ github.workspace }}/../../_actions/Cysharp/Actions" ]]; then
+            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
+          fi
 
       # validate
       - name: Validate and normalize tag
         id: validate
-        run: ${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
+        run: ${{ steps.actions-caller.outputs.path }} validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -95,7 +103,7 @@ jobs:
       # TIPS: Converting file-oath from \n to ,
       - name: Update files to version ${{ steps.validate.outputs.normalized-tag }}
         id: update
-        run: ${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${{ inputs.file-path }}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
+        run: ${{ steps.actions-caller.outputs.path }} update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${{ inputs.file-path }}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
 
       - name: Push changes
         if: ${{ steps.update.outputs.commited == '1' }}
