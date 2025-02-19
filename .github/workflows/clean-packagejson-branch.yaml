@@ -25,7 +25,7 @@ jobs:
           dotnet-version: 9.0.x
       - name: Delete branch
         id: delete-branch
-        run: dotnet run --project "./src/CysharpActions/CysharpActions.csproj" --no-launch-profile -- delete-branch --branch "${{ inputs.branch }}"
+        run: ${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe delete-branch --branch "${{ inputs.branch }}"
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
