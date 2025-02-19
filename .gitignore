@@ -401,3 +401,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# CUSTOM
+!actions/*.pdb
