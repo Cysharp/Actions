@@ -3,8 +3,6 @@ name: Test benchmark-runnable
 on:
   pull_request:
     branches: ["main"]
-  push:
-    branches: ["main"]
   issue_comment:
     types: [created]
 
