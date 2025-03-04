@@ -20,14 +20,16 @@ jobs:
       branch-deleted: ${{ steps.delete-branch.outputs.deleted }}
     steps:
       - uses: actions/checkout@v4
-      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@feature/actions
         with:
           dotnet-version: 9.0.x
       - name: Set Cysharp/Actions binary path
         id: actions-caller
         run: |
-          if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe" ]]; then
-            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe" | tee -a "$GITHUB_OUTPUT"
+          branch=feature/actions
+          if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/CysharpActions.exe" ]]; then
+            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/CysharpActions.exe" | tee -a "$GITHUB_OUTPUT"
+            chmod +x "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/CysharpActions.exe"
           else
             echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
           fi
