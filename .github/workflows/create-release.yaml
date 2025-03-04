@@ -125,7 +125,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.commit-id }}
-      - uses: Cysharp/Actions/.github/actions/setup-dotnetfeature/actions
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@feature/actions
         with:
           dotnet-version: 9.0.x
       - name: Set Cysharp/Actions binary path
