@@ -70,12 +70,23 @@ jobs:
         id: actions-caller
         run: |
           branch=feature/actions
-          if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" ]]; then
+          if [[ ${{ github.repository }} == "Cysharp/Actions" ]]; then
+            echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
+            exit
+          elif [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" ]]; then
             echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" | tee -a "$GITHUB_OUTPUT"
             chmod +x "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions"
           else
-            echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
+            echo "ERROR: CysharpActions binary not found."
+            echo "::group::Debug _actions folder."
+              ls -lR "${{ github.workspace }}/../../_actions/"
+            echo "::endgroup::"
+            echo "::group::Debug _actions/Cysharp/Actions folder."
+              ls -lR "${{ github.workspace }}/../../_actions/Cysharp/Actions/"
+            echo "::endgroup::"
+            exit 1
           fi
+
 
       # validate
       - name: Validate and normalize tag
