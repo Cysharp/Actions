@@ -69,8 +69,10 @@ jobs:
       - name: Set Cysharp/Actions binary path
         id: actions-caller
         run: |
-          if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/feature/actions/actions/CysharpActions.exe" ]]; then
-            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/feature/actions/actions/CysharpActions.exe" | tee -a "$GITHUB_OUTPUT"
+          branch=feature/actions
+          if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/CysharpActions.exe" ]]; then
+            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/CysharpActions.exe" | tee -a "$GITHUB_OUTPUT"
+            chmod +x "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/CysharpActions.exe"
           else
             echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
           fi
