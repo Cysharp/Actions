@@ -24,8 +24,10 @@ jobs:
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
         with:
           dotnet-version: 9.0.x
-      - name: dotnet publish
-        run: dotnet publish ./src/CysharpActions -c Release -o ./actions/
+      - name: dotnet publish (x64)
+        run: dotnet publish ./src/CysharpActions -c Release --runtime linux-x64 -o ./actions/Linux-X64
+      - name: dotnet publish (arm64)
+        run: dotnet publish ./src/CysharpActions -c Release --runtime linux-arm64 -o ./actions/Linux-ARM64
 
       - name: Check update on git
         id: check_update

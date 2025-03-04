@@ -27,9 +27,9 @@ jobs:
         id: actions-caller
         run: |
           branch=feature/actions
-          if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/CysharpActions.exe" ]]; then
-            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/CysharpActions.exe" | tee -a "$GITHUB_OUTPUT"
-            chmod +x "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/CysharpActions.exe"
+          if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}//CysharpActions.exe" ]]; then
+            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions.exe" | tee -a "$GITHUB_OUTPUT"
+            chmod +x "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions.exe"
           else
             echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
           fi
