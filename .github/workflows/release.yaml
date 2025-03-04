@@ -1,0 +1,50 @@
+name: Release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-release
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
+      - name: dotnet publish (x64)
+        run: dotnet publish ./src/CysharpActions -c Release --runtime linux-x64 -o ./actions/Linux-X64
+      - name: dotnet publish (arm64)
+        run: dotnet publish ./src/CysharpActions -c Release --runtime linux-arm64 -o ./actions/Linux-ARM64
+
+      - name: Check update on git
+        id: check_update
+        run: git diff --exit-code || echo "changed=1" | tee -a "$GITHUB_OUTPUT"
+      - name: Commit files (updated? = ${{ steps.check_update.outputs.changed == '1' }})
+        id: update
+        run: |
+          if [[ "${{ steps.check_update.outputs.changed }}" == "1" ]]; then
+            git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config --local user.name "github-actions[bot]"
+            git commit -m "[automate] New CysharpActions.exe commited" -m "Commit by [GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" -a
+            echo "commited=1" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo "commited=0" | tee -a "$GITHUB_OUTPUT"
+          fi
+      - name: Push changes
+        if: ${{ steps.update.outputs.commited == '1' }}
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
+          branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
+          tags: false
