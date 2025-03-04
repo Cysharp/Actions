@@ -125,13 +125,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.commit-id }}
-      - uses: Cysharp/Actions/.github/actions/setup-dotnet@feature/actions
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
         with:
           dotnet-version: 9.0.x
       - name: Set Cysharp/Actions binary path
         id: actions-caller
         run: |
-          branch=feature/actions
+          branch=main
           if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" ]]; then
             echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" | tee -a "$GITHUB_OUTPUT"
             chmod +x "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions"
