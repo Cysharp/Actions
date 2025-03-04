@@ -63,14 +63,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@feature/actions
         with:
           dotnet-version: 9.0.x
       - name: Set Cysharp/Actions binary path
         id: actions-caller
         run: |
-          if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe" ]]; then
-            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/CysharpActions.exe" | tee -a "$GITHUB_OUTPUT"
+          if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/feature/actions/actions/CysharpActions.exe" ]]; then
+            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/feature/actions/actions/CysharpActions.exe" | tee -a "$GITHUB_OUTPUT"
           else
             echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
           fi
