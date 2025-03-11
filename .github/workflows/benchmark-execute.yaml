@@ -112,10 +112,10 @@ jobs:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
-          SSH_KEY: "op://GitHubActionsPublic/BENCHMARK_VM_SSH/private key"
-          AZURE_OIDC_CLIENTID: "op://GitHubActionsPublic/BENCHMARK_AZURE_OIDC/clientId"
-          AZURE_OIDC_TENANTID: "op://GitHubActionsPublic/BENCHMARK_AZURE_OIDC/tenantId"
-          AZURE_OIDC_SUBSCRIPTIONID: "op://GitHubActionsPublic/BENCHMARK_AZURE_OIDC/subscriptionId"
+          SSH_KEY: "op://cysharp_GitHubActionsPublic/BENCHMARK_VM_SSH/private key"
+          AZURE_OIDC_CLIENTID: "op://cysharp_GitHubActionsPublic/BENCHMARK_AZURE_OIDC/clientId"
+          AZURE_OIDC_TENANTID: "op://cysharp_GitHubActionsPublic/BENCHMARK_AZURE_OIDC/tenantId"
+          AZURE_OIDC_SUBSCRIPTIONID: "op://cysharp_GitHubActionsPublic/BENCHMARK_AZURE_OIDC/subscriptionId"
       - name: Output SSH Key
         run: |
           mkdir -p ~/.ssh

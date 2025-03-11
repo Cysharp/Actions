@@ -120,7 +120,7 @@ jobs:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
-          NUGET_KEY: "op://GitHubActionsPublic/NUGET_KEY/credential"
+          NUGET_KEY: "op://cysharp_GitHubActionsPublic/NUGET_KEY/credential"
 
       - uses: actions/checkout@v4
         with:

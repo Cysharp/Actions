@@ -41,7 +41,7 @@ jobs:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
-          DD_API_KEY: "op://GitHubActionsPublic/DATADOG/credential"
+          DD_API_KEY: "op://cysharp_GitHubActionsPublic/DATADOG/credential"
       - name: Post to Datadog Event
         run: |
           echo "::group::Create JSON"
