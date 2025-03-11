@@ -82,9 +82,9 @@ jobs:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
-          AZURE_OIDC_CLIENTID: "op://cysharp_GitHubActionsPublic/BENCHMARK_AZURE_OIDC/clientId"
-          AZURE_OIDC_TENANTID: "op://cysharp_GitHubActionsPublic/BENCHMARK_AZURE_OIDC/tenantId"
-          AZURE_OIDC_SUBSCRIPTIONID: "op://cysharp_GitHubActionsPublic/BENCHMARK_AZURE_OIDC/subscriptionId"
+          AZURE_OIDC_CLIENTID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_AZURE_OIDC/clientId"
+          AZURE_OIDC_TENANTID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_AZURE_OIDC/tenantId"
+          AZURE_OIDC_SUBSCRIPTIONID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_AZURE_OIDC/subscriptionId"
       - uses: azure/login@v2
         with:
           client-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_CLIENTID }}
