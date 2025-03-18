@@ -14,8 +14,7 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
-      - name: actionlint
-        uses: reviewdog/action-actionlint@v1
-        with:
-          reporter: github-pr-review
-          fail_on_error: true # workflow will fail when actionlint detect warning.
+      - name: Install actionlint
+        run: bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+      - name: Run actionlint
+        run: ./actionlint -color -oneline
