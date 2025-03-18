@@ -1,4 +1,5 @@
-﻿using CysharpActions.Utils;
+﻿using Cysharp.Diagnostics;
+using CysharpActions.Utils;
 
 namespace CysharpActions.Commands;
 
@@ -14,10 +15,15 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
         Env.useShell = false;
 
         // git tag
-        using (_ = GitHubActions.StartGroup("Create git tag"))
+        using (_ = GitHubActions.StartGroup("Create git tag, if not exists"))
         {
-            await $"git tag {tag}";
-            await $"git push origin {tag}";
+            var tags = await $"git ls-remote --tags";
+            if (!tags.ToMultiLine().Any(x => x.EndsWith($"refs/tags/{tag}")))
+            {
+                GitHubActions.WriteLog("git tag not found. Begin tag and push to origin.");
+                await $"git tag {tag}";
+                await $"git push origin {tag}";
+            }
         }
 
         // create release

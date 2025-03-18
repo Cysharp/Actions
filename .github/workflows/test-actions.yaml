@@ -20,7 +20,7 @@ jobs:
       - name: dotnet build
         run: dotnet build -c Release
       - name: dotnet test
-        run: dotnet test
+        run: dotnet test -c Release --no-build --logger:"console;verbosity=normal"
 
   upload-artifact:
     runs-on: ubuntu-latest
