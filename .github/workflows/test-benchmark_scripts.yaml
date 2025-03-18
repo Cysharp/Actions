@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Run benchmark_config2matrix
         id: actual
         run: bash ./.github/scripts/benchmark_config2matrix.sh --config-path ./.github/scripts/tests/template_benchmark_config.yaml
@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Run benchmark_loader2matrix
         id: actua_config
         run: bash ./.github/scripts/benchmark_loader2matrix.sh --benchmark-name-prefix foo --config-path ./.github/scripts/tests/template_schedule_loader.yaml
