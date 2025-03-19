@@ -14,7 +14,7 @@ Cysharp OSS repository uses and maintained GitHub Actions "reusable workflows" a
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 # 📖 Table of Contents
 
-- [♺ Reusable workflows](#-reusable-workflows)
+- [♻️ Reusable workflows](#-reusable-workflows)
   - [clean-packagejson-branch](#clean-packagejson-branch)
   - [create-release](#create-release)
   - [dd-event-post](#dd-event-post)
