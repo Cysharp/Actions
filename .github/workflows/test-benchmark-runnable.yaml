@@ -25,6 +25,6 @@ jobs:
           echo "DEBUG: check-metas: ${{ steps.result.outputs.authorized }}"
 
           echo -n "FACT: foo is not allowed. "
-          if [[ "${{ steps.result.outputs.authorized }}" != "true" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ steps.result.outputs.authorized }}" != "true" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
           echo -n "FACT: mayuki is allowed. "
-          if [[ "${{ steps.result2.outputs.authorized }}" == "true" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ steps.result2.outputs.authorized }}" == "true" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi

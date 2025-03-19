@@ -51,15 +51,15 @@ jobs:
           echo "DEBUG: cleanup2: ${{ needs.cleanup2.outputs.branch-deleted }}"
 
           echo -n "FACT: cleanup deleted branch. "
-          if [[ "${{ needs.cleanup.outputs.branch-deleted }}" == "true" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ needs.cleanup.outputs.branch-deleted }}" == "true" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
           echo -n "FACT: cleanup2 skip delete branch. "
-          if [[ "${{ needs.cleanup2.outputs.branch-deleted }}" != "true" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ needs.cleanup2.outputs.branch-deleted }}" != "true" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
 
           echo -n "FACT: remote branch should not exists. "
-          if ! gh api /repos/${{ github.repository }}/branches | jq -r '.[].name' | grep "${{ needs.create-branch.outputs.branch-name }}" >/dev/null; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if ! gh api /repos/${{ github.repository }}/branches | jq -r '.[].name' | grep "${{ needs.create-branch.outputs.branch-name }}" >/dev/null; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
 
           echo -n "FACT: remote branch should not retrieve. "
-          if ! gh api /repos/${{ github.repository }}/branches/${{ needs.create-branch.outputs.branch-name }} >/dev/null 2>&1; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if ! gh api /repos/${{ github.repository }}/branches/${{ needs.create-branch.outputs.branch-name }} >/dev/null 2>&1; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # auto generated token
 

@@ -29,9 +29,9 @@ jobs:
           echo "DEBUG: check-metas2: ${{ steps.check-metas.outputs.meta-exists }}"
 
           echo -n "FACT: check-metas .meta not exists. "
-          if [[ "${{ steps.check-metas.outputs.meta-exists }}" != "true" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ steps.check-metas.outputs.meta-exists }}" != "true" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
           echo -n "FACT: check-metas2 .meta exists. "
-          if [[ "${{ steps.check-metas2.outputs.meta-exists }}" == "true" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ steps.check-metas2.outputs.meta-exists }}" == "true" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
       - uses: ./.github/actions/check-metas
         id: check-metas3
         with:
@@ -45,7 +45,7 @@ jobs:
           echo "DEBUG: outcome: ${{ steps.check-metas3.outcome }}"
 
           echo -n "FACT: check-metas3 .meta exists. "
-          if [[ "${{ steps.check-metas3.outputs.meta-exists }}" == "true" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ steps.check-metas3.outputs.meta-exists }}" == "true" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
 
           echo -n "FACT: check-metas3 successfully failed (exit 1) on .meta found. "
-          if [[ "${{ steps.check-metas3.outcome }}" == "failure" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ steps.check-metas3.outcome }}" == "failure" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi

@@ -1,6 +1,7 @@
 [![Test benchmark scripts](https://github.com/Cysharp/Actions/actions/workflows/test-benchmark_scripts.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-benchmark_scripts.yaml)
 [![Test benchmark-runnable](https://github.com/Cysharp/Actions/actions/workflows/test-benchmark-runnable.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-benchmark-runnable.yaml)
 [![Test check-metas](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml)
+[![Test checkout](https://github.com/Cysharp/Actions/actions/workflows/test-checkout.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-checkout.yaml)
 [![Test clean-packagejson-branch](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml)
 [![Test create-release](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml)
 [![Test setup-dotnet](https://github.com/Cysharp/Actions/actions/workflows/test-setup-dotnet.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-setup-dotnet.yaml)
@@ -545,6 +546,40 @@ jobs:
         with:
           directory: ./Sandbox/Sandbox.Unity
 ```
+
+## checkout
+
+> [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/checkout/action.yaml)
+
+Wrapper of [actions/checkout](https://github.com/actions/checkout/tree/main) to offer centrlral managed checkout by sha pinning.
+
+**Sample usage**
+
+```yaml
+name: build-debug
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-unity:
+    name: "Build Unity package"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # - uses: actions/checkout@v4
+      - use: Cysharp/Actions/.github/actions/checkout@main
+      # Any actions that create .meta when it was not comitted.
+      - name: Unity Build
+        run: touch ./Sandbox/Sandbox.Unity/Assets/Scene1.unity.meta
+      - name: Check all .meta is comitted
+        uses: Cysharp/Actions/.github/actions/check-metas@main
+        with:
+          directory: ./Sandbox/Sandbox.Unity
+```
+
 
 ## download-artifact
 
