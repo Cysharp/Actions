@@ -17,9 +17,16 @@ on:
         description: Whether to fold.
         required: false
         type: boolean
+      TARGET_PATHS:
+        description: Target file path. (Comma separated, @see https://github.com/thlorenz/doctoc#adding-toc-to-individual-files)
+        default: 'README*.md'
+        required: false
+        type: string
   workflow_dispatch:
   push:
     branches: ["main"]
+    paths:
+      - 'README.md'
 
 jobs:
   toc:
@@ -31,3 +38,4 @@ jobs:
           TOC_TITLE: ${{ inputs.TOC_TITLE || '# 📖 Table of Contents' }}
           FOLDING: ${{ inputs.FOLDING || false }}
           GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN || github.token }}
+          TARGET_PATHS: ${{ inputs.TARGET_PATHS || 'README*.md' }}
