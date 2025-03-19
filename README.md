@@ -546,6 +546,40 @@ jobs:
           directory: ./Sandbox/Sandbox.Unity
 ```
 
+## checkout
+
+> [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/checkout/action.yaml)
+
+Wrapper of [actions/checkout](https://github.com/actions/checkout/tree/main) to offer centrlral managed checkout by sha pinning.
+
+**Sample usage**
+
+```yaml
+name: build-debug
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-unity:
+    name: "Build Unity package"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # - uses: actions/checkout@v4
+      - use: Cysharp/Actions/.github/actions/checkout@main
+      # Any actions that create .meta when it was not comitted.
+      - name: Unity Build
+        run: touch ./Sandbox/Sandbox.Unity/Assets/Scene1.unity.meta
+      - name: Check all .meta is comitted
+        uses: Cysharp/Actions/.github/actions/check-metas@main
+        with:
+          directory: ./Sandbox/Sandbox.Unity
+```
+
+
 ## download-artifact
 
 > [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/download-artifact/action.yaml)
