@@ -1,9 +1,10 @@
-[![Test benchmark-runnable](https://github.com/Cysharp/Actions/actions/workflows/test-benchmark-runnable.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-benchmark-runnable.yaml)
-[![Test check-metas](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml)
-[![Test clean-packagejson-branch](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml)
-[![Test create-release](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml)
-[![Test setup-dotnet](https://github.com/Cysharp/Actions/actions/workflows/test-setup-dotnet.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-setup-dotnet.yaml)
-[![Test update-packagejson](https://github.com/Cysharp/Actions/actions/workflows/test-update-packagejson.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/test-update-packagejson.yaml)
+[![Test benchmark scripts](https://github.com/Cysharp/Actions/actions/workflows/test-benchmark_scripts.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-benchmark_scripts.yaml)
+[![Test benchmark-runnable](https://github.com/Cysharp/Actions/actions/workflows/test-benchmark-runnable.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-benchmark-runnable.yaml)
+[![Test check-metas](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-check-metas.yaml)
+[![Test clean-packagejson-branch](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-clean-packagejson-branch.yaml)
+[![Test create-release](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-create-release.yaml)
+[![Test setup-dotnet](https://github.com/Cysharp/Actions/actions/workflows/test-setup-dotnet.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-setup-dotnet.yaml)
+[![Test update-packagejson](https://github.com/Cysharp/Actions/actions/workflows/test-update-packagejson.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/test-update-packagejson.yaml)
 
 # Actions
 
@@ -13,7 +14,7 @@ Cysharp OSS repository uses and maintained GitHub Actions "reusable workflows" a
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 # 📖 Table of Contents
 
-- [♺ Reusable workflows](#%E2%99%BA-reusable-workflows)
+- [♺ Reusable workflows](#-reusable-workflows)
   - [clean-packagejson-branch](#clean-packagejson-branch)
   - [create-release](#create-release)
   - [dd-event-post](#dd-event-post)
@@ -31,7 +32,7 @@ Cysharp OSS repository uses and maintained GitHub Actions "reusable workflows" a
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# ♺ Reusable workflows
+# ♻️ Reusable workflows
 
 ## clean-packagejson-branch
 
