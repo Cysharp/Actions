@@ -31,7 +31,7 @@ Cysharp OSS repository uses and maintained GitHub Actions "reusable workflows" a
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# Reusable workflows
+# ♺ Reusable workflows
 
 ## clean-packagejson-branch
 
@@ -466,7 +466,7 @@ jobs:
 
 ```
 
-# Actions
+# 🎬 Actions
 
 ## check-benchmarkable
 
