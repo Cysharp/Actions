@@ -1,6 +1,22 @@
 name: TOC Generator
 
 on:
+  workflow_call:
+    inputs:
+      GITHUB_TOKEN:
+        description: Secret GitHub API token used to make API requests or git authentication.
+        default: ${{ github.token }}
+        required: false
+        type: string
+      TOC_TITLE:
+        description: TOC Title
+        default: '**Table of Contents**'
+        required: false
+        type: string
+      FOLDING:
+        description: Whether to fold.
+        required: false
+        type: boolean
   workflow_dispatch:
   push:
     branches: ["main"]
@@ -12,5 +28,6 @@ jobs:
     steps:
       - uses: technote-space/toc-generator@9e238e7974de5fcf7b17b7acc54c896160dda0a3 # v4.3.1
         with:
-          TOC_TITLE: "# 📖 Table of Contents"
-          FOLDING: false
+          TOC_TITLE: ${{ inputs.TOC_TITLE || '# 📖 Table of Contents' }}
+          FOLDING: ${{ inputs.FOLDING || false }}
+          GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN || github.token }}
