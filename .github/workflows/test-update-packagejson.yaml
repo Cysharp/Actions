@@ -81,20 +81,20 @@ jobs:
           echo "DEBUG: update-packagejson2: ${{ needs.update-packagejson2.outputs.sha }}"
 
           echo -n "FACT: sha for update-packagejson should be updated. "
-          if [[ "${{ needs.update-packagejson.outputs.sha }}" != "${{ github.sha }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ needs.update-packagejson.outputs.sha }}" != "${{ github.sha }}" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
           echo -n "FACT: sha for update-packagejson2 should be updated. "
-          if [[ "${{ needs.update-packagejson2.outputs.sha }}" != "${{ github.sha }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ needs.update-packagejson2.outputs.sha }}" != "${{ github.sha }}" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
           echo -n "FACT: sha for update-packagejson and update-packagejson2 should have same commit id. "
-          if [[ "${{ needs.update-packagejson.outputs.sha }}" == "${{ needs.update-packagejson2.outputs.sha }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ needs.update-packagejson.outputs.sha }}" == "${{ needs.update-packagejson2.outputs.sha }}" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
           echo -n "FACT: sha for update-packagejson and update-packagejson3 should have same commit id. "
-          if [[ "${{ needs.update-packagejson.outputs.sha }}" == "${{ needs.update-packagejson3.outputs.sha }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ needs.update-packagejson.outputs.sha }}" == "${{ needs.update-packagejson3.outputs.sha }}" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
 
           echo -n "FACT: branch-name for update-packagejson should be expected. "
-          if [[ "${{ needs.update-packagejson.outputs.branch-name }}" == "test-release/${{ needs.set-tag.outputs.tag }}" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ needs.update-packagejson.outputs.branch-name }}" == "test-release/${{ needs.set-tag.outputs.tag }}" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
           echo -n "FACT: branch-name for update-packagejson2 should be empty. "
-          if [[ "${{ needs.update-packagejson2.outputs.branch-name }}" == "" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ needs.update-packagejson2.outputs.branch-name }}" == "" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
           echo -n "FACT: branch-name for update-packagejson3 should be empty. "
-          if [[ "${{ needs.update-packagejson3.outputs.branch-name }}" == "" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          if [[ "${{ needs.update-packagejson3.outputs.branch-name }}" == "" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
         env:
           HEAD_REF: ${{ github.head_ref }}
 

@@ -13,8 +13,17 @@ jobs:
       - uses: Cysharp/Actions/.github/actions/checkout@main
       - name: Test
         run: |
-          if [[ -f "README.md" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
-          if [[ -d ".github" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
-          if [[ -f ".github/actions/checkout/action.yaml" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
-          if [[ -f ".github/workflows/create-release.yaml" ]]: then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
-          if [[ -d "src" ]]; then echo "[O PASS]"; else echo "[X FAIL]" && exit 1; fi
+          echo -n "FACT: README.md exists. "
+          if [[ -f "README.md" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+
+          echo -n "FACT: .github/ exists. "
+          if [[ -d ".github/" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+
+          echo -n "FACT: .github/actions/checkout/action.yaml exists. "
+          if [[ -f ".github/actions/checkout/action.yaml" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+
+          echo -n "FACT: .github/workflows/create-release.yaml exists. "
+          if [[ -f ".github/workflows/create-release.yaml" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+
+          echo -n "FACT: src/ exists. "
+          if [[ -d "src/" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
