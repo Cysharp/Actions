@@ -7,8 +7,9 @@ namespace CysharpActions.Commands;
 public record struct UpdateVersionCommandResult(string Path, string Before, string After);
 public class UpdateVersionCommand(string version)
 {
-    public IEnumerable<UpdateVersionCommandResult> UpdateVersions(IEnumerable<string> paths, bool dryRun)
+    public List<UpdateVersionCommandResult> UpdateVersions(IEnumerable<string> paths, bool dryRun)
     {
+        var results = new List<UpdateVersionCommandResult>();
         foreach (var path in paths)
         {
             if (string.IsNullOrWhiteSpace(path))
@@ -16,6 +17,9 @@ public class UpdateVersionCommand(string version)
                 GitHubActions.WriteLog("Empty path detected, skip execution.");
                 continue;
             }
+            
+            if (!File.Exists(path))
+                throw new FileNotFoundException(path);
 
             GitHubActions.WriteLog($"Update begin, {path} ...");
             using (_ = GitHubActions.StartGroup($"Before, {path}"))
@@ -24,14 +28,14 @@ public class UpdateVersionCommand(string version)
             using (_ = GitHubActions.StartGroup($"After, {path}"))
                 GitHubActions.WriteLog(result.After);
 
-            yield return result;
+            results.Add(result);
         }
+
+        return results;
     }
 
     private UpdateVersionCommandResult UpdateVersion(string path, bool dryRun)
     {
-        if (!File.Exists(path)) throw new FileNotFoundException(path);
-
         var writeBack = !dryRun;
         var fileName = Path.GetFileName(path);
         return fileName switch

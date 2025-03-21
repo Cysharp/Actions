@@ -1,4 +1,5 @@
-﻿using CysharpActions.Contexts;
+﻿using Cysharp.Diagnostics;
+using CysharpActions.Contexts;
 using CysharpActions.Utils;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -33,32 +34,39 @@ public class ValidateTagCommand()
             return;
         }
 
-        // release_latest=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest | jq -c -r ".[] | select(.isLatest == true) | .tagName")
-        // sorted_latest=$(echo - e "${release_latest}\n${{ steps.trim.outputs.normalized_tag }}" | sort - V | tail - n 1)
-        var releaseLatests = await "gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest";
-        var githubReleases = JsonSerializer.Deserialize<GitHubRelease[]>(releaseLatests);
-        var releaseTag = githubReleases?.SingleOrDefault(x => x.IsLatest)?.TagName;
-
-        if (releaseTag is null)
+        try
         {
-            // no release tag
-            return;
-        }
-        else if (releaseTag == tag)
-        {
-            // input tag is same or newer than latest tag
-            return;
-        }
+            // release_latest=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest | jq -c -r ".[] | select(.isLatest == true) | .tagName")
+            // sorted_latest=$(echo - e "${release_latest}\n${{ steps.trim.outputs.normalized_tag }}" | sort - V | tail - n 1)
+            var releaseLatests = await "gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest";
+            var githubReleases = JsonSerializer.Deserialize<GitHubRelease[]>(releaseLatests);
+            var releaseTag = githubReleases?.SingleOrDefault(x => x.IsLatest)?.TagName;
 
-        var sortedLatest = new[] { releaseTag, tag }.OrderBy(x => x).Last();
-        if (sortedLatest == tag)
-        {
-            // input tag is same or newer than latest tag
-            return;
-        }
+            if (releaseTag is null)
+            {
+                // no release tag
+                return;
+            }
+            else if (releaseTag == tag)
+            {
+                // input tag is same or newer than latest tag
+                return;
+            }
 
-        // input tag is older than latest tag, reverting!!
-        throw new ActionCommandException($"Tag is invalid, reverting to old version. Please bump the version.");
+            var sortedLatest = new[] { releaseTag, tag }.OrderBy(x => x).Last();
+            if (sortedLatest == tag)
+            {
+                // input tag is same or newer than latest tag
+                return;
+            }
+
+            // input tag is older than latest tag, reverting!!
+            throw new ActionCommandException($"Tag is invalid, reverting to old version. Please bump the version.");
+        }
+        catch (ProcessErrorException ex)
+        {
+            throw new ActionCommandException($"Failed to get latest release tag. {ex.Message}", ex);
+        }
     }
 
     private record GitHubRelease
