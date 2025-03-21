@@ -48,6 +48,8 @@ namespace CysharpActions
         public async Task UpdateVersion(string version, string pathString, bool dryRun)
         {
             var paths = pathString.ToMultiLine();
+            if (!paths.Any())
+                throw new ActionCommandException("No path specified.");
 
             // update version
             var command = new UpdateVersionCommand(version);
