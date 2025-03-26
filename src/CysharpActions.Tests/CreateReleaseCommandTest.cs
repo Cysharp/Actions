@@ -13,8 +13,7 @@ public class CreateReleaseCommandTest
     {
         if (!GitHubEnv.Current.CI)
             return;
-        _ = GHEnv.Current.GH_REPO ?? throw new Exception("Environment Variable 'GH_REPO' is required");
-        _ = GHEnv.Current.GH_TOKEN ?? throw new Exception("Environment Variable 'GH_TOKEN' is required");
+        GHEnv.Current.Validate();
 
         Zx.Env.useShell = false;
 
@@ -54,8 +53,7 @@ public class CreateReleaseCommandTest
     {
         if (!GitHubEnv.Current.CI)
             return;
-        _ = GHEnv.Current.GH_REPO ?? throw new Exception("Environment Variable 'GH_REPO' is required");
-        _ = GHEnv.Current.GH_TOKEN ?? throw new Exception("Environment Variable 'GH_TOKEN' is required");
+        GHEnv.Current.Validate();
 
         Zx.Env.useShell = false;
 

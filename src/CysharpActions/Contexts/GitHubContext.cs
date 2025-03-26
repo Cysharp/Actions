@@ -218,11 +218,6 @@ public record GHEnv
     public static GHEnv Current { get; } = new GHEnv();
 
     /// <summary>
-    /// Indicate GH_xxxx is ready to use
-    /// </summary>
-    public bool IsGHReady => GH_REPO is not null && GH_TOKEN is not null;
-
-    /// <summary>
     /// Get value of GH_REPO
     /// </summary>
     public string? GH_REPO { get; init; } = Get(nameof(GH_REPO));
@@ -233,4 +228,10 @@ public record GHEnv
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string? Get(string key) => Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Process);
+
+    public void Validate()
+    {
+        _ = GH_REPO ?? throw new ArgumentNullException($"Environment Variable {nameof(GH_REPO)} missing.");
+        _ = GH_TOKEN ?? throw new ArgumentNullException($"Environment Variable {nameof(GH_TOKEN)} missing.");
+    }
 }

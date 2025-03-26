@@ -15,6 +15,14 @@ public static class GitHelper
     {
         try
         {
+            GHEnv.Current.Validate();
+        }
+        catch (ArgumentNullException ex)
+        {
+            throw new ActionCommandException("GH_REPO and GH_TOKEN is required, but not set.", ex);
+        }
+        try
+        {
             var remote = await "git config --get remote.origin.url";
         }
         catch (ProcessErrorException)

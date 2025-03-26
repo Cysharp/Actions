@@ -119,6 +119,9 @@ jobs:
       - name: Update files to version ${{ steps.validate.outputs.normalized-tag }}
         id: update
         run: ${{ steps.actions-caller.outputs.path }} update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${{ inputs.file-path }}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push changes
         if: ${{ steps.update.outputs.commited == '1' }}

@@ -35,9 +35,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: foo
-        run: git config -l
-
   cleanup:
     needs: [create-branch]
     uses: ./.github/workflows/clean-packagejson-branch.yaml

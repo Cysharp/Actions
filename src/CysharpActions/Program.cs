@@ -44,6 +44,7 @@ namespace CysharpActions
         /// Because GitHub Actions workflow dispatch passes arguments as string, you need to split path by NewLine. It means use `string[] pathString` is un-natural for GitHub Actions.
         /// </remarks>
         [ConsoleAppFilter<GitHubContextFilter>]
+        [ConsoleAppFilter<GitHubCliFilter>]
         [Command("update-version")]
         public async Task UpdateVersion(string version, string pathString, bool dryRun)
         {
