@@ -21,6 +21,8 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
             using (_ = GitHubActions.StartGroup("Setting git remote"))
             {
                 await $"git remote set-url origin \"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/${GHEnv.Current.GH_REPO}\"";
+                await $"git config --local user.email \"41898282+github-actions[bot]@users.noreply.github.com\"";
+                await $"git config --local user.name \"github-actions[bot]\"";
             }
         }
 
