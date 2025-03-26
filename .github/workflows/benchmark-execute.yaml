@@ -195,8 +195,7 @@ jobs:
             ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-client-run-script-args }}' < ${{ matrix.benchmark-client-run-script-path }}
           done
         working-directory: ./Repo/
-        #timeout-minutes: ${{ fromJson(matrix.benchmark-timeout-min || 10) }} # ignore until https://github.com/suzuki-shunsuke/ghalint/issues/804 is fixed
-        timeout-minutes: 10
+        timeout-minutes: ${{ fromJson(matrix.benchmark-timeout-min || 10) }}
         continue-on-error: true # continue next benchmark even benchmark failed for this job
       - name: Stop benchmark server on VM
         if: ${{ matrix.benchmark-server-stop-script-path != '' }}
