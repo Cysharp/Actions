@@ -1,4 +1,4 @@
-﻿using Cysharp.Diagnostics;
+﻿using CysharpActions.Contexts;
 using CysharpActions.Utils;
 
 namespace CysharpActions.Commands;
@@ -13,6 +13,16 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
     public async Task CreateReleaseAsync()
     {
         Env.useShell = false;
+
+        // set remote
+        var remote = await "git config --get remote.origin.url";
+        if (string.IsNullOrEmpty(remote))
+        {
+            using (_ = GitHubActions.StartGroup("Setting git remote"))
+            {
+                await $"git remote set-url origin \"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/${GHEnv.Current.GH_REPO}\"";
+            }
+        }
 
         // git tag
         using (_ = GitHubActions.StartGroup("Create git tag, if not exists"))

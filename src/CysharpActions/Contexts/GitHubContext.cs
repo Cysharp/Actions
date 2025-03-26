@@ -63,7 +63,7 @@ public record GitHubContext
 /// <summary>
 /// see: https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables#default-environment-variables
 /// </summary>
-internal record GitHubEnv
+public record GitHubEnv
 {
     public static GitHubEnv Current { get; } = new GitHubEnv();
 
@@ -208,6 +208,28 @@ internal record GitHubEnv
     /// Environment Variables to the PATH
     /// </summary>
     public bool ACTIONS_STEP_DEBUG { get; init; } = bool.Parse(Get(nameof(ACTIONS_STEP_DEBUG)) ?? "false");
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string? Get(string key) => Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Process);
+}
+
+public record GHEnv
+{
+    public static GHEnv Current { get; } = new GHEnv();
+
+    /// <summary>
+    /// Indicate GH_xxxx is ready to use
+    /// </summary>
+    public bool IsGHReady => GH_REPO is not null && GH_TOKEN is not null;
+
+    /// <summary>
+    /// Get value of GH_REPO
+    /// </summary>
+    public string? GH_REPO { get; init; } = Get(nameof(GH_REPO));
+    /// <summary>
+    /// Get value of GH_TOKEN
+    /// </summary>
+    public string? GH_TOKEN { get; init; } = Get(nameof(GH_TOKEN));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string? Get(string key) => Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Process);

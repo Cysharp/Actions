@@ -9,12 +9,10 @@ public class GitCommandTest
     [Fact]
     public async Task DeleteBrancFalse_NotGitHubActionsLoginTest()
     {
-        if (Environment.GetEnvironmentVariable("CI") is null)
+        if (!GitHubEnv.Current.CI)
             return;
-        if (Environment.GetEnvironmentVariable("GH_REPO") is null)
-            throw new Exception("GH_REPO is not set");
-        if (Environment.GetEnvironmentVariable("GH_TOKEN") is null)
-            throw new Exception("GH_TOKEN is not set");
+        _ = GHEnv.Current.GH_REPO ?? throw new Exception("Environment Variable 'GH_REPO' is required");
+        _ = GHEnv.Current.GH_TOKEN ?? throw new Exception("Environment Variable 'GH_TOKEN' is required");
 
         Zx.Env.useShell = false;
 

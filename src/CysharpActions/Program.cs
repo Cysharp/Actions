@@ -240,8 +240,8 @@ namespace CysharpActions
             {
                 GitHubActions.WriteLog($"Validating gh cli environment variables ...");
 
-                _ = Environment.GetEnvironmentVariable("GH_REPO") ?? throw new ActionCommandException("Environment Variable 'GH_REPO' is required");
-                _ = Environment.GetEnvironmentVariable("GH_TOKEN") ?? throw new ActionCommandException("Environment Variable 'GH_TOKEN' is required");
+                _ = GHEnv.Current.GH_REPO ?? throw new ActionCommandException("Environment Variable 'GH_REPO' is required");
+                _ = GHEnv.Current.GH_TOKEN ?? throw new ActionCommandException("Environment Variable 'GH_TOKEN' is required");
             }
             await Next.InvokeAsync(context, cancellationToken);
         }
