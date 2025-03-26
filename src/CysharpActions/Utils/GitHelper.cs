@@ -24,6 +24,10 @@ public static class GitHelper
         try
         {
             var remote = await "git config --get remote.origin.url";
+            if (remote != $"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/${GHEnv.Current.GH_REPO}")
+            {
+                await $"git remote set-url origin \"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/${GHEnv.Current.GH_REPO}\"";
+            }
         }
         catch (ProcessErrorException)
         {
