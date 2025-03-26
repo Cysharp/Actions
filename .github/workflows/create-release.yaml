@@ -100,9 +100,6 @@ permissions:
 jobs:
   create-release:
     name: Create Release
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # auto generated token
-      GH_REPO: ${{ github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -125,6 +122,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ inputs.commit-id }}
+          persist-credentials: false
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
         with:
           dotnet-version: 9.0.x
@@ -158,6 +156,9 @@ jobs:
       # Create Releases
       - name: Create Release
         run: ${{ steps.actions-caller.outputs.path }} create-release --tag "${{ inputs.tag }}" --release-title "${{ format(inputs.release-format, inputs.tag) }}" --release-asset-path-string "${{ inputs.release-asset-path }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
 
       # Upload to NuGet
       - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
@@ -172,3 +173,6 @@ jobs:
             sleep 60
             gh release delete ${{ inputs.tag }} --yes --cleanup-tag
           fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}

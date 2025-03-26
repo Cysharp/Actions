@@ -8,6 +8,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 3
     steps:
       - uses: Cysharp/Actions/.github/actions/checkout@main

@@ -1,0 +1,41 @@
+excludes:
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    workflow_file_path: .github/workflows/benchmark-loader.yaml
+    job_name: verify
+    action_name: Cysharp/Actions/.github/actions/benchmark-runnable
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    workflow_file_path: .github/workflows/benchmark-loader.yaml
+    job_name: verify
+    action_name: Cysharp/Actions/.github/actions/benchmark-progress-comment
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    workflow_file_path: .github/workflows/clean-packagejson-branch.yaml
+    job_name: cleanup
+    action_name: Cysharp/Actions/.github/actions/setup-dotnet
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    workflow_file_path: .github/workflows/create-release.yaml
+    job_name: create-release
+    action_name: Cysharp/Actions/.github/actions/download-artifact
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    workflow_file_path: .github/workflows/test-actions.yaml
+    job_name: upload-artifact
+    action_name: Cysharp/Actions/.github/actions/upload-artifact
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    workflow_file_path: .github/workflows/test-checkout.yaml
+    job_name: test
+    action_name: Cysharp/Actions/.github/actions/checkout
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    workflow_file_path: .github/workflows/test-create-release.yaml
+    job_name: build-dotnet
+    action_name: Cysharp/Actions/.github/actions/upload-artifact
+  - policy_name: deny_inherit_secrets
+    workflow_file_path: .github/workflows/test-create-release.yaml
+    job_name: create-release
+  - policy_name: deny_inherit_secrets
+    workflow_file_path: .github/workflows/test-create-release.yaml
+    job_name: create-release2
+  - policy_name: deny_inherit_secrets
+    workflow_file_path: .github/workflows/test-create-release.yaml
+    job_name: create-release3
+  - policy_name: deny_inherit_secrets
+    workflow_file_path: .github/workflows/test-update-packagejson.yaml
+    job_name: actions-timeline
