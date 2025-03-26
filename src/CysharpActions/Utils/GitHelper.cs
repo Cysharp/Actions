@@ -13,13 +13,20 @@ public static class GitHelper
     /// <returns></returns>
     public static async Task SetGitUserEmailAsync(string email = "41898282+github-actions[bot]@users.noreply.github.com", string user = "github-actions[bot]")
     {
-        var emailMissing = string.IsNullOrEmpty(await "git config --get user.email");
-        if (emailMissing)
+        try
+        {
+            await "git config --get user.email";
+        }
+        catch (ProcessErrorException)
         {
             await $"git config --local user.email \"{email}\"";
         }
-        var nameMissing= string.IsNullOrEmpty(await "git config --get user.name");
-        if (nameMissing)
+
+        try
+        {
+            await "git config --get user.name";
+        }
+        catch (ProcessErrorException)
         {
             await $"git config --local user.name \"{user}\"";
         }
