@@ -5,7 +5,7 @@ on:
     branches: ["main"]
 
 jobs:
-  setup-dotnet:
+  dotnet:
     runs-on: ubuntu-latest
     permissions:
       contents: write # dotnet test runs gh cli
@@ -21,6 +21,9 @@ jobs:
         run: dotnet build -c Release
       - name: dotnet test
         run: dotnet test -c Release --no-build --logger:"console;verbosity=normal"
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   upload-artifact:
     runs-on: ubuntu-latest
