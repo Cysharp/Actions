@@ -21,17 +21,14 @@ public static class GitHelper
         {
             throw new ActionCommandException("GH_REPO and GH_TOKEN is required, but not set.", ex);
         }
+
         try
         {
             var remote = await "git config --get remote.origin.url";
-            if (remote != $"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/${GHEnv.Current.GH_REPO}")
-            {
-                await $"git remote set-url origin \"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/${GHEnv.Current.GH_REPO}\"";
-            }
         }
         catch (ProcessErrorException)
         {
-            await $"git remote set-url origin \"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/${GHEnv.Current.GH_REPO}\"";
+            await $"git remote set-url origin \"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/{GHEnv.Current.GH_REPO}\"";
         }
 
         try
