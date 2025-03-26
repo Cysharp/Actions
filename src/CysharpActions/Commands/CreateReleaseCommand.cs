@@ -14,17 +14,12 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
     {
         Env.useShell = false;
 
+        GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
+        await GitHelper.SetGitUserEmailAsync();
+
         // set remote
-        var remote = await "git config --get remote.origin.url";
-        if (string.IsNullOrEmpty(remote))
-        {
-            using (_ = GitHubActions.StartGroup("Setting git remote"))
-            {
-                await $"git remote set-url origin \"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/${GHEnv.Current.GH_REPO}\"";
-                await $"git config --local user.email \"41898282+github-actions[bot]@users.noreply.github.com\"";
-                await $"git config --local user.name \"github-actions[bot]\"";
-            }
-        }
+        GitHubActions.WriteLog($"Set git remote if missing ...");
+        await GitHelper.SetRemoteUrlIfMissingAsync();
 
         // git tag
         using (_ = GitHubActions.StartGroup("Create git tag, if not exists"))
