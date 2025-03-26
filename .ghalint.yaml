@@ -1,0 +1,15 @@
+excludes:
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    action_name: Cysharp/Actions/.github/actions/*
+  - policy_name: deny_inherit_secrets
+    workflow_file_path: .github/workflows/test-create-release.yaml
+    job_name: create-release
+  - policy_name: deny_inherit_secrets
+    workflow_file_path: .github/workflows/test-create-release.yaml
+    job_name: create-release2
+  - policy_name: deny_inherit_secrets
+    workflow_file_path: .github/workflows/test-create-release.yaml
+    job_name: create-release3
+  - policy_name: deny_inherit_secrets
+    workflow_file_path: .github/workflows/test-update-packagejson.yaml
+    job_name: actions-timeline

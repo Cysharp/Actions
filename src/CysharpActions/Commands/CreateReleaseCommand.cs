@@ -1,4 +1,4 @@
-﻿using Cysharp.Diagnostics;
+﻿using CysharpActions.Contexts;
 using CysharpActions.Utils;
 
 namespace CysharpActions.Commands;
@@ -13,6 +13,10 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
     public async Task CreateReleaseAsync()
     {
         Env.useShell = false;
+
+        GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
+        await GitHelper.SetGitUserEmailAsync();
+        await "git config -l";
 
         // git tag
         using (_ = GitHubActions.StartGroup("Create git tag, if not exists"))

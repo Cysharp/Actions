@@ -63,7 +63,7 @@ public record GitHubContext
 /// <summary>
 /// see: https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables#default-environment-variables
 /// </summary>
-internal record GitHubEnv
+public record GitHubEnv
 {
     public static GitHubEnv Current { get; } = new GitHubEnv();
 
@@ -211,4 +211,27 @@ internal record GitHubEnv
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string? Get(string key) => Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Process);
+}
+
+public record GHEnv
+{
+    public static GHEnv Current { get; } = new GHEnv();
+
+    /// <summary>
+    /// Get value of GH_REPO
+    /// </summary>
+    public string? GH_REPO { get; init; } = Get(nameof(GH_REPO));
+    /// <summary>
+    /// Get value of GH_TOKEN
+    /// </summary>
+    public string? GH_TOKEN { get; init; } = Get(nameof(GH_TOKEN));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string? Get(string key) => Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Process);
+
+    public void Validate()
+    {
+        _ = GH_REPO ?? throw new ArgumentNullException($"Environment Variable {nameof(GH_REPO)} missing.");
+        _ = GH_TOKEN ?? throw new ArgumentNullException($"Environment Variable {nameof(GH_TOKEN)} missing.");
+    }
 }

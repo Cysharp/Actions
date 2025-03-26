@@ -5,8 +5,7 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  workflow_dispatch:
-
+  workflow_dispatch: null
 permissions:
   contents: write
   actions: read
@@ -19,6 +18,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
+          persist-credentials: false
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
         with:
           dotnet-version: 9.0.x
@@ -34,6 +34,7 @@ jobs:
         id: update
         run: |
           if [[ "${{ steps.check_update.outputs.changed }}" == "1" ]]; then
+            git remote set-url origin "https://github-actions:${GITHUB_TOKEN}@github.com/${{ github.repository }}"
             git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git config --local user.name "github-actions[bot]"
             git commit -m "[automate] New CysharpActions.exe commited" -m "Commit by [GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" -a

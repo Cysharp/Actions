@@ -73,6 +73,7 @@ jobs:
         with:
           repository: "Cysharp/Actions"
           path: Actions
+          persist-credentials: false
       - name: List checkout repos
         run: ls -l
       - name: Load secret

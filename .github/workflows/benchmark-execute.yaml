@@ -43,28 +43,28 @@ on:
         type: string
         default: "ade-project-jp"
 
-permissions:
-  contents: read
-  id-token: write
-  pull-requests: write
-  issues: write
-
 jobs:
   config2matrix:
     name: "config2matrix: ${{ inputs.benchmark-name}}@${{ inputs.branch}}"
     outputs:
       matrix: ${{ steps.config2matrix.outputs.matrix }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     timeout-minutes: 1
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ inputs.branch }}
           path: Repo
+          persist-credentials: false
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: "Cysharp/Actions"
           path: Actions
+          persist-credentials: false
       - name: Generate Matrix json from config
         id: config2matrix
         run: bash ./Actions/.github/scripts/benchmark_config2matrix.sh --config-path "./Repo/${{ inputs.benchmark-config-path }}"
@@ -76,7 +76,6 @@ jobs:
           title: "Benchmark config loaded"
           update: "true"
 
-  # run benchmark
   benchmark:
     needs: [config2matrix]
     name: "benchmark: ${{ inputs.benchmark-name}}@${{ inputs.branch}} ${{ matrix.benchmark-client-run-script-args }}"
@@ -91,6 +90,11 @@ jobs:
     environment:
       name: benchmark
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      id-token: write
     timeout-minutes: 30
     steps:
       - name: Dump matrix
@@ -99,10 +103,12 @@ jobs:
         with:
           ref: ${{ inputs.branch }}
           path: Repo
+          persist-credentials: false
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: "Cysharp/Actions"
           path: Actions
+          persist-credentials: false
       - name: List checkout repos
         run: ls -l
       - name: Load secret
@@ -189,7 +195,7 @@ jobs:
             ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-client-run-script-args }}' < ${{ matrix.benchmark-client-run-script-path }}
           done
         working-directory: ./Repo/
-        timeout-minutes: ${{ matrix.benchmark-timeout-min }}
+        timeout-minutes: ${{ fromJson(matrix.benchmark-timeout-min || 10) }}
         continue-on-error: true # continue next benchmark even benchmark failed for this job
       - name: Stop benchmark server on VM
         if: ${{ matrix.benchmark-server-stop-script-path != '' }}

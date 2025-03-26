@@ -44,6 +44,7 @@ namespace CysharpActions
         /// Because GitHub Actions workflow dispatch passes arguments as string, you need to split path by NewLine. It means use `string[] pathString` is un-natural for GitHub Actions.
         /// </remarks>
         [ConsoleAppFilter<GitHubContextFilter>]
+        [ConsoleAppFilter<GitHubCliFilter>]
         [Command("update-version")]
         public async Task UpdateVersion(string version, string pathString, bool dryRun)
         {
@@ -176,9 +177,12 @@ namespace CysharpActions
         /// <param name="email"></param>
         /// <param name="user"></param>
         /// <returns></returns>
-        private async Task<(bool commited, string sha, string branchName, string isBranchCreated)> GitCommitAsync(bool dryRun, string tag, string email = "41898282+github-actions[bot]@users.noreply.github.com", string user = "github-actions[bot]")
+        private async Task<(bool commited, string sha, string branchName, string isBranchCreated)> GitCommitAsync(bool dryRun, string tag)
         {
             Env.useShell = false;
+
+            GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
+            await GitHelper.SetGitUserEmailAsync();
 
             GitHubActions.WriteLog($"Checking File change has been happen ...");
             var commited = false;
@@ -201,8 +205,6 @@ namespace CysharpActions
                 }
 
                 GitHubActions.WriteLog("Committing change. Running following.");
-                await $"git config --local user.email \"{email}\"";
-                await $"git config --local user.name \"{user}\"";
                 await $"git commit -a -m \"{$"feat: Update package.json to {tag}"}\" -m \"{$"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})"}\"";
 
                 commited = true;
@@ -240,8 +242,8 @@ namespace CysharpActions
             {
                 GitHubActions.WriteLog($"Validating gh cli environment variables ...");
 
-                _ = Environment.GetEnvironmentVariable("GH_REPO") ?? throw new ActionCommandException("Environment Variable 'GH_REPO' is required");
-                _ = Environment.GetEnvironmentVariable("GH_TOKEN") ?? throw new ActionCommandException("Environment Variable 'GH_TOKEN' is required");
+                _ = GHEnv.Current.GH_REPO ?? throw new ActionCommandException("Environment Variable 'GH_REPO' is required");
+                _ = GHEnv.Current.GH_TOKEN ?? throw new ActionCommandException("Environment Variable 'GH_TOKEN' is required");
             }
             await Next.InvokeAsync(context, cancellationToken);
         }

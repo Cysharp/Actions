@@ -1,4 +1,5 @@
-﻿using CysharpActions.Utils;
+﻿using CysharpActions.Contexts;
+using CysharpActions.Utils;
 using Zx;
 
 namespace CysharpActions.Tests;
@@ -10,12 +11,9 @@ public class CreateReleaseCommandTest
     [InlineData("1.2.0-pre", "v1.2.0-pre")]
     public async Task SkipTagAndReleaseTest(string tag, string releaseTitle)
     {
-        if (Environment.GetEnvironmentVariable("CI") is null)
+        if (!GitHubEnv.Current.CI)
             return;
-        if (Environment.GetEnvironmentVariable("GH_REPO") is null)
-            throw new Exception("GH_REPO is not set");
-        if (Environment.GetEnvironmentVariable("GH_TOKEN") is null)
-            throw new Exception("GH_TOKEN is not set");
+        GHEnv.Current.Validate();
 
         Zx.Env.useShell = false;
 
@@ -53,12 +51,9 @@ public class CreateReleaseCommandTest
     [InlineData("test.10.1.0", "Ver.test.10.1.0")]
     public async Task CreateTagAndReleaseTest(string tag, string releaseTitle)
     {
-        if (Environment.GetEnvironmentVariable("CI") is null)
+        if (!GitHubEnv.Current.CI)
             return;
-        if (Environment.GetEnvironmentVariable("GH_REPO") is null)
-            throw new Exception("GH_REPO is not set");
-        if (Environment.GetEnvironmentVariable("GH_TOKEN") is null)
-            throw new Exception("GH_TOKEN is not set");
+        GHEnv.Current.Validate();
 
         Zx.Env.useShell = false;
 

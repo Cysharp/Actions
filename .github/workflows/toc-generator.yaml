@@ -31,6 +31,8 @@ on:
 jobs:
   toc:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 3
     steps:
       - uses: technote-space/toc-generator@9e238e7974de5fcf7b17b7acc54c896160dda0a3 # v4.3.1

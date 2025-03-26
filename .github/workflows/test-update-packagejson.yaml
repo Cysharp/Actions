@@ -13,6 +13,9 @@ on:
 jobs:
   set-tag:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 1
     outputs:
       tag: ${{ steps.set-tag.outputs.tag }}
     steps:
@@ -25,6 +28,8 @@ jobs:
   update-packagejson:
     needs: [set-tag]
     if: ${{ github.actor != 'dependabot[bot]' }}
+    permissions:
+      contents: write
     uses: ./.github/workflows/update-packagejson.yaml
     with:
       ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
@@ -42,6 +47,8 @@ jobs:
   update-packagejson2:
     if: ${{ github.actor != 'dependabot[bot]' }}
     needs: [set-tag, update-packagejson]
+    permissions:
+      contents: write
     uses: ./.github/workflows/update-packagejson.yaml
     with:
       ref: ${{ needs.update-packagejson.outputs.sha }}
@@ -56,6 +63,8 @@ jobs:
   # use v Prefixed version
   update-packagejson3:
     if: ${{ github.actor != 'dependabot[bot]' }}
+    permissions:
+      contents: write
     needs: [set-tag, update-packagejson2]
     uses: ./.github/workflows/update-packagejson.yaml
     with:
@@ -71,6 +80,8 @@ jobs:
   test:
     needs: [set-tag, update-packagejson, update-packagejson2, update-packagejson3]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 5
     steps:
       - name: Check update-packagejson with new version should update commit id
@@ -101,11 +112,15 @@ jobs:
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
     needs: [update-packagejson, update-packagejson3]
+    permissions:
+      contents: write
     uses: ./.github/workflows/clean-packagejson-branch.yaml
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 
   actions-timeline:
     needs: [set-tag, update-packagejson, update-packagejson2, test]
+    permissions:
+      contents: read
     uses: ./.github/workflows/actions-timeline.yaml
     secrets: inherit
