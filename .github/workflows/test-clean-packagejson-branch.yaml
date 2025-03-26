@@ -32,6 +32,8 @@ jobs:
           git add .
           git commit -m "test"
           git push origin ${{ steps.branch.outputs.name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   cleanup:
     needs: [create-branch]
