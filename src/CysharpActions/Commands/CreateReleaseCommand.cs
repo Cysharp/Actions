@@ -16,10 +16,7 @@ public class CreateReleaseCommand(string tag, string releaseTitle)
 
         GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
         await GitHelper.SetGitUserEmailAsync();
-
-        // set remote
-        GitHubActions.WriteLog($"Set git remote if missing ...");
-        await GitHelper.SetRemoteUrlIfMissingAsync();
+        await "git config -l";
 
         // git tag
         using (_ = GitHubActions.StartGroup("Create git tag, if not exists"))

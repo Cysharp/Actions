@@ -15,6 +15,15 @@ public static class GitHelper
     {
         try
         {
+            var remote = await "git config --get remote.origin.url";
+        }
+        catch (ProcessErrorException)
+        {
+            await $"git remote set-url origin \"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/${GHEnv.Current.GH_REPO}\"";
+        }
+
+        try
+        {
             await "git config --get user.email";
         }
         catch (ProcessErrorException)
@@ -29,23 +38,6 @@ public static class GitHelper
         catch (ProcessErrorException)
         {
             await $"git config --local user.name \"{user}\"";
-        }
-    }
-
-    /// <summary>
-    /// Set git remote url if missing.
-    /// </summary>
-    /// <returns></returns>
-    public static async Task SetRemoteUrlIfMissingAsync()
-    {
-        try
-        {
-            var remote = await "git config --get remote.origin.url";
-        }
-        catch (ProcessErrorException)
-        {
-            GitHubActions.WriteLog($"git remote missing, settings remote ...");
-            await $"git remote set-url origin \"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/${GHEnv.Current.GH_REPO}\"";
         }
     }
 }
