@@ -26,7 +26,8 @@ jobs:
         run: dotnet publish ./src/CysharpActions -c Release --runtime linux-x64 -o ./actions/Linux-X64
       - name: dotnet publish (arm64)
         run: dotnet publish ./src/CysharpActions -c Release --runtime linux-arm64 -o ./actions/Linux-ARM64
-
+      - name: list files
+        run: ls -lR ./actions/
       - name: Check update on git
         id: check_update
         run: git diff --exit-code || echo "changed=1" | tee -a "$GITHUB_OUTPUT"
