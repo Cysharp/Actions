@@ -403,4 +403,4 @@ FodyWeavers.xsd
 *.sln.iml
 
 # CUSTOM
-!actions/*.pdb
+!actions/**/*.pdb
