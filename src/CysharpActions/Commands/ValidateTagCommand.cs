@@ -2,7 +2,6 @@
 using CysharpActions.Contexts;
 using CysharpActions.Utils;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace CysharpActions.Commands;
 
@@ -39,7 +38,7 @@ public class ValidateTagCommand()
             // release_latest=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest | jq -c -r ".[] | select(.isLatest == true) | .tagName")
             // sorted_latest=$(echo - e "${release_latest}\n${{ steps.trim.outputs.normalized_tag }}" | sort - V | tail - n 1)
             var releaseLatests = await "gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest";
-            var githubReleases = JsonSerializer.Deserialize<GitHubRelease[]>(releaseLatests);
+            var githubReleases = JsonSerializer.Deserialize(releaseLatests, JsonSourceGenerationContext.Default.GitHubReleaseArray);
             var releaseTag = githubReleases?.SingleOrDefault(x => x.IsLatest)?.TagName;
 
             if (releaseTag is null)
@@ -67,13 +66,5 @@ public class ValidateTagCommand()
         {
             throw new ActionCommandException($"Failed to get latest release tag. {ex.Message}", ex);
         }
-    }
-
-    private record GitHubRelease
-    {
-        [JsonPropertyName("tagName")]
-        public required string TagName { get; init; }
-        [JsonPropertyName("isLatest")]
-        public required bool IsLatest { get; init; }
     }
 }

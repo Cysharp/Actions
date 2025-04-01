@@ -1,6 +1,6 @@
-﻿using CysharpActions.Utils;
+﻿using CysharpActions.Contexts;
+using CysharpActions.Utils;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace CysharpActions.Commands;
 
@@ -63,7 +63,7 @@ public class UpdateVersionCommand(string version)
 
         static void Validate(string contents, string version)
         {
-            var packageJson = JsonSerializer.Deserialize<UpmPackageJson>(contents) ?? throw new ActionCommandException($"UPM package.json updated, but failed to load as valid JSON. contents: {contents}");
+            var packageJson = JsonSerializer.Deserialize(contents, JsonSourceGenerationContext.Default.UpmPackageJson) ?? throw new ActionCommandException($"UPM package.json updated, but failed to load as valid JSON. contents: {contents}");
             if (packageJson.Version != version)
                 throw new ActionCommandException($"UPM package.json updated, but version miss-match. actual {packageJson?.Version}, expected {version}");
         }
@@ -125,11 +125,5 @@ public class UpdateVersionCommand(string version)
                 throw new ActionCommandException($"Directory.Build.props updated, but version miss-match. actual {versionPrefixNode.InnerText}, expected {version}");
 
         }
-    }
-
-    private record UpmPackageJson
-    {
-        [JsonPropertyName("version")]
-        public required string Version { get; set; }
     }
 }
