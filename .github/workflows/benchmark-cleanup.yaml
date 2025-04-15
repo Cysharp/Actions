@@ -86,7 +86,7 @@ jobs:
           AZURE_OIDC_CLIENTID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_AZURE_OIDC/clientId"
           AZURE_OIDC_TENANTID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_AZURE_OIDC/tenantId"
           AZURE_OIDC_SUBSCRIPTIONID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_AZURE_OIDC/subscriptionId"
-      - uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
+      - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
         with:
           client-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_CLIENTID }}
           tenant-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_TENANTID }}
