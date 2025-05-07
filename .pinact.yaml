@@ -1,0 +1,7 @@
+# use by...
+# $ pinact run
+# $ pinact --config ../Actions/.pinact.yaml run
+version: 3
+ignore_actions:
+  - name: Cysharp/Actions/.*
+    ref: main
