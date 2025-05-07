@@ -126,4 +126,5 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/actions-timeline.yaml
-    secrets: inherit
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}

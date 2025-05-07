@@ -10,6 +10,3 @@ excludes:
   - policy_name: deny_inherit_secrets
     workflow_file_path: .github/workflows/test-create-release.yaml
     job_name: create-release3
-  - policy_name: deny_inherit_secrets
-    workflow_file_path: .github/workflows/test-update-packagejson.yaml
-    job_name: actions-timeline
