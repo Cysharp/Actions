@@ -29,6 +29,7 @@ jobs:
     needs: [set-tag]
     if: ${{ github.actor != 'dependabot[bot]' }}
     permissions:
+      actions: read
       contents: write
     uses: ./.github/workflows/update-packagejson.yaml
     with:
