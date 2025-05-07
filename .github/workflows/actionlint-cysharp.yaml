@@ -69,5 +69,5 @@ jobs:
         working-directory: ${{ matrix.repository }}
       # checkout's persist-credentials: false checker
       - name: Run ghalint
-        run: ghalint run
+        run: ghalint run -c ../.ghalint.yaml
         working-directory: ${{ matrix.repository }}
