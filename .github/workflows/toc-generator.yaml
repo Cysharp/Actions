@@ -3,11 +3,6 @@ name: TOC Generator
 on:
   workflow_call:
     inputs:
-      GITHUB_TOKEN:
-        description: Secret GitHub API token used to make API requests or git authentication.
-        default: ${{ github.token }}
-        required: false
-        type: string
       TOC_TITLE:
         description: TOC Title
         default: '**Table of Contents**'
@@ -22,6 +17,10 @@ on:
         default: 'README*.md'
         required: false
         type: string
+    secrets:
+      github-token:
+        description: Secret GitHub API token used to make API requests or git authentication.
+        required: false
   workflow_dispatch:
   push:
     branches: ["main"]
@@ -39,5 +38,5 @@ jobs:
         with:
           TOC_TITLE: ${{ inputs.TOC_TITLE || '# 📖 Table of Contents' }}
           FOLDING: ${{ inputs.FOLDING || false }}
-          GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN || github.token }}
+          GITHUB_TOKEN: ${{ secrets.github-token || secrets.GITHUB_TOKEN }}
           TARGET_PATHS: ${{ inputs.TARGET_PATHS || 'README*.md' }}

@@ -1,8 +1,10 @@
 excludes:
+  # action_ref_should_be_full_length_commit_sha, allow repository use Cysharp/Actions as tag.
   - policy_name: action_ref_should_be_full_length_commit_sha
     action_name: Cysharp/Actions/.github/actions/*
   - policy_name: action_ref_should_be_full_length_commit_sha
     action_name: Cysharp/Actions/.github/workflows/*
+  # deny_inherit_secrets, allow repository pass secrets to Cysharp/Actions create-release and toc-generator
   - policy_name: deny_inherit_secrets
     workflow_file_path: .github/workflows/test-create-release.yaml
     job_name: create-release
@@ -12,3 +14,12 @@ excludes:
   - policy_name: deny_inherit_secrets
     workflow_file_path: .github/workflows/test-create-release.yaml
     job_name: create-release3
+  - policy_name: deny_inherit_secrets
+    workflow_file_path: .github/workflows/build-release.yml
+    job_name: create-release
+  - policy_name: deny_inherit_secrets
+    workflow_file_path: .github/workflows/release.yml
+    job_name: create-release
+  - policy_name: deny_inherit_secrets
+    workflow_file_path: .github/workflows/toc.yml
+    job_name: generateTOC
