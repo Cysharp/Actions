@@ -7,9 +7,9 @@ on:
 
 jobs:
   create-branch:
-    runs-on: ubuntu-latest
     permissions:
       contents: write
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     outputs:
       branch-name: ${{ steps.branch.outputs.name }}
@@ -37,25 +37,25 @@ jobs:
 
   cleanup:
     needs: [create-branch]
-    uses: ./.github/workflows/clean-packagejson-branch.yaml
     permissions:
       contents: write
+    uses: ./.github/workflows/clean-packagejson-branch.yaml
     with:
       branch: ${{ needs.create-branch.outputs.branch-name }}
 
   cleanup2:
     needs: [create-branch, cleanup]
-    uses: ./.github/workflows/clean-packagejson-branch.yaml
     permissions:
       contents: write
+    uses: ./.github/workflows/clean-packagejson-branch.yaml
     with:
       branch: ${{ needs.create-branch.outputs.branch-name }}
 
   test:
     needs: [create-branch, cleanup, cleanup2]
-    runs-on: ubuntu-latest
     permissions:
       contents: read
+    runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
       - name: Branch list

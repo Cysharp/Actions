@@ -6,9 +6,9 @@ on:
 
 jobs:
   dotnet:
-    runs-on: ubuntu-latest
     permissions:
       contents: write # dotnet test runs gh cli
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -26,9 +26,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   upload-artifact:
-    runs-on: ubuntu-latest
     permissions:
       contents: read
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -43,9 +43,9 @@ jobs:
 
   download-artifact:
     needs: [upload-artifact]
-    runs-on: ubuntu-latest
     permissions:
       contents: read
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

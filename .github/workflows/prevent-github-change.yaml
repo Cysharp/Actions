@@ -12,9 +12,9 @@ jobs:
   detect:
     # detect if PR is from fork.
     if: ${{ github.event.pull_request.head.repo.fork }}
-    runs-on: ubuntu-latest
     permissions:
       contents: read
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
       - name: "Prevent file change"

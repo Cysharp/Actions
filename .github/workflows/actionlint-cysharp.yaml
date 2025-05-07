@@ -47,10 +47,10 @@ jobs:
           - ZLinq
           - ZLogger
           - ZString
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
     permissions:
       contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:

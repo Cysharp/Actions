@@ -31,9 +31,9 @@ on:
 
 jobs:
   post:
-    runs-on: ubuntu-latest
     permissions:
       contents: read
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Load secret

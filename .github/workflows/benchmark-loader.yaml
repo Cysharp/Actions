@@ -20,21 +20,16 @@ on:
         description: "Generated branch and config path matrix"
         value: ${{ jobs.loader2matrix.outputs.matrix }}
 
-permissions:
-  contents: read
-  pull-requests: write
-  issues: write
-
 jobs:
   # is benchmarkable
   verify:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/benchmark')) || github.event_name == 'push' || github.event_name == 'pull_request' }}
     outputs:
       is-benchmarkable: ${{ steps.is-benchmarkable.outputs.authorized }} # true or false
-    runs-on: ubuntu-latest
     permissions:
       contents: read
       issues: write
+    runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
       - name: Check actor is benchmarkable
@@ -62,9 +57,9 @@ jobs:
     needs: [verify]
     outputs:
       matrix: ${{ steps.loader2matrix.outputs.matrix }}
-    runs-on: ubuntu-latest
     permissions:
       contents: read
+    runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
       - name: Get branch name to checkout

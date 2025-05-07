@@ -12,9 +12,9 @@ on:
 
 jobs:
   set-tag:
-    runs-on: ubuntu-latest
     permissions:
       contents: read
+    runs-on: ubuntu-24.04
     timeout-minutes: 1
     outputs:
       tag: ${{ steps.set-tag.outputs.tag }}
@@ -65,10 +65,10 @@ jobs:
   # use v Prefixed version
   update-packagejson3:
     if: ${{ github.actor != 'dependabot[bot]' }}
+    needs: [set-tag, update-packagejson2]
     permissions:
       actions: read
       contents: write
-    needs: [set-tag, update-packagejson2]
     uses: ./.github/workflows/update-packagejson.yaml
     with:
       ref: ${{ needs.update-packagejson2.outputs.sha }}
@@ -82,9 +82,9 @@ jobs:
 
   test:
     needs: [set-tag, update-packagejson, update-packagejson2, update-packagejson3]
-    runs-on: ubuntu-latest
     permissions:
       contents: read
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Check update-packagejson with new version should update commit id

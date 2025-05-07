@@ -55,6 +55,8 @@ on:
 
 jobs:
   cleanup:
+    permissions:
+      contents: write
     uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
     with:
       branch: branch_name_to_delete
@@ -152,7 +154,7 @@ on:
 
 jobs:
   build-dotnet:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     defaults:
       run:
@@ -201,6 +203,9 @@ on:
 jobs:
   update-packagejson:
     if: ${{ github.actor != 'dependabot[bot]' }}
+    permissions:
+      actions: read
+      contents: write
     uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
     with:
       file-path: |
@@ -213,7 +218,7 @@ jobs:
       push-tag: false # tag push is done by create-release job
 
   build-dotnet:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     defaults:
       run:
@@ -232,7 +237,7 @@ jobs:
 
   build-unity:
     needs: [update-packagejson]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - run: echo ${{ needs.update-packagejson.outputs.sha }}
@@ -270,6 +275,8 @@ jobs:
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
     needs: [update-packagejson]
+    permissions:
+      contents: write
     uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
@@ -318,6 +325,8 @@ on:
 
 jobs:
   detect:
+    permissions:
+      contents: read
     uses: Cysharp/Actions/.github/workflows/prevent-github-change.yaml@main
 ```
 
@@ -341,6 +350,10 @@ on:
 
 jobs:
   stale:
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     uses: Cysharp/Actions/.github/workflows/stale-issue.yaml@main
 ```
 
@@ -369,6 +382,9 @@ on:
 
 jobs:
   update-packagejson:
+    permissions:
+      actions: read
+      contents: write
     uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
     with:
       # you can write multi path.
@@ -382,7 +398,7 @@ jobs:
 
   build-unity:
     needs: [update-packagejson]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -392,6 +408,8 @@ jobs:
   cleanup:
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
     needs: [update-packagejson]
+    permissions:
+      contents: write
     uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
@@ -418,6 +436,9 @@ on:
 
 jobs:
   update-packagejson:
+    permissions:
+      actions: read
+      contents: write
     uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
     with:
       # you can write multi path.
@@ -463,7 +484,7 @@ jobs:
 
   test:
     needs: [validate]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - run: echo "${{ needs.validate.outputs.validated }}" # true or false
 
@@ -495,7 +516,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.comment.body, '/benchmark') }}
     outputs:
       is-benchmarkable: ${{ steps.is-benchmarkable.outputs.authorized }} # true or false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Check actor is benchmarkable
@@ -509,7 +530,7 @@ jobs:
     needs: [verify]
     if: ${{ needs.verify.outputs.is-benchmarkable == 'true' }}
     environment: benchmark # required for Azure login
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - run: echo "run benchmark"
@@ -535,7 +556,7 @@ on:
 jobs:
   build-unity:
     name: "Build Unity package"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -567,7 +588,7 @@ on:
 jobs:
   build-unity:
     name: "Build Unity package"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       # - uses: actions/checkout@v4
@@ -606,7 +627,7 @@ jobs:
 
   download-artifact:
     needs: [upload-artifact]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -636,7 +657,7 @@ on:
 
 jobs:
   dotnet-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -661,7 +682,7 @@ on:
 
 jobs:
   dotnet-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -698,7 +719,7 @@ on:
 
 jobs:
   upload-artifact:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4

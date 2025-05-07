@@ -14,9 +14,9 @@ on:
 
 jobs:
   cleanup:
-    runs-on: ubuntu-latest
     permissions:
       contents: write
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       branch-deleted: ${{ steps.delete-branch.outputs.deleted }}

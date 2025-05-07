@@ -93,13 +93,12 @@ env:
   GH_REPO: ${{ github.repository }}
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-permissions:
-  contents: write # required for creating release
-
 jobs:
   create-release:
     name: Create Release
-    runs-on: ubuntu-latest
+    permissions:
+      contents: write # required for creating release
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Validate inputs - unitypackage

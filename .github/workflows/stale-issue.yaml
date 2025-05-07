@@ -5,11 +5,11 @@ on:
 
 jobs:
   stale:
-    runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
       issues: write
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639 # v9.1.0

@@ -25,4 +25,4 @@ excludes:
     job_name: create-release
   - policy_name: deny_inherit_secrets
     workflow_file_path: .github/workflows/toc.yml
-    job_name: generateTOC
+    job_name: toc
