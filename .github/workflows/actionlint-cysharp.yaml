@@ -65,7 +65,7 @@ jobs:
           path: ${{ matrix.repository }}
       # github workflows/action's Static Checker
       - name: Run actionlint
-        run: actionlint -color -oneline
+        run: actionlint -color -oneline --config-file ../.github/actionlint.yaml
         working-directory: ${{ matrix.repository }}
       # checkout's persist-credentials: false checker
       - name: Run ghalint
