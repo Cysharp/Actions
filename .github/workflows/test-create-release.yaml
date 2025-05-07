@@ -99,6 +99,7 @@ jobs:
     needs: [set-tag, update-packagejson, build-dotnet, build-unity]
     permissions:
       contents: write
+      pull-requests: write
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
