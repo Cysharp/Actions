@@ -50,7 +50,6 @@ on:
 jobs:
   update-packagejson:
     permissions:
-      actions: read
       contents: write
     runs-on: ubuntu-24.04
     timeout-minutes: 5
