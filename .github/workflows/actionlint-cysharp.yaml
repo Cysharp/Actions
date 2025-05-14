@@ -6,52 +6,30 @@ on:
     - cron: "0 1 * * WED" # every wednesday 10:00 +9(JST)
 
 jobs:
-  actionlint:
-    strategy:
-      fail-fast: false
-      matrix:
-        repository:
-          - Claudia
-          - ConsoleAppFramework
-          - csbindgen
-          - CsprojModifier
-          - DFrame
-          - DocfxTemplate
-          - GrpcWebSocketBridge
-          - KcpTransport
-          - Kokuban
-          - LitJWT
-          - LogicLooper
-          - MagicOnion
-          - MagicOnion.Template.Unity
-          - MagicPhysX
-          - MasterMemory
-          - MemoryPack
-          - MessagePipe
-          - Multicaster
-          - ObservableCollections
-          - ProcessX
-          - R3
-          - RandomFixtureKit
-          - RuntimeUnitTestToolkit
-          - SimdLinq
-          - SlnMerge
-          - StructureOfArraysGenerator
-          - Ulid
-          - UniTask
-          - UnitGenerator
-          - Utf8StreamReader
-          - Utf8StringInterpolation
-          - ValueTaskSupplement
-          - WebSerializer
-          - YetAnotherHttpHandler
-          - ZLinq
-          - ZLogger
-          - ZString
+  pre:
     permissions:
       contents: read
     runs-on: ubuntu-24.04
     timeout-minutes: 3
+    outputs:
+      repositories: ${{ steps.list.outputs.repositories }}
+    steps:
+      - name: List non-archived OSS Repository names, and pass to matrix
+        id: list
+        run: echo "names=$(gh repo list Cysharp --visibility public --no-archived --json name --jq "sort_by(.name | ascii_downcase) | .[] | .name" --limit 100)" | tee -a "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  actionlint:
+    needs: [pre]
+    strategy:
+      fail-fast: false
+      matrix:
+        repository: ${{ fromJson(needs.pre.outputs.repositories) }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
