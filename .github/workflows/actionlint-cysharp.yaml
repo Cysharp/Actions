@@ -14,9 +14,10 @@ jobs:
     outputs:
       repositories: ${{ steps.list.outputs.repositories }}
     steps:
-      - name: List non-archived OSS Repository names, and pass to matrix
+      # gh repo list Cysharp --visibility public --no-archived --json name
+      - name: List non-archived OSS Repository names as json array
         id: list
-        run: echo "names=$(gh repo list Cysharp --visibility public --no-archived --json name --jq "sort_by(.name | ascii_downcase) | .[] | .name" --limit 100)" | tee -a "$GITHUB_OUTPUT"
+        run: echo "name=$(gh repo list Cysharp --visibility public --no-archived --json name --jq '.[].name' | jq -R -s -c 'split("\n")[:-1]')" | tee -a "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
