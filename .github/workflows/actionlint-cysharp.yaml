@@ -1,5 +1,11 @@
 name: actionlint cysharp
 
+# Instructions:
+# * This workflow is for checking the actionlint and ghalint of cysharp's public repositories.
+# * If any errors are found, "fix each repository" or "ignore error".
+# * fix each repository: Check repository workflow and fix it.
+# * ignore error: ignore config is located in Cysharp/Actions repository. Add ignore to .github/actionlint.yaml or .ghalint.yaml, depends on the error.
+
 on:
   workflow_dispatch:
   schedule:
@@ -20,7 +26,7 @@ jobs:
         run: echo "repositories=$(gh repo list Cysharp --visibility public --no-archived --json name --jq 'sort_by(.name | ascii_downcase) | .[].name' | jq -R -s -c 'split("\n")[:-1]')" | tee -a "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Try json parse (Should by output as Array)
+      - name: Try json parse (Should output as Array)
         run: echo "${{ fromJson(steps.list.outputs.repositories) }}"
 
   actionlint:
