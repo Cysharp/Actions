@@ -17,10 +17,10 @@ jobs:
       # gh repo list Cysharp --visibility public --no-archived --json name
       - name: List non-archived OSS Repository names as json array
         id: list
-        run: echo "repositories=$(gh repo list Cysharp --visibility public --no-archived --json name --jq '.[].name' | jq -R -s -c 'split("\n")[:-1]')" | tee -a "$GITHUB_OUTPUT"
+        run: echo "repositories=$(gh repo list Cysharp --visibility public --no-archived --json name --jq 'sort_by(.name | ascii_downcase) | .[].name' | jq -R -s -c 'split("\n")[:-1]')" | tee -a "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Try json parse
+      - name: Try json parse (Should by output as Array)
         run: echo "${{ fromJson(steps.list.outputs.repositories) }}"
 
   actionlint:
