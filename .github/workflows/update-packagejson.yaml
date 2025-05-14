@@ -50,7 +50,7 @@ on:
 jobs:
   update-packagejson:
     permissions:
-      actions: read
+      actions: read # for searching branch
       contents: write
     runs-on: ubuntu-24.04
     timeout-minutes: 5
