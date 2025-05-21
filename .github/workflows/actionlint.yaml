@@ -20,7 +20,7 @@ jobs:
           persist-credentials: false
       - uses: aquaproj/aqua-installer@e2d0136abcf70b7a2f6f505720640750557c4b33 # v3.1.1
         with:
-          aqua_version: v2.43.1
+          aqua_version: v2.51.2
       # github workflows/action's Static Checker
       - name: Run actionlint
         run: actionlint -color -oneline
