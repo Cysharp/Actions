@@ -2,6 +2,9 @@
 # $ ghalint run
 # $ ghalint --config ../Actions/.pinact.yaml run
 excludes:
+  # forked action/checkout on Cysharp/Actions repository
+  - policy_name: checkout_persist_credentials_should_be_false
+    action_file_path: .github/actions/checkout/action.yaml
   # action_ref_should_be_full_length_commit_sha, allow repository use Cysharp/Actions as tag.
   - policy_name: action_ref_should_be_full_length_commit_sha
     action_name: Cysharp/Actions/.github/actions/*
