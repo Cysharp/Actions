@@ -47,7 +47,7 @@ internal record UpmPackageJson
     public required string Version { get; set; }
 }
 
-internal record GitHubRelease
+public record GitHubRelease
 {
     [JsonPropertyName("tagName")]
     public required string TagName { get; init; }

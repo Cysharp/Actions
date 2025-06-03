@@ -80,7 +80,7 @@ namespace CysharpActions
         [Command("validate-tag")]
         public async Task ValidateTag(string tag, bool requireValidation)
         {
-            var command = new ValidateTagCommand();
+            var command = new ValidateTagCommand(new GitHubReleaseExeGh());
             var normalizedTag = command.Normalize(tag);
             if (requireValidation)
             {

@@ -5,7 +5,30 @@ using System.Text.Json;
 
 namespace CysharpActions.Commands;
 
-public class ValidateTagCommand()
+/// <summary>
+/// GitHubのリリース情報を取得するためのインターフェース。
+/// </summary>
+public interface IGitHubReleaseExe
+{
+    public Task<GitHubRelease[]> GetGitHubReleaseAsync();
+}
+
+/// <summary>
+/// ghコマンドでGitHubのリリース情報を取得する実装。
+/// </summary>
+public class GitHubReleaseExeGh : IGitHubReleaseExe
+{
+    public async Task<GitHubRelease[]> GetGitHubReleaseAsync()
+    {
+        // release_latest=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest | jq -c -r ".[] | select(.isLatest == true) | .tagName")
+        // sorted_latest=$(echo - e "${release_latest}\n${{ steps.trim.outputs.normalized_tag }}" | sort - V | tail - n 1)
+        var releaseLatests = await "gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest";
+        var githubReleases = JsonSerializer.Deserialize(releaseLatests, JsonSourceGenerationContext.Default.GitHubReleaseArray);
+        return githubReleases ?? Array.Empty<GitHubRelease>();
+    }
+}
+
+public class ValidateTagCommand(IGitHubReleaseExe gitHubRelaeseExe)
 {
     /// <summary>
     /// Normalize input tag. If the tag starts with 'v', it will be removed.
@@ -35,10 +58,7 @@ public class ValidateTagCommand()
 
         try
         {
-            // release_latest=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest | jq -c -r ".[] | select(.isLatest == true) | .tagName")
-            // sorted_latest=$(echo - e "${release_latest}\n${{ steps.trim.outputs.normalized_tag }}" | sort - V | tail - n 1)
-            var releaseLatests = await "gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest";
-            var githubReleases = JsonSerializer.Deserialize(releaseLatests, JsonSourceGenerationContext.Default.GitHubReleaseArray);
+            var githubReleases = await gitHubRelaeseExe.GetGitHubReleaseAsync();
             var releaseTag = githubReleases?.SingleOrDefault(x => x.IsLatest)?.TagName;
 
             if (releaseTag is null)
@@ -52,6 +72,18 @@ public class ValidateTagCommand()
                 return;
             }
 
+            // 1.0.9 と 1.0.10のようにバージョンに変換できる場合、変換して適切に比較できるようにする。
+            if (Version.TryParse(releaseTag, out var versionedReleaseTag) && Version.TryParse(tag, out var versionedTag))
+            {
+                if (versionedTag >= versionedReleaseTag)
+                {
+                    // input tag is same or newer than latest tag
+                    return;
+                }
+            }
+
+            // バージョンに変換できない場合、文字列として比較にフォールバック。1.0.9と1.0.10が適切に比較できないので微妙。
+            // .NET10の自然な比較が来たら書き換えるのがヨサソウ
             var sortedLatest = new[] { releaseTag, tag }.OrderBy(x => x).Last();
             if (sortedLatest == tag)
             {
