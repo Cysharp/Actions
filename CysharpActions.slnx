@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/CysharpActions.Tests/CysharpActions.Tests.csproj" />
+  <Project Path="src/CysharpActions/CysharpActions.csproj" />
+</Solution>
