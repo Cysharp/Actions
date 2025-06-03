@@ -8,7 +8,7 @@ namespace CysharpActions.Commands;
 /// <summary>
 /// GitHubのリリース情報を取得するためのインターフェース。
 /// </summary>
-public interface IGitHubRelaeseExe
+public interface IGitHubReleaseExe
 {
     public Task<GitHubRelease[]> GetGitHubReleaseAsync();
 }
@@ -16,7 +16,7 @@ public interface IGitHubRelaeseExe
 /// <summary>
 /// ghコマンドでGitHubのリリース情報を取得する実装。
 /// </summary>
-public class GitHubReleaseExeGh : IGitHubRelaeseExe
+public class GitHubReleaseExeGh : IGitHubReleaseExe
 {
     public async Task<GitHubRelease[]> GetGitHubReleaseAsync()
     {
@@ -28,7 +28,7 @@ public class GitHubReleaseExeGh : IGitHubRelaeseExe
     }
 }
 
-public class ValidateTagCommand(IGitHubRelaeseExe gitHubRelaeseExe)
+public class ValidateTagCommand(IGitHubReleaseExe gitHubRelaeseExe)
 {
     /// <summary>
     /// Normalize input tag. If the tag starts with 'v', it will be removed.

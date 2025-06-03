@@ -37,7 +37,7 @@ public class ValidateTagCommandTest
     }
 }
 
-public class GitHubReleaseExeDummy() : IGitHubRelaeseExe
+public class GitHubReleaseExeDummy() : IGitHubReleaseExe
 {
     public async Task<GitHubRelease[]> GetGitHubReleaseAsync()
     {
