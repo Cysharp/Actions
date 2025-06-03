@@ -72,6 +72,18 @@ public class ValidateTagCommand(IGitHubRelaeseExe gitHubRelaeseExe)
                 return;
             }
 
+            // 1.0.9 と 1.0.10のようにバージョンに変換できる場合、変換して適切に比較できるようにする。
+            if (Version.TryParse(releaseTag, out var versionedReleaseTag) && Version.TryParse(tag, out var versionedTag))
+            {
+                if (versionedTag >= versionedReleaseTag)
+                {
+                    // input tag is same or newer than latest tag
+                    return;
+                }
+            }
+
+            // バージョンに変換できない場合、文字列として比較にフォールバック。1.0.9と1.0.10が適切に比較できないので微妙。
+            // .NET10の自然な比較が来たら書き換えるのがヨサソウ
             var sortedLatest = new[] { releaseTag, tag }.OrderBy(x => x).Last();
             if (sortedLatest == tag)
             {
