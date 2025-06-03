@@ -41,3 +41,6 @@ excludes:
   - policy_name: deny_inherit_secrets
     workflow_file_path: .github/workflows/pr-merged.yaml
     job_name: post
+  - policy_name: deny_inherit_secrets
+    workflow_file_path: .github/workflows/kubernetes.yaml
+    job_name: helm
