@@ -116,15 +116,16 @@ jobs:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
-          NUGET_USER: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/NUGET_KEY/username"
+          NUGET_KEY: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/NUGET_KEY/credential"
+          # NUGET_USER: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/NUGET_KEY/username"
 
-      - name: NuGet login (OIDC → temp API key)
-        if: ${{ inputs.nuget-push }}
-        uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1.1.0
-        id: login
-        with:
-          user: cysharp-infra
-          # user: ${{ steps.op-load-secret.outputs.NUGET_USER }}
+      # 2025/10/1: NuGet Trusted Publish for Org is not yet supported.
+      # - name: NuGet login (OIDC → temp API key)
+      #   if: ${{ inputs.nuget-push }}
+      #   uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1.1.0
+      #   id: login
+      #   with:
+      #     user: ${{ steps.op-load-secret.outputs.NUGET_USER }}
 
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -172,7 +173,11 @@ jobs:
         if: ${{ inputs.nuget-push }}
         run: ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --api-key "${NUGET_KEY}" ${{ inputs.dry-run && '--dry-run' || '' }}
         env:
-          NUGET_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+          NUGET_KEY: ${{ steps.op-load-secret.outputs.NUGET_KEY }}
+      # 2025/10/1: NuGet Trusted Publish for Org is not yet supported.
+      # run: ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --api-key "${NUGET_KEY}" ${{ inputs.dry-run && '--dry-run' || '' }}
+      # env:
+      #   NUGET_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
 
       # Clean up
       - name: Clean up. Wait 60s and delete release if dry-run or failure. (dry-run=${{ inputs.dry-run }}})
