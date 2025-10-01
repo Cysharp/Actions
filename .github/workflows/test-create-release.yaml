@@ -99,6 +99,7 @@ jobs:
     needs: [set-tag, update-packagejson, build-dotnet, build-unity]
     permissions:
       contents: write
+      id-token: write # required for NuGet Trusted Publish
       pull-requests: write
     uses: ./.github/workflows/create-release.yaml
     with:
@@ -119,12 +120,13 @@ jobs:
     needs: [set-tag, update-packagejson, create-release]
     permissions:
       contents: write
+      id-token: write # required for NuGet Trusted Publish
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: ${{ needs.set-tag.outputs.tag }}
       dry-run: true # true = Release作成後に60秒待って削除される。
-      release-format: '{0}'
+      release-format: "{0}"
     secrets: inherit
 
   # v prefixed version
@@ -132,6 +134,7 @@ jobs:
     needs: [set-tag, update-packagejson, create-release2]
     permissions:
       contents: write
+      id-token: write # required for NuGet Trusted Publish
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
@@ -149,7 +152,16 @@ jobs:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 
   actions-timeline:
-    needs: [set-tag, update-packagejson, build-dotnet, build-unity, create-release, create-release2, create-release3]
+    needs:
+      [
+        set-tag,
+        update-packagejson,
+        build-dotnet,
+        build-unity,
+        create-release,
+        create-release2,
+        create-release3,
+      ]
     permissions:
       contents: read
     uses: ./.github/workflows/actions-timeline.yaml
