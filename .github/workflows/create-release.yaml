@@ -35,7 +35,7 @@ on:
         description: "release-format: if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred."
         required: false
         type: string
-        default: 'v{0}'
+        default: "v{0}"
       release-upload:
         description: "release-upload: true = upload assets. false = not upload"
         required: false
@@ -82,7 +82,7 @@ on:
         description: "Release format. (if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred.)"
         required: false
         type: string
-        default: 'v{0}'
+        default: "v{0}"
       release-upload:
         description: "true = upload assets. false = not upload"
         required: false
@@ -115,7 +115,7 @@ jobs:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
-          NUGET_KEY: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/NUGET_KEY/credential"
+          NUGET_USER: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/NUGET_KEY/username"
 
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -159,9 +159,17 @@ jobs:
           GH_REPO: ${{ github.repository }}
 
       # Upload to NuGet
+      - name: NuGet login (OIDC → temp API key)
+        if: ${{ inputs.nuget-push }}
+        uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1.1.0
+        id: login
+        with:
+          user: ${{ steps.op-load-secret.outputs.NUGET_USER }}
       - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
         if: ${{ inputs.nuget-push }}
-        run: ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --api-key "${{ steps.op-load-secret.outputs.NUGET_KEY }}" ${{ inputs.dry-run && '--dry-run' || '' }}
+        run: ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --api-key "${NUGET_KEY}" ${{ inputs.dry-run && '--dry-run' || '' }}
+        env:
+          NUGET_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
 
       # Clean up
       - name: Clean up. Wait 60s and delete release if dry-run or failure. (dry-run=${{ inputs.dry-run }}})
