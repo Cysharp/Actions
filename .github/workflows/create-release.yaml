@@ -123,7 +123,8 @@ jobs:
         uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1.1.0
         id: login
         with:
-          user: ${{ steps.op-load-secret.outputs.NUGET_USER }}
+          #user: ${{ steps.op-load-secret.outputs.NUGET_USER }}
+          user: cysharp-infra
 
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
