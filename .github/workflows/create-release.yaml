@@ -119,7 +119,7 @@ jobs:
           NUGET_KEY: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/NUGET_KEY/credential"
           # NUGET_USER: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/NUGET_KEY/username"
 
-      # 2025/10/1: NuGet Trusted Publish for Org is not yet supported.
+      # 2025/10/1: NuGet Trusted Publish with reusable workflows is not yet supported: see https://github.com/NuGet/login/issues/6
       # - name: NuGet login (OIDC → temp API key)
       #   if: ${{ inputs.nuget-push }}
       #   uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1.1.0
