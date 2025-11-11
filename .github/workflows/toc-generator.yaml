@@ -5,7 +5,7 @@ on:
     inputs:
       TOC_TITLE:
         description: TOC Title
-        default: '**Table of Contents**'
+        default: "**Table of Contents**"
         required: false
         type: string
       FOLDING:
@@ -14,7 +14,7 @@ on:
         type: boolean
       TARGET_PATHS:
         description: Target file path. (Comma separated, @see https://github.com/thlorenz/doctoc#adding-toc-to-individual-files)
-        default: 'README*.md'
+        default: "README*.md"
         required: false
         type: string
     secrets:
@@ -25,7 +25,7 @@ on:
   push:
     branches: ["main"]
     paths:
-      - 'README.md'
+      - "README.md"
 
 jobs:
   toc:
@@ -40,3 +40,5 @@ jobs:
           FOLDING: ${{ inputs.FOLDING || false }}
           GITHUB_TOKEN: ${{ secrets.github-token || secrets.GITHUB_TOKEN }}
           TARGET_PATHS: ${{ inputs.TARGET_PATHS || 'README*.md' }}
+          COMMIT_NAME: github-actions[bot]
+          COMMIT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
