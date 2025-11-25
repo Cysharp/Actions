@@ -52,6 +52,27 @@
         "GITHUB_SERVER_URL": "https://github.com"
       }
     },
+    // increment-version
+    "increment-version (help)": {
+      "commandName": "Project",
+      "commandLineArgs": "increment-version --help"
+    },
+    "increment-version (major)": {
+      "commandName": "Project",
+      "commandLineArgs": "increment-version --version 1.0.0 --version-increment Major"
+    },
+    "increment-version (minor + prerelease)": {
+      "commandName": "Project",
+      "commandLineArgs": "increment-version --version Ver.1.0.0 --version-increment Minor --prefix Ver."
+    },
+    "increment-version (patch + suffix)": {
+      "commandName": "Project",
+      "commandLineArgs": "increment-version --version 1.0.0-alpha.1 --version-increment Patch --suffix -alpha.1"
+    },
+    "increment-version (add suffix)": {
+      "commandName": "Project",
+      "commandLineArgs": "increment-version --version 1.0.0 --version-increment Patch --suffix -dev"
+    },
     // validate-nupkg-exsits
     "validate-file-exsits (path: foo)": {
       "commandName": "Project",
