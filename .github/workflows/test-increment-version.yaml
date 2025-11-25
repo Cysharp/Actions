@@ -150,4 +150,3 @@ jobs:
     uses: ./.github/workflows/actions-timeline.yaml
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
-      foo: bar
