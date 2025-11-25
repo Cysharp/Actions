@@ -44,4 +44,4 @@ jobs:
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
         ./Sandbox/Directory.Build.props
       tag: ${{ needs.new-version.outputs.version }}
-      dry-run: true
+      dry-run: false
