@@ -138,6 +138,7 @@ jobs:
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: v${{ needs.set-tag.outputs.tag }}
+      release-format: "{0}"
       dry-run: true # true = Release作成後に60秒待って削除される。
     secrets: inherit
 

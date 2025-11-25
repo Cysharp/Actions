@@ -17,7 +17,7 @@ jobs:
       - name: Set tag
         id: set-tag
         run: |
-          tag=${{ format('1.0.{0}', github.run_number) }}
+          tag=1.0.0
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
   new-version-major:
@@ -55,7 +55,6 @@ jobs:
       ref: ${{ github.event.repository.default_branch }}
       tag: ${{ needs.set-tag.outputs.tag }}
       type: patch
-      suffix: "-dev"
 
   new-version-prefix:
     needs: [set-tag]
@@ -112,7 +111,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Check update-packagejson with new version should update commit id
+      - name: Check increment-version with new version
         run: |
           echo "DEBUG: tag                    : ${{ needs.set-tag.outputs.tag }}"
           echo "DEBUG: new-version-major      : ${{ needs.new-version-major.outputs.version }}"
@@ -122,17 +121,17 @@ jobs:
           echo "DEBUG: new-version-suffix     : ${{ needs.new-version-suffix.outputs.version }}"
           echo "DEBUG: new-version-add-suffix : ${{ needs.new-version-add-suffix.outputs.version }}"
 
-          echo -n "FACT: versopm for new-version-major should be expected. "
+          echo -n "FACT: version for new-version-major should be expected. "
           if [[ "${{ needs.new-version-major.outputs.version }}" == "2.0.0" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
-          echo -n "FACT: versopm for new-version-minor should be expected. "
+          echo -n "FACT: version for new-version-minor should be expected. "
           if [[ "${{ needs.new-version-minor.outputs.version }}" == "1.1.0" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
-          echo -n "FACT: versopm for new-version-patch should be expected. "
-          if [[ "${{ needs.new-version-patch.outputs.version }}" == "1.0.1-dev" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
-          echo -n "FACT: versopm for new-version-prefix should be expected. "
+          echo -n "FACT: version for new-version-patch should be expected. "
+          if [[ "${{ needs.new-version-patch.outputs.version }}" == "1.0.1" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+          echo -n "FACT: version for new-version-prefix should be expected. "
           if [[ "${{ needs.new-version-prefix.outputs.version }}" == "Ver.1.0.1" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
-          echo -n "FACT: versopm for new-version-suffix should be expected. "
+          echo -n "FACT: version for new-version-suffix should be expected. "
           if [[ "${{ needs.new-version-suffix.outputs.version }}" == "1.0.1-alpha.1" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
-          echo -n "FACT: versopm for new-version-add-suffix should be expected. "
+          echo -n "FACT: version for new-version-add-suffix should be expected. "
           if [[ "${{ needs.new-version-add-suffix.outputs.version }}" == "1.0.1-dev" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
         env:
           HEAD_REF: ${{ github.head_ref }}
