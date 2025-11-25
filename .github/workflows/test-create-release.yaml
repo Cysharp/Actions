@@ -42,7 +42,6 @@ jobs:
       dotnet-run-path: ./Sandbox/VersionOutput/VersionOutput.csproj
       tag: ${{ needs.set-tag.outputs.tag }}
       dry-run: false
-      push-tag: false # tagはcreate-releaseでpushするのでコミットだけさせる。
 
   build-dotnet:
     needs: [set-tag]
