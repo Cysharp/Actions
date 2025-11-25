@@ -71,4 +71,4 @@ jobs:
 
       - name: Increment version
         id: new-version
-        run: ${{ steps.actions-caller.outputs.path }} increment-version --tag "${{ inputs.tag }}" --type "${{ inputs.type }}" --prefix "${{ inputs.prefix }}" --suffix "${{ inputs.suffix }}"
+        run: ${{ steps.actions-caller.outputs.path }} increment-version --version "${{ inputs.tag }}" --type "${{ inputs.type }}" --prefix "${{ inputs.prefix }}" --suffix "${{ inputs.suffix }}"
