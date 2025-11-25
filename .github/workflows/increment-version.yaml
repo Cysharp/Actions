@@ -12,8 +12,8 @@ on:
         description: "git tag you want create. (sample 1.0.0)"
         required: true
         type: string
-      increment-type:
-        description: "increment-type: version increment type. (major, minor, patch)"
+      type:
+        description: "type: version increment type. (major, minor, patch)"
         required: true
         type: string
       prefix:
@@ -69,6 +69,6 @@ jobs:
             exit 1
           fi
 
-      - name: New version
+      - name: Increment version
         id: new-version
-        run: ${{ steps.actions-caller.outputs.path }} new-version --tag "${{ inputs.tag }}" --version-increment "${{ inputs.increment-type }}" --prefix "${{ inputs.prefix }}" --suffix "${{ inputs.suffix }}"
+        run: ${{ steps.actions-caller.outputs.path }} increment-version --tag "${{ inputs.tag }}" --type "${{ inputs.type }}" --prefix "${{ inputs.prefix }}" --suffix "${{ inputs.suffix }}"

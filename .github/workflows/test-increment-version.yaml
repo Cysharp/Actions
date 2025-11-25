@@ -30,8 +30,7 @@ jobs:
     with:
       ref: ${{ github.event.repository.default_branch }}
       tag: ${{ needs.set-tag.outputs.tag }}
-      increment-type: major
-      dry-run: true
+      type: major
 
   new-version-minor:
     needs: [set-tag]
@@ -43,8 +42,7 @@ jobs:
     with:
       ref: ${{ github.event.repository.default_branch }}
       tag: ${{ needs.set-tag.outputs.tag }}
-      increment-type: minor
-      dry-run: true
+      type: minor
 
   new-version-patch:
     needs: [set-tag]
@@ -56,9 +54,8 @@ jobs:
     with:
       ref: ${{ github.event.repository.default_branch }}
       tag: ${{ needs.set-tag.outputs.tag }}
-      increment-type: patch
+      type: patch
       suffix: "-dev"
-      dry-run: true
 
   new-version-prefix:
     needs: [set-tag]
@@ -70,9 +67,8 @@ jobs:
     with:
       ref: ${{ github.event.repository.default_branch }}
       tag: "Ver.${{ needs.set-tag.outputs.tag }}"
-      increment-type: patch
+      type: patch
       prefix: "Ver."
-      dry-run: true
 
   new-version-suffix:
     needs: [set-tag]
@@ -84,9 +80,8 @@ jobs:
     with:
       ref: ${{ github.event.repository.default_branch }}
       tag: "${{ needs.set-tag.outputs.tag }}-alpha.1"
-      increment-type: patch
+      type: patch
       suffix: "-alpha.1"
-      dry-run: true
 
   new-version-add-suffix:
     needs: [set-tag]
@@ -98,9 +93,8 @@ jobs:
     with:
       ref: ${{ github.event.repository.default_branch }}
       tag: ${{ needs.set-tag.outputs.tag }}
-      increment-type: patch
+      type: patch
       suffix: "-dev"
-      dry-run: true
 
   test:
     needs:
