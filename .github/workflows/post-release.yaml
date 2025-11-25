@@ -29,7 +29,6 @@ jobs:
       tag: ${{ github.ref_name }} # tag value will here. 1.2.1
       type: patch
       suffix: "-dev"
-      dry-run: true
 
   update-packagejson:
     needs: [new-version]
