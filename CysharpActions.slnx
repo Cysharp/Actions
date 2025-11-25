@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/.props/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
   <Project Path="src/CysharpActions.Tests/CysharpActions.Tests.csproj" />
   <Project Path="src/CysharpActions/CysharpActions.csproj" />
 </Solution>
