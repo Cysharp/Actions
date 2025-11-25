@@ -191,11 +191,11 @@ namespace CysharpActions
             try
             {
                 var result = await "git diff --exit-code"; // 0 = no diff, 1 = diff
-                GitHubActions.WriteLog("git diff not found, skipping commit.");
+                GitHubActions.WriteLog("Diff not found, skipping commit.");
             }
             catch (ProcessErrorException)
             {
-                GitHubActions.WriteLog("Detected git diff.");
+                GitHubActions.WriteLog("Diff found.");
                 if (dryRun)
                 {
                     GitHubActions.WriteLog("Dryrun Mode detected, creating branch and switch.");
@@ -205,7 +205,7 @@ namespace CysharpActions
                 }
 
                 GitHubActions.WriteLog("Committing change. Running following.");
-                await $"git commit -a -m \"{$"feat: Update package.json to {tag}"}\" -m \"{$"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})"}\"";
+                await $"git commit -a -m \"{$"chore(automate): Update package.json to {tag}"}\" -m \"{$"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})"}\"";
 
                 commited = true;
             }
