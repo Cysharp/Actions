@@ -1,0 +1,74 @@
+name: (R) Increment version
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "checkout ref"
+        required: false
+        type: string
+        default: ""
+      tag:
+        description: "git tag you want create. (sample 1.0.0)"
+        required: true
+        type: string
+      increment-type:
+        description: "increment-type: version increment type. (major, minor, patch)"
+        required: true
+        type: string
+      prefix:
+        description: "version prefix. (sample v for v1.0.0)"
+        required: false
+        type: string
+        default: ""
+      suffix:
+        description: "version suffix. (sample -beta for 1.0.0-beta)"
+        required: false
+        type: string
+        default: ""
+    outputs:
+      version:
+        description: Git branch name created.
+        value: ${{ jobs.new-version.outputs.version }}
+
+jobs:
+  new-version:
+    permissions:
+      actions: read
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.new-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
+      - name: Set Cysharp/Actions binary path
+        id: actions-caller
+        run: |
+          branch=main
+          if [[ ${{ github.repository }} == "Cysharp/Actions" ]]; then
+            echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
+            exit
+          elif [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" ]]; then
+            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" | tee -a "$GITHUB_OUTPUT"
+            chmod +x "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions"
+          else
+            echo "ERROR: CysharpActions binary not found."
+            echo "::group::Debug _actions folder."
+              ls -lR "${{ github.workspace }}/../../_actions/"
+            echo "::endgroup::"
+            echo "::group::Debug _actions/Cysharp/Actions folder."
+              ls -lR "${{ github.workspace }}/../../_actions/Cysharp/Actions/"
+            echo "::endgroup::"
+            exit 1
+          fi
+
+      - name: New version
+        id: new-version
+        run: ${{ steps.actions-caller.outputs.path }} new-version --tag "${{ inputs.tag }}" --version-increment "${{ inputs.increment-type }}" --prefix "${{ inputs.prefix }}" --suffix "${{ inputs.suffix }}"

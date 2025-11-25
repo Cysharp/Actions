@@ -1,0 +1,152 @@
+name: Test increment-version
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  set-tag:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    outputs:
+      tag: ${{ steps.set-tag.outputs.tag }}
+    steps:
+      - name: Set tag
+        id: set-tag
+        run: |
+          tag=${{ format('1.0.{0}', github.run_number) }}
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  new-version-major:
+    needs: [set-tag]
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    permissions:
+      actions: read
+      contents: read
+    uses: Cysharp/Actions/.github/workflows/increment-version.yaml@main
+    with:
+      ref: ${{ github.event.repository.default_branch }}
+      tag: ${{ needs.set-tag.outputs.tag }}
+      increment-type: major
+      dry-run: true
+
+  new-version-minor:
+    needs: [set-tag]
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    permissions:
+      actions: read
+      contents: read
+    uses: Cysharp/Actions/.github/workflows/increment-version.yaml@main
+    with:
+      ref: ${{ github.event.repository.default_branch }}
+      tag: ${{ needs.set-tag.outputs.tag }}
+      increment-type: minor
+      dry-run: true
+
+  new-version-patch:
+    needs: [set-tag]
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    permissions:
+      actions: read
+      contents: read
+    uses: Cysharp/Actions/.github/workflows/increment-version.yaml@main
+    with:
+      ref: ${{ github.event.repository.default_branch }}
+      tag: ${{ needs.set-tag.outputs.tag }}
+      increment-type: patch
+      suffix: "-dev"
+      dry-run: true
+
+  new-version-prefix:
+    needs: [set-tag]
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    permissions:
+      actions: read
+      contents: read
+    uses: Cysharp/Actions/.github/workflows/increment-version.yaml@main
+    with:
+      ref: ${{ github.event.repository.default_branch }}
+      tag: "Ver.${{ needs.set-tag.outputs.tag }}"
+      increment-type: patch
+      prefix: "Ver."
+      dry-run: true
+
+  new-version-suffix:
+    needs: [set-tag]
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    permissions:
+      actions: read
+      contents: read
+    uses: Cysharp/Actions/.github/workflows/increment-version.yaml@main
+    with:
+      ref: ${{ github.event.repository.default_branch }}
+      tag: "${{ needs.set-tag.outputs.tag }}-alpha.1"
+      increment-type: patch
+      suffix: "-alpha.1"
+      dry-run: true
+
+  new-version-add-suffix:
+    needs: [set-tag]
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    permissions:
+      actions: read
+      contents: read
+    uses: Cysharp/Actions/.github/workflows/increment-version.yaml@main
+    with:
+      ref: ${{ github.event.repository.default_branch }}
+      tag: ${{ needs.set-tag.outputs.tag }}
+      increment-type: patch
+      suffix: "-dev"
+      dry-run: true
+
+  test:
+    needs:
+      [
+        set-tag,
+        new-version-major,
+        new-version-minor,
+        new-version-patch,
+        new-version-prefix,
+        new-version-suffix,
+        new-version-add-suffix,
+      ]
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check update-packagejson with new version should update commit id
+        run: |
+          echo "DEBUG: tag                    : ${{ needs.set-tag.outputs.tag }}"
+          echo "DEBUG: new-version-major      : ${{ needs.new-version-major.outputs.version }}"
+          echo "DEBUG: new-version-minor      : ${{ needs.new-version-minor.outputs.version }}"
+          echo "DEBUG: new-version-patch      : ${{ needs.new-version-patch.outputs.version }}"
+          echo "DEBUG: new-version-prefix     : ${{ needs.new-version-prefix.outputs.version }}"
+          echo "DEBUG: new-version-suffix     : ${{ needs.new-version-suffix.outputs.version }}"
+          echo "DEBUG: new-version-add-suffix : ${{ needs.new-version-add-suffix.outputs.version }}"
+
+          echo -n "FACT: versopm for new-version-major should be expected. "
+          if [[ "${{ needs.new-version-major.outputs.version }}" == "2.0.0" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+          echo -n "FACT: versopm for new-version-minor should be expected. "
+          if [[ "${{ needs.new-version-minor.outputs.version }}" == "1.1.0" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+          echo -n "FACT: versopm for new-version-patch should be expected. "
+          if [[ "${{ needs.new-version-patch.outputs.version }}" == "1.0.1-dev" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+          echo -n "FACT: versopm for new-version-prefix should be expected. "
+          if [[ "${{ needs.new-version-prefix.outputs.version }}" == "Ver.1.0.1" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+          echo -n "FACT: versopm for new-version-suffix should be expected. "
+          if [[ "${{ needs.new-version-suffix.outputs.version }}" == "1.0.1-alpha.1" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+          echo -n "FACT: versopm for new-version-add-suffix should be expected. "
+          if [[ "${{ needs.new-version-add-suffix.outputs.version }}" == "1.0.1-dev" ]]; then echo "[O PASS]"; else echo "::error::[X FAIL]" && exit 1; fi
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+
+  actions-timeline:
+    needs: [test]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/actions-timeline.yaml
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}

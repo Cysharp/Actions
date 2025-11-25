@@ -68,6 +68,26 @@ namespace CysharpActions
             }
         }
 
+        /// <summary>
+        /// Get New Version string by incrementing specified version.
+        /// </summary>
+        /// <param name="version">version string. ex) 1.0.0</param>
+        /// <param name="versionIncrement">version increment type. ex) Patch will generate 1.0.1</param>
+        /// <param name="prefix">prefix string. ex) v</param>
+        /// <param name="suffix">suffix string. ex) -dev</param>
+        /// <remarks>
+        /// Because GitHub Actions workflow dispatch passes arguments as string, you need to split path by NewLine. It means use `string[] pathString` is un-natural for GitHub Actions.
+        /// </remarks>
+        [ConsoleAppFilter<GitHubContextFilter>]
+        [Command("increment-version")]
+        public void IncrementVersion(string version, VersionIncrement versionIncrement, string prefix = "", string suffix = "")
+        {
+            GitHubActions.WriteLog($"Showing inputs. version: {version}, versionIncrement: {versionIncrement}, prefix: {prefix}, suffix: {suffix}");
+            var command = new VersioningCommand(prefix, suffix);
+            var newVersion = command.UpdateVersion(version, versionIncrement);
+            GitHubActions.SetOutput("version", newVersion);
+        }
+
         // Create Release
 
         /// <summary>

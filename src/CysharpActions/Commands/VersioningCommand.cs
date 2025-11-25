@@ -5,49 +5,58 @@ public enum VersionIncrement
     Major,
     Minor,
     Patch,
-    //Prerelease, // TODO: how to calculate count since last tag?
 }
 
-public enum OutputFormatType
-{
-    Console,
-    GitHubActionsOutput,
-}
-
-public class VersioningCommand(string tag, string prefix, VersionIncrement versionIncrement, bool isPrelease, string prerelease)
+public class VersioningCommand(string prefix = "", string suffix = "")
 {
     /// <summary>
     /// Handling versioning
     /// </summary>
     /// <returns></returns>
-    public string Versioning(bool withoutPrefix = false)
+    public string UpdateVersion(string tag, VersionIncrement versionIncrement)
     {
-        var version = GetNormalizedVersion(tag, prefix);
-        var increment = IncrementVersion(version, versionIncrement);
-        var format = FormatVersion(increment, prefix, isPrelease, prerelease, withoutPrefix);
-        return format;
+        // 対応状況:
+        // 〇: 既存のprefixやsuffixを維持する (v1.0.0-alpha.1 -> v1.0.1-alpha.1 など)
+        // 〇: prefixがない場合に追加する (1.0.0 -> v1.0.1 など)
+        // 〇: suffixがない場合に追加する (1.0.0 -> 1.0.1-alpha.1 など)
+        // ×: prefixを変更する (v1.0.0 -> Ver1.0.0 など)
+        // ×: suffixを変更する (1.0.0-alpha.1 -> 1.0.0-alpha.2 など)
+
+        var versionRaw = GetNormalizedVersion(tag, prefix, suffix);
+        var incremented = IncrementVersion(versionRaw, versionIncrement);
+        var newVersion = $"{prefix}{incremented}{suffix}";
+        return newVersion;
     }
 
     /// <summary>
-    /// Normalize tag. Tag may contains prefix, remove prefix and retrun version.
+    /// Normalize tag to x.y.z format.
+    /// If version has prefix, remove it. If version has suffix, remove it.
     /// </summary>
     /// <param name="tag"></param>
     /// <param name="prefix"></param>
+    /// <param name="suffix"></param>
     /// <returns></returns>
     /// <exception cref="ActionCommandException"></exception>
-    private static Version GetNormalizedVersion(string tag, string prefix)
+    private static Version GetNormalizedVersion(string tag, string prefix, string suffix)
     {
+        var tagSpan = tag.AsSpan();
+        Span<char> destination = stackalloc char[tagSpan.Length];
+        tagSpan.CopyTo(destination);
+
         if (string.IsNullOrEmpty(tag)) throw new ActionCommandException("tag missing");
-        if (tag.StartsWith(prefix, StringComparison.Ordinal))
+        if (tagSpan.StartsWith(prefix.AsSpan(), StringComparison.Ordinal))
         {
-            var span = tag.AsSpan();
-            var substring = span[prefix.Length..];
-            return Version.Parse(substring);
+            tagSpan[prefix.Length..].CopyTo(destination);
+            destination = destination[..(tagSpan.Length - prefix.Length)];
         }
-        else
+
+        if (tagSpan.EndsWith(suffix.AsSpan(), StringComparison.Ordinal))
         {
-            return Version.Parse(tag);
+            destination[..^suffix.Length].CopyTo(destination);
+            destination = destination[..(destination.Length - suffix.Length)];
         }
+
+        return Version.Parse(destination);
     }
 
     /// <summary>
@@ -64,18 +73,4 @@ public class VersioningCommand(string tag, string prefix, VersionIncrement versi
         VersionIncrement.Patch => new Version(version.Major, version.Minor, version.Build + 1),
         _ => throw new NotImplementedException(nameof(versionIncrement)),
     };
-
-    /// <summary>
-    /// Format version
-    /// </summary>
-    /// <param name="version"></param>
-    /// <param name="prefix"></param>
-    /// <param name="isPrelease"></param>
-    /// <param name="prerelease"></param>
-    /// <returns></returns>
-    private static string FormatVersion(Version version, string prefix, bool isPrelease, string prerelease, bool withoutPrefix)
-    {
-        var preReleaseSuffix = isPrelease && prerelease != "" ? $"-{prerelease}" : "";
-        return withoutPrefix ? $"{version}{preReleaseSuffix}" : $"{prefix}{version}{preReleaseSuffix}";
-    }
 }
