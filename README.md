@@ -310,6 +310,53 @@ jobs:
     secrets: inherit
 ```
 
+## increment-version
+
+> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/increment-version.yaml)
+
+Update specified version file with incremented version. Mainly used for [post-release workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/post-release.yaml).
+
+**Sample usage**
+
+Following workflow will increment patch version from released tag and update specified package.json, plugin.cfg and Directory.Build.props files with new version with `-dev` suffix.
+
+```yaml
+name: Post Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  new-version:
+    permissions:
+      actions: read
+      contents: read
+    uses: Cysharp/Actions/.github/workflows/increment-version.yaml@main
+    with:
+      ref: ${{ github.event.repository.default_branch }}
+      tag: ${{ github.ref_name }} # tag value will here. 1.2.1
+      type: patch
+      suffix: "-dev"
+
+  update-packagejson:
+    needs: [new-version]
+    permissions:
+      actions: read
+      contents: write
+    uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
+    with:
+      ref: ${{ github.event.repository.default_branch }}
+      file-path: |
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
+        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
+        ./Sandbox/Directory.Build.props
+      tag: ${{ needs.new-version.outputs.version }}
+      dry-run: false
+
+```
+
 ## prevent-github-change
 
 > [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/prevent-github-change.yaml)
