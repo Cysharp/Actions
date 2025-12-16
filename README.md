@@ -22,6 +22,7 @@ Cysharp OSS repository uses and maintained GitHub Actions "reusable workflows" a
   - [clean-packagejson-branch](#clean-packagejson-branch)
   - [create-release](#create-release)
   - [dd-event-post](#dd-event-post)
+  - [increment-version](#increment-version)
   - [prevent-github-change](#prevent-github-change)
   - [stale-issue](#stale-issue)
   - [update-packagejson](#update-packagejson)
