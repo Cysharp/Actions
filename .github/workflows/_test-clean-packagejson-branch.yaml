@@ -1,7 +1,7 @@
 name: Test clean-packagejson-branch
 
 on:
-  workflow_dispatch: null
+  workflow_dispatch:
   pull_request:
     branches: ["main"]
 
