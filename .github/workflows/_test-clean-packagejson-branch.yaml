@@ -8,12 +8,27 @@ on:
 jobs:
   create-branch:
     permissions:
-      contents: write
+      contents: read
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     outputs:
       branch-name: ${{ steps.branch.outputs.name }}
     steps:
+      - name: Load secrets
+        id: op-load-secret
+        uses: 1password/load-secrets-action@13f58eec611f8e5db52ec16247f58c508398f3e6 # v3.0.0
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
+          ACTIONBOT_PRIVATE_KEY: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/GITHUB_ACTIONS_BOT/private key"
+          ACTIONBOT_APPID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/GITHUB_ACTIONS_BOT/appid"
+      - uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        id: app-token
+        with:
+          app-id: ${{ steps.op-load-secret.outputs.ACTIONBOT_APPID }}
+          private-key: ${{ steps.op-load-secret.outputs.ACTIONBOT_PRIVATE_KEY }}
+          permission-contents: write
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -33,7 +48,7 @@ jobs:
           git commit -m "test"
           git push origin ${{ steps.branch.outputs.name }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
   cleanup:
     needs: [create-branch]
