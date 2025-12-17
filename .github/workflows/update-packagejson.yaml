@@ -49,7 +49,7 @@ on:
 jobs:
   update-packagejson:
     permissions:
-      contents: read
+      contents: write # because of git push selector may use auto-token
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
