@@ -66,4 +66,4 @@ jobs:
           echo "commited=1" | tee -a "$GITHUB_OUTPUT"
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          BRANCH_NAME: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
+          BRANCH_NAME: ${{ github.event_name == 'workflow_dispatch' && github.ref_name || github.event.repository.default_branch }}
