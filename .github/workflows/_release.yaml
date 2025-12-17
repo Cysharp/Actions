@@ -2,10 +2,6 @@ name: Release
 
 # add or update actions binaries and commit
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-release
-  cancel-in-progress: true
-
 on:
   release:
     types: [published]
