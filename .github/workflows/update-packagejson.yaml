@@ -22,7 +22,7 @@ on:
         required: true
         type: string
       dry-run:
-        description: "true to simularate commit but not push change."
+        description: "true: commit/push to 'test-release/{tag}' branch, false: commit/push to current branch."
         required: true
         type: boolean
       dotnet-run-path:
@@ -101,12 +101,12 @@ jobs:
           done <<< "${{ inputs.dotnet-run-path }}"
         if: ${{ inputs.dotnet-run-path != '' }}
 
+      # update files, git configure, git commit.
+      # ------------------------------------------
       # package.json
       # "version": 1.2.3 -> "version": 2.0.0
       # plugin.cfg
       # version="1.2.3" -> version="2.0.0"
-      #
-      # TIPS: Converting file-oath from \n to ,
       - name: Update files to version ${{ steps.validate.outputs.normalized-tag }}
         id: update
         run: ${{ steps.actions-caller.outputs.path }} update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${{ inputs.file-path }}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
@@ -116,9 +116,6 @@ jobs:
 
       - name: Push changes
         if: ${{ steps.update.outputs.commited == '1' }}
-        uses: ad-m/github-push-action@77c5b412c50b723d2a4fbc6d71fb5723bcd439aa
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
-          branch: ${{ steps.update.outputs.branch-name || inputs.ref }}
-          tags: false
-          force: ${{ inputs.dry-run }}
+        run: git push origin "${BRANCH_NAME}"
+        env:
+          BRANCH_NAME: ${{ steps.update.outputs.branch-name || inputs.ref }}
