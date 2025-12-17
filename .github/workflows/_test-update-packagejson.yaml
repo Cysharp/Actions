@@ -43,6 +43,7 @@ jobs:
       tag: ${{ needs.set-tag.outputs.tag }}
       use-bot-token: true
       dry-run: true
+    secrets: inherit
 
   # omit `dotnet-run-path`
   update-packagejson2:
