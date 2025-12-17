@@ -126,8 +126,6 @@ jobs:
       # ------------------------------------------
       # package.json
       # "version": 1.2.3 -> "version": 2.0.0
-      # plugin.cfg
-      # version="1.2.3" -> version="2.0.0"
       - name: Update files to version ${{ steps.validate.outputs.normalized-tag }}
         id: update
         run: ${{ steps.actions-caller.outputs.path }} update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${{ inputs.file-path }}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
