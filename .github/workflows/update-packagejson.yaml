@@ -116,11 +116,6 @@ jobs:
 
       - name: Push changes
         if: ${{ steps.update.outputs.commited == '1' }}
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}"
-          git push origin "${BRANCH_NAME}"
+        run: git push origin "${BRANCH_NAME}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH_NAME: ${{ steps.update.outputs.branch-name || inputs.ref }}
