@@ -39,6 +39,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref_name || github.event.repository.default_branch }}
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
         with:
           dotnet-version: 9.0.x
