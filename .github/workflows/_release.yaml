@@ -7,12 +7,21 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  workflow_dispatch:
+  release:
+    types: [published]
+  workflow_dispatch: # for debug usage
+    inputs:
+      tag:
+        description: "Released tag"
+        required: true
+        default: ""
 
 jobs:
   build:
     permissions:
       contents: read
+    env:
+      VERSION: ${{ inputs.tag || github.ref_name }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -38,9 +47,9 @@ jobs:
         with:
           dotnet-version: 9.0.x
       - name: dotnet publish (x64)
-        run: dotnet publish ./src/CysharpActions -c Release --runtime linux-x64 -o ./actions/Linux-X64
+        run: dotnet publish ./src/CysharpActions -c Release --runtime linux-x64 -o ./actions/Linux-X64 -p:Version="${VERSION}"
       - name: dotnet publish (arm64)
-        run: dotnet publish ./src/CysharpActions -c Release --runtime linux-arm64 -o ./actions/Linux-ARM64
+        run: dotnet publish ./src/CysharpActions -c Release --runtime linux-arm64 -o ./actions/Linux-ARM64 -p:Version="${VERSION}"
       - name: list files
         run: ls -lR ./actions/
       - name: Check update on git
