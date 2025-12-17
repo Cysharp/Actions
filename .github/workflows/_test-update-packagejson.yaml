@@ -41,7 +41,9 @@ jobs:
         ./Sandbox/Directory.Build.props
       dotnet-run-path: ./Sandbox/VersionOutput/VersionOutput.csproj
       tag: ${{ needs.set-tag.outputs.tag }}
+      use-bot-token: true
       dry-run: true
+    secrets: inherit
 
   # omit `dotnet-run-path`
   update-packagejson2:
@@ -59,6 +61,7 @@ jobs:
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
         ./Sandbox/Directory.Build.props
       tag: ${{ needs.set-tag.outputs.tag }}
+      use-bot-token: false
       dry-run: true
 
   # use v Prefixed version
