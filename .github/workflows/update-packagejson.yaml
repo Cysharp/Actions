@@ -31,7 +31,7 @@ on:
         required: true
         type: boolean
       dotnet-run-path:
-        description: "dotnet run path, executable should output desired change. (sample: src/Foo/Bar.csproj)"
+        description: 'dotnet run path, specified project to run, like src/Foo/Bar.csproj. Arguments are always "--version {tag}"'
         required: false
         type: string
         default: ""

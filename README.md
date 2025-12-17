@@ -217,6 +217,7 @@ jobs:
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
         ./Sandbox/Directory.Build.props
       tag: ${{ inputs.tag }}
+      use-bot-token: false # false to use GITHUB_TOKEN, true to use GitHub App token
       dry-run: false
 
   build-dotnet:
@@ -352,6 +353,7 @@ jobs:
         ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
         ./Sandbox/Directory.Build.props
       tag: ${{ needs.new-version.outputs.version }}
+      use-bot-token: false # false to use GITHUB_TOKEN, true to use GitHub App token
       dry-run: false
 
 ```
@@ -412,6 +414,41 @@ jobs:
 
 Update specified `Unity package.json` and `Godot plugin.cfg` version with tag version. Mainly used for UPM and Godot plugin release workflow.
 
+Consider use GitHub App token, when your repository want's restrict direct push to default branch.
+
+```yaml
+jobs:
+  use-bot-token:
+    permissions:
+      actions: read
+      contents: write
+    uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
+    with:
+      file-path: ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+      tag: ${{ inputs.tag }}
+      use-bot-token: true # <-- Use GitHub App token
+      dry-run: ${{ inputs.dry-run }}
+```
+
+If you want to run dotnet run during workflow, you can specify `dotnet-run-path` input. Make sure arguments are always `--version "{tag}"`.
+
+```yaml
+jobs:
+  update-packagejson:
+    permissions:
+      actions: read
+      contents: write
+    uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
+    with:
+      file-path: ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+      # you can write multi path.
+      dotnet-run-path: |
+        ./Sandbox/Sandbox.Console/Sandbox.Console.csproj
+      tag: ${{ inputs.tag }}
+      use-bot-token: false
+      dry-run: ${{ inputs.dry-run }}
+```
+
 **Sample usage**
 
 ```yaml
@@ -442,6 +479,7 @@ jobs:
         ./Sandbox/Sandbox.Godot/addons/Foo/plguin.cfg
         ./Sandbox/Directory.Build.props
       tag: ${{ inputs.tag }}
+      use-bot-token: false # false to use GITHUB_TOKEN, true to use GitHub App token
       dry-run: ${{ inputs.dry-run }}
 
   build-unity:
@@ -461,42 +499,6 @@ jobs:
     uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
     with:
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
-```
-
-**Execute dotnet run**
-
-Use `dotnet-run-path` to run `dotnet run --project` after update package.json.
-
-```yaml
-name: Build-Release
-
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "tag: git tag you want create. (sample 1.0.0)"
-        required: true
-      dry-run:
-        description: "dry_run: true will never create release/nuget."
-        required: true
-        default: false
-        type: boolean
-
-jobs:
-  update-packagejson:
-    permissions:
-      actions: read
-      contents: write
-    uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
-    with:
-      # you can write multi path.
-      file-path: |
-        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
-      # you can write multi path.
-      dotnet-run-path: |
-        ./Sandbox/Sandbox.Console/Sandbox.Console.csproj
-      tag: ${{ inputs.tag }}
-      dry-run: ${{ inputs.dry-run }}
 ```
 
 ## validate-tag
