@@ -41,7 +41,7 @@ jobs:
         ./Sandbox/Directory.Build.props
       dotnet-run-path: ./Sandbox/VersionOutput/VersionOutput.csproj
       tag: ${{ needs.set-tag.outputs.tag }}
-      dry-run: false
+      dry-run: true # true: commit/push to 'test-release/{tag}' branch, false: commit/push to current branch.
 
   build-dotnet:
     needs: [set-tag]
