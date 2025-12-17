@@ -57,7 +57,8 @@ jobs:
           git add -A
           git commit -m "[automate] New CysharpActions.exe committed" -m "Commit by [GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
 
-          git push origin ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
+          git push origin "${BRANCH_NAME}"
           echo "commited=1" | tee -a "$GITHUB_OUTPUT"
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          BRANCH_NAME: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
