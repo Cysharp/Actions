@@ -22,7 +22,7 @@ on:
         required: true
         type: string
       dry-run:
-        description: "true to simularate commit but not push change."
+        description: "true: commit/push to 'test-release/{tag}' branch, false: commit/push to current branch."
         required: true
         type: boolean
       dotnet-run-path:
@@ -116,9 +116,11 @@ jobs:
 
       - name: Push changes
         if: ${{ steps.update.outputs.commited == '1' }}
-        uses: ad-m/github-push-action@77c5b412c50b723d2a4fbc6d71fb5723bcd439aa
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }} # auto generated token
-          branch: ${{ steps.update.outputs.branch-name || inputs.ref }}
-          tags: false
-          force: ${{ inputs.dry-run }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}"
+          git push origin "${BRANCH_NAME}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: ${{ steps.update.outputs.branch-name || inputs.ref }}
