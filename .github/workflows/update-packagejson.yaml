@@ -11,7 +11,7 @@ on:
         description: "checkout ref"
         required: false
         type: string
-        default: ''
+        default: ""
       require-validation:
         description: "true require validation must pass, false to keep going even validation failed."
         required: false
@@ -29,13 +29,7 @@ on:
         description: "dotnet run path, executable should output desired change. (sample: src/Foo/Bar.csproj)"
         required: false
         type: string
-        default: ''
-      # TODO: Obsolete, this field can be removed after reference removed.
-      push-tag:
-        description: "true = push tag. false = no push tag."
-        required: false
-        type: boolean
-        default: true
+        default: ""
     outputs:
       branch-name:
         description: Git branch name created.

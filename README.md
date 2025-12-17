@@ -218,7 +218,6 @@ jobs:
         ./Sandbox/Directory.Build.props
       tag: ${{ inputs.tag }}
       dry-run: false
-      push-tag: false # tag push is done by create-release job
 
   build-dotnet:
     runs-on: ubuntu-24.04
@@ -444,7 +443,6 @@ jobs:
         ./Sandbox/Directory.Build.props
       tag: ${{ inputs.tag }}
       dry-run: ${{ inputs.dry-run }}
-      push-tag: false # recommend push tag on create-release job.
 
   build-unity:
     needs: [update-packagejson]
@@ -499,7 +497,6 @@ jobs:
         ./Sandbox/Sandbox.Console/Sandbox.Console.csproj
       tag: ${{ inputs.tag }}
       dry-run: ${{ inputs.dry-run }}
-      push-tag: false # recommend push tag on create-release job.
 ```
 
 ## validate-tag
