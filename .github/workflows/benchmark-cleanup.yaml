@@ -1,4 +1,4 @@
-name: Benchmark Cleanup
+name: (R) Benchmark Cleanup
 
 on:
   schedule:
