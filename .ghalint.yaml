@@ -30,6 +30,9 @@ excludes:
     workflow_file_path: .github/workflows/release.yaml
     job_name: create-release
   - policy_name: deny_inherit_secrets
+    workflow_file_path: .github/workflows/release.yaml
+    job_name: update-packagejson
+  - policy_name: deny_inherit_secrets
     workflow_file_path: .github/workflows/toc.yaml
     job_name: toc
   - policy_name: deny_inherit_secrets
