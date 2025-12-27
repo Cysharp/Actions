@@ -76,7 +76,6 @@ if command -v dotnet &> /dev/null; then
     fi
   done
 fi
-print "required dotnet sdk version ${_DOTNET_VERSION} is not installed. Proceeding with installation."
 
 # download dotnet-install.sh if not exists
 title "Download dotnet-install script if not exists"
