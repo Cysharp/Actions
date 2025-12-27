@@ -64,6 +64,20 @@ print "  * MACHINE_NAME=$(hostname)"
 print "  * MAX_RETRIES=${max_retries:=3}"
 print "  * RETRY_DELAY=${retry_delay:=10}"
 
+# check required dotnet sdk is already installed
+title "Check existing dotnet installation"
+if command -v dotnet &> /dev/null; then
+  installed_versions=$(dotnet --list-sdks | awk '{print $1}' | cut -d'.' -f1,2 | sort -u)
+  print "Existing installed dotnet sdk versions: ${installed_versions}"
+  for ver in $installed_versions; do
+    if [[ "$ver" == "${_DOTNET_VERSION}"* ]]; then
+      print "Required dotnet sdk version ${_DOTNET_VERSION} is already installed. Skipping installation."
+      exit 0
+    fi
+  done
+fi
+print "required dotnet sdk version ${_DOTNET_VERSION} is not installed. Proceeding with installation."
+
 # download dotnet-install.sh if not exists
 title "Download dotnet-install script if not exists"
 if [[ ! -f "$HOME/dotnet-install.sh" ]]; then
