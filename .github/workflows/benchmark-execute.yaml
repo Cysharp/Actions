@@ -151,7 +151,7 @@ jobs:
             echo "::group::Connect on $ip"
               success=false
               for i in {1..5}; do
-                ssh -o ConnectTimeout=10 azure-user@"$ip" "echo OK" && { success=true; break; }
+                ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 azure-user@"$ip" "echo OK" && { success=true; break; }
                 echo "Retrying SSH connection ($i)..."
                 sleep 15
               done
