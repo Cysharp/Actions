@@ -280,7 +280,7 @@ namespace CysharpActions
             await Next.InvokeAsync(context, cancellationToken);
             if (!isMetaCommand)
             {
-                GitHubActions.WriteLog($"Completed {(Environment.ExitCode)}...");
+                GitHubActions.WriteLog($"Completed ({Environment.ExitCode}) ...");
             }
         }
     }

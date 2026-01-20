@@ -24,8 +24,8 @@ public static class GitHubActions
             Directory.CreateDirectory(Path.GetDirectoryName(output)!);
         }
 
-        WriteLog($"GitHub Output: {input}");
         File.AppendAllLines(output, [input]);
+        WriteLog($"GitHub Output: {input}");
     }
 
     /// <summary>
