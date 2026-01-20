@@ -80,7 +80,7 @@ type: loader # Indicate config type. loader is used to define the benchmark load
 branch-configs:
   - suffix: "" # suffix to append to the benchmark name
     branch: "string" # Branch name
-    config-path: "stringl" # Config path
+    config: "string" # Config path
   # you can define more
 ```
 
@@ -128,14 +128,14 @@ GitHub Actions `schedule` event invokes only on the default branch. The loader c
 
 ```yaml
 apt-tools: string # apt tool names to install (space separated)
-dotnet-version: numbert  # dotnet version to install
+dotnet-version: number  # dotnet version to install
 benchmark-expire-min: number # Benchmark expire time in minutes
-benchmark-location: "japaneast" # Benchmark location, indicate azure region
+benchmark-location: "string" # Benchmark location, indicate azure region
 benchmark-timeout-min: number # Benchmark timeout in minutes
-benchmark-client-run-script-path: "stringh" # Benchmark client run script path
-benchmark-client-run-script-args: 'string' # Benchmark client run script args
+benchmark-client-run-script-path: "string" # Benchmark client run script path
+benchmark-client-run-script-args: 'string' # Benchmark client run script args (supports {{ placeholder }} template)
 benchmark-server-run-script-path: "string" # Benchmark server run script path
-benchmark-server-run-script-args: 'string' # Benchmark server run script args
+benchmark-server-run-script-args: 'string' # Benchmark server run script args (supports {{ placeholder }} template)
 benchmark-server-stop-script-path: "string" # Benchmark server stop script path
 jobs:
   - tags: string # Metrics Tags (comma separated)
@@ -143,6 +143,8 @@ jobs:
     channels: number # gRPC Channels
     streams: number # gRPC Streams
     serialization: messagepack|memorypack # Serialization
+    buildArgsClient: string # Build arguments for client
+    buildArgsServer: string # Build arguments for server
   # you can define more
 ```
 
@@ -171,13 +173,14 @@ jobs:
     channels: 28
     streams: 1
     serialization: messagepack
+    buildArgsClient: ""
+    buildArgsServer: ""
 ```
 
 ```json
 {
   "include": [
     {
-      "type": "config",
       "apt-tools": "libmsquic",
       "dotnet-version": "8.0",
       "benchmark-expire-min": 15,
