@@ -62,6 +62,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
       - name: Get branch name to checkout
         id: branch
         run: |
