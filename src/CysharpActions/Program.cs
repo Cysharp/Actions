@@ -107,6 +107,21 @@ namespace CysharpActions
             GitHubActions.WriteLog($"Pretty print Matrix json for debug:\n{prettyJson}");
         }
 
+        /// <summary>
+        /// Create GitHub Matrix JSON from benchmark config YAML file
+        /// </summary>
+        /// <param name="configPath">Benchmark config yaml file path</param>
+        [Command("benchmark-config2matrix")]
+        public void BenchmarkConfig2Matrix(string configPath)
+        {
+            var command = new BenchmarkConfig2MatrixCommand(configPath);
+            var json = command.GenerateMatrix();
+            var prettyJson = BenchmarkConfig2MatrixCommand.ToPrettyPrint(json);
+
+            GitHubActions.SetOutput("matrix", json);
+            GitHubActions.WriteLog($"Pretty print Matrix json for debug:\n{prettyJson}");
+        }
+
         // Create Release
 
         /// <summary>

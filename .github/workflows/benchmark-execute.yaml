@@ -55,19 +55,37 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           ref: ${{ inputs.branch }}
           path: Repo
           persist-credentials: false
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          repository: "Cysharp/Actions"
-          path: Actions
-          persist-credentials: false
+      - name: Set Cysharp/Actions binary path
+        id: actions-caller
+        run: |
+          branch=main
+          if [[ ${{ github.repository }} == "Cysharp/Actions" ]]; then
+            echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
+            exit
+          elif [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" ]]; then
+            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" | tee -a "$GITHUB_OUTPUT"
+            chmod +x "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions"
+          else
+            echo "ERROR: CysharpActions binary not found."
+            echo "::group::Debug _actions folder."
+              ls -lR "${{ github.workspace }}/../../_actions/"
+            echo "::endgroup::"
+            echo "::group::Debug _actions/Cysharp/Actions folder."
+              ls -lR "${{ github.workspace }}/../../_actions/Cysharp/Actions/"
+            echo "::endgroup::"
+            exit 1
+          fi
       - name: Generate Matrix json from config
         id: config2matrix
-        run: bash ./Actions/.github/scripts/benchmark_config2matrix.sh --config-path "./Repo/${{ inputs.benchmark-config-path }}"
+        run: ${{ steps.actions-caller.outputs.path }} benchmark-config2matrix --config-path "./Repo/${{ inputs.benchmark-config-path }}"
       - name: Comment (Running - Config loaded)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
