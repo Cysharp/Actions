@@ -1,6 +1,5 @@
 [![actionlint cysharp](https://github.com/Cysharp/Actions/actions/workflows/_actionlint-cysharp.yaml/badge.svg)](https://github.com/Cysharp/Actions/actions/workflows/_actionlint-cysharp.yaml)
 
-[![Test benchmark scripts](https://github.com/Cysharp/Actions/actions/workflows/_test-benchmark_scripts.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/_test-benchmark_scripts.yaml)
 [![Test benchmark-runnable](https://github.com/Cysharp/Actions/actions/workflows/_test-benchmark-runnable.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/_test-benchmark-runnable.yaml)
 [![Test check-metas](https://github.com/Cysharp/Actions/actions/workflows/_test-check-metas.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/_test-check-metas.yaml)
 [![Test checkout](https://github.com/Cysharp/Actions/actions/workflows/_test-checkout.yaml/badge.svg?event=pull_request)](https://github.com/Cysharp/Actions/actions/workflows/_test-checkout.yaml)
