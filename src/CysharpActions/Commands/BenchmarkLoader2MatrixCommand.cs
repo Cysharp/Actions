@@ -54,6 +54,7 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
         return configType switch
         {
             BenchmarkConfigType.Loader => GenerateLoaderMatrix(config),
+            BenchmarkConfigType.Execute => GenerateBranchMatrix(),
             _ => throw new ActionCommandException($"Unknown config type: {config.Type}")
         };
     }
@@ -102,6 +103,30 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
         var matrix = new BenchmarkLoaderOutputMatrix { Include = includes };
         return JsonSerializer.Serialize(matrix, BenchmarkLoaderJsonContext.Default.BenchmarkLoaderOutputMatrix);
     }
+
+    /// <summary>
+    /// Generate matrix from branch mode (single benchmark)
+    /// </summary>
+    private string GenerateBranchMatrix()
+    {
+        if (string.IsNullOrWhiteSpace(branch))
+        {
+            throw new ActionCommandException("Branch is required when using branch mode. Use --branch to specify.");
+        }
+
+        var includes = new[]
+        {
+            new BenchmarkLoaderOutputMatrix.MatrixInclude
+            {
+                BenchmarkName = benchmarkNamePrefix,
+                Branch = branch,
+                Config = configPath!
+            }
+        };
+
+        var matrix = new BenchmarkLoaderOutputMatrix { Include = includes };
+        return JsonSerializer.Serialize(matrix, BenchmarkLoaderJsonContext.Default.BenchmarkLoaderOutputMatrix);
+    }
 }
 
 /// <summary>
@@ -111,6 +136,7 @@ public enum BenchmarkConfigType
 {
     Unknown,
     Loader,
+    Execute
 }
 
 /// <summary>
@@ -129,9 +155,16 @@ public class BenchmarkLoaderConfig
     /// </summary>
     public BenchmarkConfigType GetConfigType()
     {
+        if (string.IsNullOrWhiteSpace(Type))
+        {
+            // If type is not specified, treat as execute config
+            return BenchmarkConfigType.Execute;
+        }
+
         return Type.ToLowerInvariant() switch
         {
             "loader" => BenchmarkConfigType.Loader,
+            "execute" => BenchmarkConfigType.Execute,
             _ => BenchmarkConfigType.Unknown
         };
     }

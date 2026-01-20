@@ -76,6 +76,70 @@ public class BenchmarkLoader2MatrixCommandTest
     }
 
     [Fact]
+    public void BranchMode_ValidConfig_GeneratesCorrectMatrix()
+    {
+        // Arrange
+        var baseDirectory = $".tests/{nameof(BenchmarkLoader2MatrixCommandTest)}/{nameof(BranchMode_ValidConfig_GeneratesCorrectMatrix)}";
+        var configPath = $"{baseDirectory}/execute_config.yaml";
+        var configContent = """
+            apt-tools: libmsquic
+            dotnet-version: 8.0
+            benchmark-expire-min: 15
+            jobs:
+              - tags: test
+                protocol: h2c
+            """;
+
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+        try
+        {
+            TestHelper.CreateFile(configPath, configContent);
+
+            // Expected matrix for comparison (Config path is dynamic, so we build the expected result)
+            var expectedMatrix = new BenchmarkLoaderOutputMatrix
+            {
+                Include =
+                [
+                    new BenchmarkLoaderOutputMatrix.MatrixInclude
+                    {
+                        BenchmarkName = "test-benchmark-123",
+                        Branch = "feature/test",
+                        Config = configPath
+                    }
+                ]
+            };
+
+            // Act
+            var command = new BenchmarkLoader2MatrixCommand("test-benchmark-123", configPath, "feature/test");
+            var result = command.GenerateMatrix();
+
+            // Assert
+            var matrix = JsonSerializer.Deserialize<BenchmarkLoaderOutputMatrix>(result, options);
+            Assert.NotNull(matrix);
+            Assert.NotNull(matrix.Include);
+            Assert.Equal(expectedMatrix.Include.Length, matrix.Include.Length);
+
+            // Compare each item in detail
+            for (int i = 0; i < expectedMatrix.Include.Length; i++)
+            {
+                Assert.Equal(expectedMatrix.Include[i].BenchmarkName, matrix.Include[i].BenchmarkName);
+                Assert.Equal(expectedMatrix.Include[i].Branch, matrix.Include[i].Branch);
+                Assert.Equal(expectedMatrix.Include[i].Config, matrix.Include[i].Config);
+            }
+
+            // Verify by re-serializing both and comparing JSON strings (normalized)
+            var expectedJsonNormalized = JsonSerializer.Serialize(expectedMatrix, options);
+            var actualJsonNormalized = JsonSerializer.Serialize(matrix, options);
+            Assert.Equal(expectedJsonNormalized, actualJsonNormalized);
+        }
+        finally
+        {
+            TestHelper.SafeDeleteDirectory(baseDirectory);
+        }
+    }
+
+    [Fact]
     public void LoaderMode_DuplicateSuffix_ThrowsException()
     {
         // Arrange
@@ -184,6 +248,32 @@ public class BenchmarkLoader2MatrixCommandTest
             var command = new BenchmarkLoader2MatrixCommand("test-benchmark", configPath);
             var exception = Assert.Throws<ActionCommandException>(() => command.GenerateMatrix());
             Assert.Contains("suffix", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            TestHelper.SafeDeleteDirectory(baseDirectory);
+        }
+    }
+
+    [Fact]
+    public void BranchMode_MissingBranch_ThrowsException()
+    {
+        // Arrange
+        var baseDirectory = $".tests/{nameof(BenchmarkLoader2MatrixCommandTest)}/{nameof(BranchMode_MissingBranch_ThrowsException)}";
+        var configPath = $"{baseDirectory}/execute_config.yaml";
+        var configContent = """
+            apt-tools: libmsquic
+            dotnet-version: 8.0
+            """;
+
+        try
+        {
+            TestHelper.CreateFile(configPath, configContent);
+
+            // Act & Assert
+            var command = new BenchmarkLoader2MatrixCommand("test-benchmark", configPath, null);
+            var exception = Assert.Throws<ActionCommandException>(() => command.GenerateMatrix());
+            Assert.Contains("branch", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
