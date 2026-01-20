@@ -21,8 +21,9 @@ public partial class BenchmarkConfig2MatrixCommand(string? configPath = null)
     /// <returns></returns>
     public static string ToPrettyPrint(string json)
     {
+        var matrix = JsonSerializer.Deserialize(json, BenchmarkConfigOutputMatrixJsonContext.Default.BenchmarkConfigOutputMatrix);
         var options = new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-        var prettyJson = JsonSerializer.Serialize(JsonSerializer.Deserialize<BenchmarkConfigOutputMatrix>(json), options);
+        var prettyJson = JsonSerializer.Serialize(matrix, options);
 
         return prettyJson;
     }
@@ -97,7 +98,7 @@ public partial class BenchmarkConfig2MatrixCommand(string? configPath = null)
 
         var matrix = new BenchmarkConfigOutputMatrix { Include = includes.ToArray() };
 
-        return JsonSerializer.Serialize(matrix, BenchmarkConfigJOutputMatrixsonContext.Default.BenchmarkConfigOutputMatrix);
+        return JsonSerializer.Serialize(matrix, BenchmarkConfigOutputMatrixJsonContext.Default.BenchmarkConfigOutputMatrix);
     }
 
     /// <summary>
@@ -259,6 +260,6 @@ public class BenchmarkConfigOutputMatrix
     PropertyNamingPolicy = System.Text.Json.Serialization.JsonKnownNamingPolicy.CamelCase,
     WriteIndented = false)]
 [System.Text.Json.Serialization.JsonSerializable(typeof(BenchmarkConfigOutputMatrix))]
-internal partial class BenchmarkConfigJOutputMatrixsonContext : System.Text.Json.Serialization.JsonSerializerContext
+internal partial class BenchmarkConfigOutputMatrixJsonContext : System.Text.Json.Serialization.JsonSerializerContext
 {
 }

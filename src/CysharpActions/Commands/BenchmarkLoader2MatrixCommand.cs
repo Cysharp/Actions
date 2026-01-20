@@ -16,8 +16,9 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
     /// <returns></returns>
     public static string ToPrettyPrint(string json)
     {
+        var matrix = JsonSerializer.Deserialize(json, BenchmarkLoaderJsonContext.Default.BenchmarkLoaderOutputMatrix);
         var options = new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-        var prettyJson = JsonSerializer.Serialize(JsonSerializer.Deserialize<BenchmarkLoaderOutputMatrix>(json), options);
+        var prettyJson = JsonSerializer.Serialize(matrix, options);
 
         return prettyJson;
     }
