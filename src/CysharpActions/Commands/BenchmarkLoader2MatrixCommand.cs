@@ -30,7 +30,7 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
         var deserializer = new DeserializerBuilder()
             .IgnoreUnmatchedProperties()
             .Build();
-        var config = deserializer.Deserialize<BenchmarkConfig>(yamlText);
+        var config = deserializer.Deserialize<BenchmarkLoaderConfig>(yamlText);
 
         if (config == null)
         {
@@ -49,7 +49,7 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
     /// <summary>
     /// Generate matrix from loader config
     /// </summary>
-    private string GenerateLoaderMatrix(BenchmarkConfig config)
+    private string GenerateLoaderMatrix(BenchmarkLoaderConfig config)
     {
         if (config.BranchConfigs == null || config.BranchConfigs.Length == 0)
         {
@@ -87,8 +87,8 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
             Config = bc.Config!
         }).ToArray();
 
-        var matrix = new Matrix { Include = includes };
-        return JsonSerializer.Serialize(matrix, MatrixJsonContext.Default.Matrix);
+        var matrix = new BenchmarkJobMatrix { Include = includes };
+        return JsonSerializer.Serialize(matrix, MatrixJsonContext.Default.BenchmarkJobMatrix);
     }
 
     /// <summary>
@@ -111,8 +111,8 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
             }
         };
 
-        var matrix = new Matrix { Include = includes };
-        return JsonSerializer.Serialize(matrix, MatrixJsonContext.Default.Matrix);
+        var matrix = new BenchmarkJobMatrix { Include = includes };
+        return JsonSerializer.Serialize(matrix, MatrixJsonContext.Default.BenchmarkJobMatrix);
     }
 }
 
@@ -129,13 +129,13 @@ public enum BenchmarkConfigType
 /// <summary>
 /// Benchmark config YAML structure
 /// </summary>
-public class BenchmarkConfig
+public class BenchmarkLoaderConfig
 {
     [YamlMember(Alias = "type")]
     public string Type { get; set; } = string.Empty;
 
     [YamlMember(Alias = "branch-configs")]
-    public BranchConfig[]? BranchConfigs { get; set; }
+    public required BranchConfig[] BranchConfigs { get; init; }
 
     /// <summary>
     /// Get parsed config type as enum
@@ -163,21 +163,21 @@ public class BenchmarkConfig
 public class BranchConfig
 {
     [YamlMember(Alias = "suffix")]
-    public string? Suffix { get; set; }
+    public required string Suffix { get; init; }
 
     [YamlMember(Alias = "branch")]
-    public string? Branch { get; set; }
+    public required string Branch { get; init; }
 
     [YamlMember(Alias = "config")]
-    public string? Config { get; set; }
+    public required string Config { get; init; }
 }
 
 /// <summary>
 /// GitHub Actions Matrix structure
 /// </summary>
-public class Matrix
+public class BenchmarkJobMatrix
 {
-    public MatrixInclude[] Include { get; set; } = [];
+    public required MatrixInclude[] Include { get; init; }
 }
 
 /// <summary>
@@ -185,15 +185,15 @@ public class Matrix
 /// </summary>
 public class MatrixInclude
 {
-    public string BenchmarkName { get; set; } = string.Empty;
-    public string Branch { get; set; } = string.Empty;
-    public string Config { get; set; } = string.Empty;
+    public required string BenchmarkName { get; init; }
+    public required string Branch { get; init; }
+    public required string Config { get; init; }
 }
 
 [System.Text.Json.Serialization.JsonSourceGenerationOptions(
     PropertyNamingPolicy = System.Text.Json.Serialization.JsonKnownNamingPolicy.CamelCase,
     WriteIndented = false)]
-[System.Text.Json.Serialization.JsonSerializable(typeof(Matrix))]
+[System.Text.Json.Serialization.JsonSerializable(typeof(BenchmarkJobMatrix))]
 internal partial class MatrixJsonContext : System.Text.Json.Serialization.JsonSerializerContext
 {
 }
