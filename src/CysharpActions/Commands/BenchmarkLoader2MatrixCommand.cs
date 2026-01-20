@@ -17,7 +17,7 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
     public static string ToPrettyPrint(string json)
     {
         var options = new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-        var prettyJson = JsonSerializer.Serialize(JsonSerializer.Deserialize<BenchmarkJobMatrix>(json), options);
+        var prettyJson = JsonSerializer.Serialize(JsonSerializer.Deserialize<BenchmarkLoaderOutputMatrix>(json), options);
 
         return prettyJson;
     }
@@ -93,15 +93,15 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
             throw new ActionCommandException("All suffixes in branch-configs must be unique");
         }
 
-        var includes = config.BranchConfigs.Select(bc => new BenchmarkJobMatrix.MatrixInclude
+        var includes = config.BranchConfigs.Select(bc => new BenchmarkLoaderOutputMatrix.MatrixInclude
         {
             BenchmarkName = benchmarkNamePrefix + bc.Suffix,
             Branch = bc.Branch!,
             Config = bc.Config!
         }).ToArray();
 
-        var matrix = new BenchmarkJobMatrix { Include = includes };
-        return JsonSerializer.Serialize(matrix, MatrixJsonContext.Default.BenchmarkJobMatrix);
+        var matrix = new BenchmarkLoaderOutputMatrix { Include = includes };
+        return JsonSerializer.Serialize(matrix, BenchmarkLoaderJsonContext.Default.BenchmarkLoaderOutputMatrix);
     }
 
     /// <summary>
@@ -116,7 +116,7 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
 
         var includes = new[]
         {
-            new BenchmarkJobMatrix.MatrixInclude
+            new BenchmarkLoaderOutputMatrix.MatrixInclude
             {
                 BenchmarkName = benchmarkNamePrefix,
                 Branch = branch,
@@ -124,8 +124,8 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
             }
         };
 
-        var matrix = new BenchmarkJobMatrix { Include = includes };
-        return JsonSerializer.Serialize(matrix, MatrixJsonContext.Default.BenchmarkJobMatrix);
+        var matrix = new BenchmarkLoaderOutputMatrix { Include = includes };
+        return JsonSerializer.Serialize(matrix, BenchmarkLoaderJsonContext.Default.BenchmarkLoaderOutputMatrix);
     }
 }
 
@@ -188,7 +188,7 @@ public class BenchmarkLoaderConfig
 /// <summary>
 /// GitHub Actions Matrix structure
 /// </summary>
-public class BenchmarkJobMatrix
+public class BenchmarkLoaderOutputMatrix
 {
     public required MatrixInclude[] Include { get; init; }
 
@@ -206,7 +206,7 @@ public class BenchmarkJobMatrix
 [System.Text.Json.Serialization.JsonSourceGenerationOptions(
     PropertyNamingPolicy = System.Text.Json.Serialization.JsonKnownNamingPolicy.CamelCase,
     WriteIndented = false)]
-[System.Text.Json.Serialization.JsonSerializable(typeof(BenchmarkJobMatrix))]
-internal partial class MatrixJsonContext : System.Text.Json.Serialization.JsonSerializerContext
+[System.Text.Json.Serialization.JsonSerializable(typeof(BenchmarkLoaderOutputMatrix))]
+internal partial class BenchmarkLoaderJsonContext : System.Text.Json.Serialization.JsonSerializerContext
 {
 }

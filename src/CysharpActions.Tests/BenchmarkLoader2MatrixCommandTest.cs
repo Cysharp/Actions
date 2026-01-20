@@ -38,7 +38,7 @@ public class BenchmarkLoader2MatrixCommandTest
         }
         """;
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-        var expectedMatrix = JsonSerializer.Deserialize<BenchmarkJobMatrix>(expectedResultJson, options);
+        var expectedMatrix = JsonSerializer.Deserialize<BenchmarkLoaderOutputMatrix>(expectedResultJson, options);
         Assert.NotNull(expectedMatrix);
         Assert.NotNull(expectedMatrix.Include);
 
@@ -51,7 +51,7 @@ public class BenchmarkLoader2MatrixCommandTest
             var result = command.GenerateMatrix();
 
             // Assert
-            var matrix = JsonSerializer.Deserialize<BenchmarkJobMatrix>(result, options);
+            var matrix = JsonSerializer.Deserialize<BenchmarkLoaderOutputMatrix>(result, options);
             Assert.NotNull(matrix);
             Assert.NotNull(matrix.Include);
             Assert.Equal(expectedMatrix.Include.Length, matrix.Include.Length);
@@ -97,11 +97,11 @@ public class BenchmarkLoader2MatrixCommandTest
             TestHelper.CreateFile(configPath, configContent);
 
             // Expected matrix for comparison (Config path is dynamic, so we build the expected result)
-            var expectedMatrix = new BenchmarkJobMatrix
+            var expectedMatrix = new BenchmarkLoaderOutputMatrix
             {
                 Include =
                 [
-                    new BenchmarkJobMatrix.MatrixInclude
+                    new BenchmarkLoaderOutputMatrix.MatrixInclude
                     {
                         BenchmarkName = "test-benchmark-123",
                         Branch = "feature/test",
@@ -115,7 +115,7 @@ public class BenchmarkLoader2MatrixCommandTest
             var result = command.GenerateMatrix();
 
             // Assert
-            var matrix = JsonSerializer.Deserialize<BenchmarkJobMatrix>(result, options);
+            var matrix = JsonSerializer.Deserialize<BenchmarkLoaderOutputMatrix>(result, options);
             Assert.NotNull(matrix);
             Assert.NotNull(matrix.Include);
             Assert.Equal(expectedMatrix.Include.Length, matrix.Include.Length);
@@ -323,7 +323,7 @@ public class BenchmarkLoader2MatrixCommandTest
         }
         """;
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-        var expectedMatrix = JsonSerializer.Deserialize<BenchmarkJobMatrix>(expectedResultJson, options);
+        var expectedMatrix = JsonSerializer.Deserialize<BenchmarkLoaderOutputMatrix>(expectedResultJson, options);
         Assert.NotNull(expectedMatrix);
         Assert.NotNull(expectedMatrix.Include);
 
@@ -332,7 +332,7 @@ public class BenchmarkLoader2MatrixCommandTest
         string? result = command.GenerateMatrix();
 
         // Assert - Verify the structure matches what bash script would generate
-        var matrix = JsonSerializer.Deserialize<BenchmarkJobMatrix>(result, options);
+        var matrix = JsonSerializer.Deserialize<BenchmarkLoaderOutputMatrix>(result, options);
         Assert.NotNull(matrix);
         Assert.NotNull(matrix.Include);
 
