@@ -7,7 +7,7 @@ namespace CysharpActions.Commands;
 
 /// <summary>
 /// Create GitHub Matrix JSON from benchmark config YAML file.
-/// See README.Benchmark.md for spec.
+/// See README.BENCHMARK.md for spec.
 /// </summary>
 public partial class BenchmarkConfig2MatrixCommand(string? configPath = null)
 {
