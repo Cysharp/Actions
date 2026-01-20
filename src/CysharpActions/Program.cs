@@ -101,8 +101,10 @@ namespace CysharpActions
         {
             var command = new BenchmarkLoader2MatrixCommand(benchmarkNamePrefix, configPath, branch);
             var json = command.GenerateMatrix();
+            var prettyJson = BenchmarkLoader2MatrixCommand.ToPrettyPrint(json);
+
             GitHubActions.SetOutput("matrix", json);
-            GitHubActions.WriteLog($"Generated matrix: {json}");
+            GitHubActions.WriteLog($"Pretty print Matrix json for debug:\n{prettyJson}");
         }
 
         // Create Release

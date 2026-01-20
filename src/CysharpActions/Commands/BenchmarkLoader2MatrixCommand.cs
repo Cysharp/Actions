@@ -10,6 +10,19 @@ namespace CysharpActions.Commands;
 public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? configPath = null, string? branch = null)
 {
     /// <summary>
+    /// Convert JSON to pretty print format
+    /// </summary>
+    /// <param name="json"></param>
+    /// <returns></returns>
+    public static string ToPrettyPrint(string json)
+    {
+        var options = new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var prettyJson = JsonSerializer.Serialize(JsonSerializer.Deserialize<BenchmarkJobMatrix>(json), options);
+
+        return prettyJson;
+    }
+
+    /// <summary>
     /// Generate GitHub Actions Matrix JSON from loader config or branch mode
     /// </summary>
     /// <returns>Matrix JSON string</returns>
