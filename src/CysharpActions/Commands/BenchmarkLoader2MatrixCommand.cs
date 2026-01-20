@@ -1,0 +1,199 @@
+﻿using System.Text.Json;
+using YamlDotNet.Serialization;
+
+namespace CysharpActions.Commands;
+
+/// <summary>
+/// Create GitHub Matrix JSON from benchmark loader config.
+/// This is equivalent to benchmark_loader2matrix.sh
+/// </summary>
+public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? configPath = null, string? branch = null)
+{
+    /// <summary>
+    /// Generate GitHub Actions Matrix JSON from loader config or branch mode
+    /// </summary>
+    /// <returns>Matrix JSON string</returns>
+    /// <exception cref="ActionCommandException"></exception>
+    public string GenerateMatrix()
+    {
+        if (string.IsNullOrWhiteSpace(configPath))
+        {
+            throw new ActionCommandException("Config path is required. Use --config-path to specify.");
+        }
+
+        if (!File.Exists(configPath))
+        {
+            throw new ActionCommandException($"Config file not found: {configPath}");
+        }
+
+        var yamlText = File.ReadAllText(configPath);
+        var deserializer = new DeserializerBuilder()
+            .IgnoreUnmatchedProperties()
+            .Build();
+        var config = deserializer.Deserialize<BenchmarkConfig>(yamlText);
+
+        if (config == null)
+        {
+            throw new ActionCommandException($"Failed to deserialize config: {configPath}");
+        }
+
+        var configType = config.GetConfigType();
+        return configType switch
+        {
+            BenchmarkConfigType.Loader => GenerateLoaderMatrix(config),
+            BenchmarkConfigType.Execute => GenerateBranchMatrix(),
+            _ => throw new ActionCommandException($"Unknown config type: {config.Type}")
+        };
+    }
+
+    /// <summary>
+    /// Generate matrix from loader config
+    /// </summary>
+    private string GenerateLoaderMatrix(BenchmarkConfig config)
+    {
+        if (config.BranchConfigs == null || config.BranchConfigs.Length == 0)
+        {
+            throw new ActionCommandException("Loader config must have branch-configs");
+        }
+
+        // Validate: all branch-configs must have branch, config, and suffix
+        foreach (var branchConfig in config.BranchConfigs)
+        {
+            if (string.IsNullOrWhiteSpace(branchConfig.Branch))
+            {
+                throw new ActionCommandException("All branch-configs must have 'branch' key");
+            }
+            if (string.IsNullOrWhiteSpace(branchConfig.Config))
+            {
+                throw new ActionCommandException("All branch-configs must have 'config' key");
+            }
+            if (branchConfig.Suffix == null)
+            {
+                throw new ActionCommandException("All branch-configs must have 'suffix' key");
+            }
+        }
+
+        // Validate: all suffixes must be unique
+        var suffixes = config.BranchConfigs.Select(x => x.Suffix).ToArray();
+        if (suffixes.Length != suffixes.Distinct().Count())
+        {
+            throw new ActionCommandException("All suffixes in branch-configs must be unique");
+        }
+
+        var includes = config.BranchConfigs.Select(bc => new MatrixInclude
+        {
+            BenchmarkName = benchmarkNamePrefix + bc.Suffix,
+            Branch = bc.Branch!,
+            Config = bc.Config!
+        }).ToArray();
+
+        var matrix = new Matrix { Include = includes };
+        return JsonSerializer.Serialize(matrix, MatrixJsonContext.Default.Matrix);
+    }
+
+    /// <summary>
+    /// Generate matrix from branch mode (single benchmark)
+    /// </summary>
+    private string GenerateBranchMatrix()
+    {
+        if (string.IsNullOrWhiteSpace(branch))
+        {
+            throw new ActionCommandException("Branch is required when using branch mode. Use --branch to specify.");
+        }
+
+        var includes = new[]
+        {
+            new MatrixInclude
+            {
+                BenchmarkName = benchmarkNamePrefix,
+                Branch = branch,
+                Config = configPath!
+            }
+        };
+
+        var matrix = new Matrix { Include = includes };
+        return JsonSerializer.Serialize(matrix, MatrixJsonContext.Default.Matrix);
+    }
+}
+
+/// <summary>
+/// Benchmark config type
+/// </summary>
+public enum BenchmarkConfigType
+{
+    Unknown,
+    Loader,
+    Execute
+}
+
+/// <summary>
+/// Benchmark config YAML structure
+/// </summary>
+public class BenchmarkConfig
+{
+    [YamlMember(Alias = "type")]
+    public string Type { get; set; } = string.Empty;
+
+    [YamlMember(Alias = "branch-configs")]
+    public BranchConfig[]? BranchConfigs { get; set; }
+
+    /// <summary>
+    /// Get parsed config type as enum
+    /// </summary>
+    public BenchmarkConfigType GetConfigType()
+    {
+        if (string.IsNullOrWhiteSpace(Type))
+        {
+            // If type is not specified, treat as execute config
+            return BenchmarkConfigType.Execute;
+        }
+
+        return Type.ToLowerInvariant() switch
+        {
+            "loader" => BenchmarkConfigType.Loader,
+            "execute" => BenchmarkConfigType.Execute,
+            _ => BenchmarkConfigType.Unknown
+        };
+    }
+}
+
+/// <summary>
+/// Branch config structure in loader config
+/// </summary>
+public class BranchConfig
+{
+    [YamlMember(Alias = "suffix")]
+    public string? Suffix { get; set; }
+
+    [YamlMember(Alias = "branch")]
+    public string? Branch { get; set; }
+
+    [YamlMember(Alias = "config")]
+    public string? Config { get; set; }
+}
+
+/// <summary>
+/// GitHub Actions Matrix structure
+/// </summary>
+public class Matrix
+{
+    public MatrixInclude[] Include { get; set; } = [];
+}
+
+/// <summary>
+/// Matrix include item
+/// </summary>
+public class MatrixInclude
+{
+    public string BenchmarkName { get; set; } = string.Empty;
+    public string Branch { get; set; } = string.Empty;
+    public string Config { get; set; } = string.Empty;
+}
+
+[System.Text.Json.Serialization.JsonSourceGenerationOptions(
+    PropertyNamingPolicy = System.Text.Json.Serialization.JsonKnownNamingPolicy.CamelCase,
+    WriteIndented = false)]
+[System.Text.Json.Serialization.JsonSerializable(typeof(Matrix))]
+internal partial class MatrixJsonContext : System.Text.Json.Serialization.JsonSerializerContext
+{
+}

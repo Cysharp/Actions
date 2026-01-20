@@ -88,6 +88,23 @@ namespace CysharpActions
             GitHubActions.SetOutput("version", newVersion);
         }
 
+        // Benchmark
+
+        /// <summary>
+        /// Generate GitHub Actions Matrix JSON from benchmark loader config
+        /// </summary>
+        /// <param name="benchmarkNamePrefix">Benchmark name prefix</param>
+        /// <param name="configPath">Benchmark loader yaml file path</param>
+        /// <param name="branch">Branch name to run the benchmark, required when config type is not loader</param>
+        [Command("benchmark-loader2matrix")]
+        public void BenchmarkLoader2Matrix(string benchmarkNamePrefix, string configPath, string? branch = null)
+        {
+            var command = new BenchmarkLoader2MatrixCommand(benchmarkNamePrefix, configPath, branch);
+            var json = command.GenerateMatrix();
+            GitHubActions.SetOutput("matrix", json);
+            GitHubActions.WriteLog($"Generated matrix: {json}");
+        }
+
         // Create Release
 
         /// <summary>
