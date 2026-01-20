@@ -76,182 +76,182 @@ jobs:
           title: "Benchmark config loaded"
           update: "true"
 
-  benchmark:
-    needs: [config2matrix]
-    name: "benchmark: ${{ inputs.benchmark-name}}@${{ inputs.branch}} ${{ matrix.benchmark-client-run-script-args }}"
-    strategy:
-      max-parallel: 1 # do not run concurrently
-      fail-fast: true # stop if fail
-      matrix: ${{ fromJson(needs.config2matrix.outputs.matrix) }}
-    env:
-      BENCHMARK_SERVER_NAME: "${{ inputs.benchmark-name }}-bench-server-vm"
-      BENCHMARK_CLIENT_NAME: "${{ inputs.benchmark-name }}-bench-client-vm"
-      BENCHMARK_RESOURCE_GROUP: "${{ inputs.benchmark-project }}-${{ inputs.benchmark-name }}"
-    environment:
-      name: benchmark
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: write
-      id-token: write
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - name: Dump matrix
-        run: echo "${{ toJson(matrix) }}"
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          ref: ${{ inputs.branch }}
-          path: Repo
-          persist-credentials: false
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          repository: "Cysharp/Actions"
-          path: Actions
-          persist-credentials: false
-      - name: List checkout repos
-        run: ls -l
-      - name: Load secret
-        id: op-load-secret
-        uses: 1password/load-secrets-action@13f58eec611f8e5db52ec16247f58c508398f3e6 # v3.0.0
-        with:
-          export-env: false
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
-          SSH_KEY: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_VM_SSH/private key"
-          AZURE_OIDC_CLIENTID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_AZURE_OIDC/clientId"
-          AZURE_OIDC_TENANTID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_AZURE_OIDC/tenantId"
-          AZURE_OIDC_SUBSCRIPTIONID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_AZURE_OIDC/subscriptionId"
-      - name: Output SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ steps.op-load-secret.outputs.SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-      - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
-        with:
-          client-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_CLIENTID }}
-          tenant-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_TENANTID }}
-          subscription-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_SUBSCRIPTIONID }}
-      - name: Add Azure CLI devcenter extension
-        run: az extension add --name devcenter --upgrade
-      - name: Create benchmark environment
-        id: create-benchmark
-        run: bash ./scripts/benchmark_environment_create.sh --catalog-name '${{ inputs.benchmark-catalog }}' --dev-center-name '${{ inputs.benchmark-devcenter }}' --environment-definition-name '${{ inputs.benchmark-definition-name }}' --environment-type '${{ inputs.benchmark-environment }}' --location '${{ matrix.benchmark-location }}' --name '${{ inputs.benchmark-name }}' --project-name '${{ inputs.benchmark-project }}' --expire-min "${{ matrix.benchmark-expire-min }}" --dry-run false
-        working-directory: ./Actions/.github
-      - name: Comment (Progess - Benchmark environment)
-        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
-        with:
-          comment: "Benchmark environment creation complete, start preparing server & client. :clock3:"
-          state: "running"
-          title: "Benchmark environment created"
-          update: "true"
-      - name: Show GitHub Actions runner public IP
-        run: curl -s https://ifconfig.me
-      - name: Confirm VM is up and connectable
-        run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
-            echo "::group::Connect on $ip"
-              success=false
-              for i in {1..5}; do
-                ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" "echo OK" && { success=true; break; }
-                echo "Retrying SSH connection ($i)..."
-                sleep 15
-              done
-              if [ "$success" = false ]; then
-                echo "Failed to connect to $ip after 5 attempts."
-                exit 1
-              fi
-            echo "::endgroup::"
-          done
-        working-directory: ./Actions/.github
-      - name: Setup .NET on Benchmark VM
-        run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
-            echo "::group::Install on $ip"
-              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --dotnet-version ${{ matrix.dotnet-version }}' < ./scripts/dotnet_install.sh
-            echo "::endgroup::"
-          done
-        working-directory: ./Actions/.github
-      - name: Setup apt tools on Benchmark VM
-        run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
-            echo "::group::Install on $ip"
-              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --tools "${{ matrix.apt-tools }}"' < ./scripts/apt_install.sh
-            echo "::endgroup::"
-          done
-        working-directory: ./Actions/.github
-      - name: Clone repository on VM
-        run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
-            echo "::group::Install on $ip"
-              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --branch "${{ inputs.branch }}" --owner "${{ github.repository_owner }}" --repo "${{ github.event.repository.name }}"' < ./scripts/git_clone.sh
-            echo "::endgroup::"
-          done
-        working-directory: ./Actions/.github
-      - name: Comment (Progress - Server begin)
-        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
-        with:
-          comment: "Repository successfully prepared, starting server. :clock6:"
-          state: "running"
-          title: "Benchmark begin"
-          update: "true"
-      - name: Run benchmark server on VM
-        run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_SERVER_NAME }}'].publicIps" -o tsv); do
-            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-server-run-script-args }}' < ${{ matrix.benchmark-server-run-script-path }}
-          done
-        working-directory: ./Repo/
-      - name: Comment (Progress - Benchmark begin)
-        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
-        with:
-          comment: "Server successfully started, starting benchmark. :clock9:"
-          state: "running"
-          title: "Benchmark begin"
-          update: "true"
-      - name: Run benchmark client on VM
-        run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_CLIENT_NAME }}'].publicIps" -o tsv); do
-            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-client-run-script-args }}' < ${{ matrix.benchmark-client-run-script-path }}
-          done
-        working-directory: ./Repo/
-        timeout-minutes: ${{ fromJson(matrix.benchmark-timeout-min || 10) }}
-        continue-on-error: true # continue next benchmark even benchmark failed for this job
-      - name: Stop benchmark server on VM
-        if: ${{ matrix.benchmark-server-stop-script-path != '' }}
-        run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_SERVER_NAME }}'].publicIps" -o tsv); do
-            ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-server-run-script-args }}' < ${{ matrix.benchmark-server-stop-script-path }}
-          done
-        working-directory: ./Repo/
-      - name: Comment (Result - Benchmark complete)
-        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
-        with:
-          comment: |
-            Successfully complete Benchmark. :rocket:
+  # benchmark:
+  #   needs: [config2matrix]
+  #   name: "benchmark: ${{ inputs.benchmark-name}}@${{ inputs.branch}} ${{ matrix.benchmark-client-run-script-args }}"
+  #   strategy:
+  #     max-parallel: 1 # do not run concurrently
+  #     fail-fast: true # stop if fail
+  #     matrix: ${{ fromJson(needs.config2matrix.outputs.matrix) }}
+  #   env:
+  #     BENCHMARK_SERVER_NAME: "${{ inputs.benchmark-name }}-bench-server-vm"
+  #     BENCHMARK_CLIENT_NAME: "${{ inputs.benchmark-name }}-bench-client-vm"
+  #     BENCHMARK_RESOURCE_GROUP: "${{ inputs.benchmark-project }}-${{ inputs.benchmark-name }}"
+  #   environment:
+  #     name: benchmark
+  #   permissions:
+  #     contents: read
+  #     issues: write
+  #     pull-requests: write
+  #     id-token: write
+  #   runs-on: ubuntu-24.04
+  #   timeout-minutes: 30
+  #   steps:
+  #     - name: Dump matrix
+  #       run: echo "${{ toJson(matrix) }}"
+  #     - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+  #       with:
+  #         ref: ${{ inputs.branch }}
+  #         path: Repo
+  #         persist-credentials: false
+  #     - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+  #       with:
+  #         repository: "Cysharp/Actions"
+  #         path: Actions
+  #         persist-credentials: false
+  #     - name: List checkout repos
+  #       run: ls -l
+  #     - name: Load secret
+  #       id: op-load-secret
+  #       uses: 1password/load-secrets-action@13f58eec611f8e5db52ec16247f58c508398f3e6 # v3.0.0
+  #       with:
+  #         export-env: false
+  #       env:
+  #         OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
+  #         SSH_KEY: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_VM_SSH/private key"
+  #         AZURE_OIDC_CLIENTID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_AZURE_OIDC/clientId"
+  #         AZURE_OIDC_TENANTID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_AZURE_OIDC/tenantId"
+  #         AZURE_OIDC_SUBSCRIPTIONID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/BENCHMARK_AZURE_OIDC/subscriptionId"
+  #     - name: Output SSH Key
+  #       run: |
+  #         mkdir -p ~/.ssh
+  #         echo "${{ steps.op-load-secret.outputs.SSH_KEY }}" > ~/.ssh/id_ed25519
+  #         chmod 600 ~/.ssh/id_ed25519
+  #     - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+  #       with:
+  #         client-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_CLIENTID }}
+  #         tenant-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_TENANTID }}
+  #         subscription-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_SUBSCRIPTIONID }}
+  #     - name: Add Azure CLI devcenter extension
+  #       run: az extension add --name devcenter --upgrade
+  #     - name: Create benchmark environment
+  #       id: create-benchmark
+  #       run: bash ./scripts/benchmark_environment_create.sh --catalog-name '${{ inputs.benchmark-catalog }}' --dev-center-name '${{ inputs.benchmark-devcenter }}' --environment-definition-name '${{ inputs.benchmark-definition-name }}' --environment-type '${{ inputs.benchmark-environment }}' --location '${{ matrix.benchmark-location }}' --name '${{ inputs.benchmark-name }}' --project-name '${{ inputs.benchmark-project }}' --expire-min "${{ matrix.benchmark-expire-min }}" --dry-run false
+  #       working-directory: ./Actions/.github
+  #     - name: Comment (Progess - Benchmark environment)
+  #       uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+  #       with:
+  #         comment: "Benchmark environment creation complete, start preparing server & client. :clock3:"
+  #         state: "running"
+  #         title: "Benchmark environment created"
+  #         update: "true"
+  #     - name: Show GitHub Actions runner public IP
+  #       run: curl -s https://ifconfig.me
+  #     - name: Confirm VM is up and connectable
+  #       run: |
+  #         for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
+  #           echo "::group::Connect on $ip"
+  #             success=false
+  #             for i in {1..5}; do
+  #               ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" "echo OK" && { success=true; break; }
+  #               echo "Retrying SSH connection ($i)..."
+  #               sleep 15
+  #             done
+  #             if [ "$success" = false ]; then
+  #               echo "Failed to connect to $ip after 5 attempts."
+  #               exit 1
+  #             fi
+  #           echo "::endgroup::"
+  #         done
+  #       working-directory: ./Actions/.github
+  #     - name: Setup .NET on Benchmark VM
+  #       run: |
+  #         for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
+  #           echo "::group::Install on $ip"
+  #             ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --dotnet-version ${{ matrix.dotnet-version }}' < ./scripts/dotnet_install.sh
+  #           echo "::endgroup::"
+  #         done
+  #       working-directory: ./Actions/.github
+  #     - name: Setup apt tools on Benchmark VM
+  #       run: |
+  #         for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
+  #           echo "::group::Install on $ip"
+  #             ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --tools "${{ matrix.apt-tools }}"' < ./scripts/apt_install.sh
+  #           echo "::endgroup::"
+  #         done
+  #       working-directory: ./Actions/.github
+  #     - name: Clone repository on VM
+  #       run: |
+  #         for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
+  #           echo "::group::Install on $ip"
+  #             ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --branch "${{ inputs.branch }}" --owner "${{ github.repository_owner }}" --repo "${{ github.event.repository.name }}"' < ./scripts/git_clone.sh
+  #           echo "::endgroup::"
+  #         done
+  #       working-directory: ./Actions/.github
+  #     - name: Comment (Progress - Server begin)
+  #       uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+  #       with:
+  #         comment: "Repository successfully prepared, starting server. :clock6:"
+  #         state: "running"
+  #         title: "Benchmark begin"
+  #         update: "true"
+  #     - name: Run benchmark server on VM
+  #       run: |
+  #         for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_SERVER_NAME }}'].publicIps" -o tsv); do
+  #           ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-server-run-script-args }}' < ${{ matrix.benchmark-server-run-script-path }}
+  #         done
+  #       working-directory: ./Repo/
+  #     - name: Comment (Progress - Benchmark begin)
+  #       uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+  #       with:
+  #         comment: "Server successfully started, starting benchmark. :clock9:"
+  #         state: "running"
+  #         title: "Benchmark begin"
+  #         update: "true"
+  #     - name: Run benchmark client on VM
+  #       run: |
+  #         for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_CLIENT_NAME }}'].publicIps" -o tsv); do
+  #           ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-client-run-script-args }}' < ${{ matrix.benchmark-client-run-script-path }}
+  #         done
+  #       working-directory: ./Repo/
+  #       timeout-minutes: ${{ fromJson(matrix.benchmark-timeout-min || 10) }}
+  #       continue-on-error: true # continue next benchmark even benchmark failed for this job
+  #     - name: Stop benchmark server on VM
+  #       if: ${{ matrix.benchmark-server-stop-script-path != '' }}
+  #       run: |
+  #         for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_SERVER_NAME }}'].publicIps" -o tsv); do
+  #           ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-server-run-script-args }}' < ${{ matrix.benchmark-server-stop-script-path }}
+  #         done
+  #       working-directory: ./Repo/
+  #     - name: Comment (Result - Benchmark complete)
+  #       uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+  #       with:
+  #         comment: |
+  #           Successfully complete Benchmark. :rocket:
 
-            Benchmark settings:
-            ```
-            client-args: ${{ matrix.benchmark-client-run-script-args }}
-            server-args: ${{ matrix.benchmark-server-run-script-args }}
-            ```
+  #           Benchmark settings:
+  #           ```
+  #           client-args: ${{ matrix.benchmark-client-run-script-args }}
+  #           server-args: ${{ matrix.benchmark-server-run-script-args }}
+  #           ```
 
-            Benchmark environment expiration: ${{ matrix.benchmark-expire-min}}min (Until ${{ steps.create-benchmark.outputs.expiration }} UTC)
-          state: "success"
-          title: "Benchmark completed"
-          update: "true"
-      - name: Comment (Result - Benchmark failed)
-        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
-        with:
-          comment: "Benchmark failed :x:"
-          state: "failed"
-          title: "Benchmark failed"
-          update: "true"
-        if: ${{ failure() }}
-      - name: Comment (Result - Benchmark cancelled)
-        uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
-        with:
-          comment: "Benchmark workflow was cancelled :octocat:"
-          state: "cancelled"
-          title: "Benchmark cancelled"
-          update: "true"
-        if: ${{ cancelled() }}
+  #           Benchmark environment expiration: ${{ matrix.benchmark-expire-min}}min (Until ${{ steps.create-benchmark.outputs.expiration }} UTC)
+  #         state: "success"
+  #         title: "Benchmark completed"
+  #         update: "true"
+  #     - name: Comment (Result - Benchmark failed)
+  #       uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+  #       with:
+  #         comment: "Benchmark failed :x:"
+  #         state: "failed"
+  #         title: "Benchmark failed"
+  #         update: "true"
+  #       if: ${{ failure() }}
+  #     - name: Comment (Result - Benchmark cancelled)
+  #       uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
+  #       with:
+  #         comment: "Benchmark workflow was cancelled :octocat:"
+  #         state: "cancelled"
+  #         title: "Benchmark cancelled"
+  #         update: "true"
+  #       if: ${{ cancelled() }}
