@@ -145,6 +145,8 @@ jobs:
           state: "running"
           title: "Benchmark environment created"
           update: "true"
+      - name: Show GitHub Actions runner public IP
+        run: curl -s https://ifconfig.me
       - name: Confirm VM is up and connectable
         run: |
           for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
