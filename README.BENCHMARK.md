@@ -1,3 +1,28 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+# 📖 Table of Contents
+
+- [Architecture](#architecture)
+  - [Benchmark Loader config](#benchmark-loader-config)
+  - [Benchmark config](#benchmark-config)
+- [Spec](#spec)
+  - [Loader config](#loader-config)
+    - [YAML Schema](#yaml-schema)
+    - [Output Matrix Schema](#output-matrix-schema)
+    - [YAML Example](#yaml-example)
+    - [Implementation](#implementation)
+    - [Conversion Example](#conversion-example)
+  - [Benchmark config](#benchmark-config-1)
+    - [YAML Schema](#yaml-schema-1)
+    - [Template Placeholder Syntax](#template-placeholder-syntax)
+    - [Output Matrix Schema](#output-matrix-schema-1)
+    - [YAML Example](#yaml-example-1)
+    - [Implementation](#implementation-1)
+    - [Conversion Example](#conversion-example-1)
+- [Practical Example](#practical-example)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Architecture
 
 This document describes the architecture of the benchmark dispatch system. The system is designed to dispatch benchmarks for multiple branches and configurations.
