@@ -1,4 +1,4 @@
-# bash ./.github/scripts/benchmark_loader2matrix.sh --benchmark-name-prefix foo --config-path ".github/scripts/tests/template_schedule_loader.yaml"
+# CysharpActions benchmark-loader2matrix --benchmark-name-prefix foo --config-path ".github/scripts/tests/template_schedule_loader.yaml"
 type: loader # indicate this is loader config
 branch-configs:
   - suffix: ""

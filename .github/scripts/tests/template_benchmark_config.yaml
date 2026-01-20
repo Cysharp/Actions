@@ -1,4 +1,4 @@
-# bash ./.github/scripts/benchmark_config2matrix.sh --config-path ./.github/scripts/tests/template_benchmark_config.yaml
+# CysharpActions benchmark-config2matrix --config-path ./.github/scripts/tests/template_benchmark_config.yaml
 apt-tools: libmsquic
 dotnet-version: 8.0
 benchmark-location: "japaneast"

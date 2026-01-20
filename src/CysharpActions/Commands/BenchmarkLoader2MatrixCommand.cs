@@ -5,7 +5,7 @@ namespace CysharpActions.Commands;
 
 /// <summary>
 /// Create GitHub Matrix JSON from benchmark loader config.
-/// This is equivalent to benchmark_loader2matrix.sh
+/// See README.BENCHMARK.md for spec.
 /// </summary>
 public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? configPath = null, string? branch = null)
 {
