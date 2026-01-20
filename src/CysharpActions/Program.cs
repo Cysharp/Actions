@@ -211,8 +211,6 @@ namespace CysharpActions
         /// </summary>
         /// <param name="dryRun"></param>
         /// <param name="tag"></param>
-        /// <param name="email"></param>
-        /// <param name="user"></param>
         /// <returns></returns>
         private async Task<(bool commited, string sha, string branchName, string isBranchCreated)> GitCommitAsync(bool dryRun, string tag)
         {
