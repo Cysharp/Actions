@@ -13,7 +13,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" />
     <PackageReference Include="ProcessX" />
-    <PackageReference Include="YamlDotNet" />
+    <PackageReference Include="VYaml" />
   </ItemGroup>
 
 </Project>
