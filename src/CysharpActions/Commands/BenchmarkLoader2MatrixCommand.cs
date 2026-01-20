@@ -135,7 +135,13 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
 public enum BenchmarkConfigType
 {
     Unknown,
+    /// <summary>
+    /// Generate job matrix from Loader config
+    /// </summary>
     Loader,
+    /// <summary>
+    /// Generate job matrix from arguments
+    /// </summary>
     Execute
 }
 
