@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
-using YamlDotNet.Serialization;
+using VYaml.Annotations;
+using VYaml.Serialization;
 
 namespace CysharpActions.Commands;
 
@@ -40,11 +41,8 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
             throw new ActionCommandException($"Config file not found: {configPath}");
         }
 
-        var yamlText = File.ReadAllText(configPath);
-        var deserializer = new DeserializerBuilder()
-            .IgnoreUnmatchedProperties()
-            .Build();
-        var config = deserializer.Deserialize<BenchmarkLoaderConfig>(yamlText);
+        var yamlBytes = System.Text.Encoding.UTF8.GetBytes(File.ReadAllText(configPath));
+        var config = YamlSerializer.Deserialize<BenchmarkLoaderConfig>(yamlBytes);
 
         if (config == null)
         {
@@ -147,15 +145,32 @@ public enum BenchmarkConfigType
 }
 
 /// <summary>
+/// Branch config structure in loader config
+/// </summary>
+[YamlObject]
+public partial class BenchmarkLoaderBranchConfig
+{
+    [YamlMember("suffix")]
+    public required string Suffix { get; init; }
+
+    [YamlMember("branch")]
+    public required string Branch { get; init; }
+
+    [YamlMember("config")]
+    public required string Config { get; init; }
+}
+
+/// <summary>
 /// Benchmark config YAML structure
 /// </summary>
-public class BenchmarkLoaderConfig
+[YamlObject]
+public partial class BenchmarkLoaderConfig
 {
-    [YamlMember(Alias = "type")]
+    [YamlMember("type")]
     public string Type { get; set; } = string.Empty;
 
-    [YamlMember(Alias = "branch-configs")]
-    public required BranchConfig[] BranchConfigs { get; init; }
+    [YamlMember("branch-configs")]
+    public required BenchmarkLoaderBranchConfig[] BranchConfigs { get; init; }
 
     /// <summary>
     /// Get parsed config type as enum
@@ -174,21 +189,6 @@ public class BenchmarkLoaderConfig
             "execute" => BenchmarkConfigType.Execute,
             _ => BenchmarkConfigType.Unknown
         };
-    }
-
-    /// <summary>
-    /// Branch config structure in loader config
-    /// </summary>
-    public class BranchConfig
-    {
-        [YamlMember(Alias = "suffix")]
-        public required string Suffix { get; init; }
-
-        [YamlMember(Alias = "branch")]
-        public required string Branch { get; init; }
-
-        [YamlMember(Alias = "config")]
-        public required string Config { get; init; }
     }
 }
 

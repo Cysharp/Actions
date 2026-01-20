@@ -1,7 +1,8 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using YamlDotNet.Serialization;
+using VYaml.Annotations;
+using VYaml.Serialization;
 
 namespace CysharpActions.Commands;
 
@@ -45,13 +46,10 @@ public partial class BenchmarkConfig2MatrixCommand(string? configPath = null)
             throw new ActionCommandException($"Config file not found: {configPath}");
         }
 
-        var yamlText = File.ReadAllText(configPath);
-        var deserializer = new DeserializerBuilder()
-            .IgnoreUnmatchedProperties()
-            .Build();
+        var yamlBytes = System.Text.Encoding.UTF8.GetBytes(File.ReadAllText(configPath));
 
         // Deserialize to typed config
-        var config = deserializer.Deserialize<BenchmarkJobConfig>(yamlText);
+        var config = YamlSerializer.Deserialize<BenchmarkJobConfig>(yamlBytes);
 
         if (config == null)
         {
@@ -125,91 +123,93 @@ public partial class BenchmarkConfig2MatrixCommand(string? configPath = null)
 }
 
 /// <summary>
+/// Benchmark job definition
+/// </summary>
+[YamlObject]
+public partial class BenchmarkJob
+{
+    // Known job properties
+    [YamlMember("tags")]
+    public required string Tags { get; init; }
+
+    [YamlMember("protocol")]
+    public required string Protocol { get; init; }
+
+    [YamlMember("channels")]
+    public required int? Channels { get; init; }
+
+    [YamlMember("streams")]
+    public required int? Streams { get; init; }
+
+    [YamlMember("serialization")]
+    public required string Serialization { get; init; }
+
+    [YamlMember("buildArgsClient")]
+    public required string BuildArgsClient { get; init; }
+
+    [YamlMember("buildArgsServer")]
+    public required string BuildArgsServer { get; init; }
+
+    /// <summary>
+    /// Get all properties as dictionary for placeholder replacement
+    /// </summary>
+    public Dictionary<string, object> GetAllProperties()
+    {
+        var props = new Dictionary<string, object>();
+
+        if (!string.IsNullOrEmpty(Tags)) props["tags"] = Tags;
+        if (!string.IsNullOrEmpty(Protocol)) props["protocol"] = Protocol;
+        if (Channels.HasValue) props["channels"] = Channels.Value;
+        if (Streams.HasValue) props["streams"] = Streams.Value;
+        if (!string.IsNullOrEmpty(Serialization)) props["serialization"] = Serialization;
+        if (BuildArgsClient != null) props["buildArgsClient"] = BuildArgsClient;
+        if (BuildArgsServer != null) props["buildArgsServer"] = BuildArgsServer;
+
+        return props;
+    }
+}
+
+/// <summary>
 /// Benchmark job config YAML structure
 /// </summary>
-public class BenchmarkJobConfig
+[YamlObject]
+public partial class BenchmarkJobConfig
 {
     // Known general properties
-    [YamlMember(Alias = "apt-tools")]
+    [YamlMember("apt-tools")]
     public required string AptTools { get; init; }
 
-    [YamlMember(Alias = "dotnet-version")]
+    [YamlMember("dotnet-version")]
     public required string DotnetVersion { get; init; }
 
-    [YamlMember(Alias = "benchmark-location")]
+    [YamlMember("benchmark-location")]
     public required string BenchmarkLocation { get; init; }
 
-    [YamlMember(Alias = "benchmark-expire-min")]
+    [YamlMember("benchmark-expire-min")]
     public required int BenchmarkExpireMin { get; init; }
 
-    [YamlMember(Alias = "benchmark-timeout-min")]
+    [YamlMember("benchmark-timeout-min")]
     public required int BenchmarkTimeoutMin { get; init; }
 
-    [YamlMember(Alias = "benchmark-client-run-script-path")]
+    [YamlMember("benchmark-client-run-script-path")]
     public required string BenchmarkClientRunScriptPath { get; init; }
 
-    [YamlMember(Alias = "benchmark-server-run-script-path")]
+    [YamlMember("benchmark-server-run-script-path")]
     public required string BenchmarkServerRunScriptPath { get; init; }
 
-    [YamlMember(Alias = "benchmark-server-stop-script-path")]
+    [YamlMember("benchmark-server-stop-script-path")]
     public required string BenchmarkServerStopScriptPath { get; init; }
 
     // Template string properties
-    [YamlMember(Alias = "benchmark-client-run-script-args")]
+    [YamlMember("benchmark-client-run-script-args")]
     public required string BenchmarkClientRunScriptArgs { get; init; }
 
-    [YamlMember(Alias = "benchmark-server-run-script-args")]
+    [YamlMember("benchmark-server-run-script-args")]
     public required string BenchmarkServerRunScriptArgs { get; init; }
 
     // Jobs array
-    [YamlMember(Alias = "jobs")]
+    [YamlMember("jobs")]
     public required List<BenchmarkJob>? Jobs { get; init; }
-
-    /// <summary>
-    /// Benchmark job definition
-    /// </summary>
-    public class BenchmarkJob
-    {
-        // Known job properties
-        [YamlMember(Alias = "tags")]
-        public required string Tags { get; init; }
-
-        [YamlMember(Alias = "protocol")]
-        public required string Protocol { get; init; }
-
-        [YamlMember(Alias = "channels")]
-        public required int? Channels { get; init; }
-
-        [YamlMember(Alias = "streams")]
-        public required int? Streams { get; init; }
-
-        [YamlMember(Alias = "serialization")]
-        public required string Serialization { get; init; }
-
-        [YamlMember(Alias = "buildArgsClient")]
-        public required string BuildArgsClient { get; init; }
-
-        [YamlMember(Alias = "buildArgsServer")]
-        public required string BuildArgsServer { get; init; }
-
-        /// <summary>
-        /// Get all properties as dictionary for placeholder replacement
-        /// </summary>
-        public Dictionary<string, object> GetAllProperties()
-        {
-            var props = new Dictionary<string, object>();
-
-            if (!string.IsNullOrEmpty(Tags)) props["tags"] = Tags;
-            if (!string.IsNullOrEmpty(Protocol)) props["protocol"] = Protocol;
-            if (Channels.HasValue) props["channels"] = Channels.Value;
-            if (Streams.HasValue) props["streams"] = Streams.Value;
-            if (!string.IsNullOrEmpty(Serialization)) props["serialization"] = Serialization;
-            if (BuildArgsClient != null) props["buildArgsClient"] = BuildArgsClient;
-            if (BuildArgsServer != null) props["buildArgsServer"] = BuildArgsServer;
-
-            return props;
-        }
-    }
 }
 
 /// <summary>
