@@ -2,6 +2,34 @@
 
 This document describes the architecture of the benchmark dispatch system. The system is designed to dispatch benchmarks for multiple branches and configurations.
 
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Caller repositories (e.g., MagicOnion)                         │
+│  └─ workflow_call → benchmark-loader.yaml                       │
+└───────────────────────────┬─────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  TIER 1: benchmark-loader.yaml                                  │
+│  ├─ verify: User authentication (benchmark-runnable)            │
+│  └─ loader2matrix: YAML → Matrix JSON (BenchmarkLoader2Matrix)  │
+│       └─ Output: {include: [{benchmarkName, branch, config}]}   │
+└───────────────────────────┬─────────────────────────────────────┘
+                            ▼
+┌───────────────────────────────────────────────────────────────────┐
+│  TIER 2: benchmark-execute.yaml (parallel runs via matrix)        │
+│  ├─ config2matrix: Job YAML → Matrix JSON (BenchmarkConfig2Matrix)│
+│  └─ benchmark: Run benchmarks on Azure ADE VMs                    │
+│       ├─ Create VM → setup .NET/apt →                             │
+│       │  └─ → git clone → start Server → run Client               │
+│       └─ Comment on PR/Issue via benchmark-progress-comment       │
+└───────────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  TIER 3: benchmark-cleanup.yaml (scheduled)                     │
+│  └─ Automatic cleanup of failed/expired environments            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ## Benchmark Loader config
 
 GitHub Actions `schedule` event invoke on default branch only, that's why Loader config is required. `loader2matrix` allow us dispatch benchmark for multiple branches. This sequence diagram indicate how to dispatch the benchmark for multiple branches.
@@ -73,7 +101,33 @@ Configuration file is written in YAML format. There are two types of configurati
 
 Benchmark loader config has `type: loader` and it defines `branch-configs` array. `branch-configs` is array of `branch`, `config` and `suffix` combinations. The loader will load the config for each branch and dispatch the benchmark.
 
-**SPEC**
+### YAML Schema
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `type` | `string` | ✅ | Config type indicator. Must be `"loader"` for loader config. If omitted or set to other values, treated as execute mode. |
+| `branch-configs` | `array` | ✅ | Array of branch configuration objects. |
+
+**branch-configs[] properties:**
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `suffix` | `string` | ✅ | Suffix to append to the benchmark name. Use `""` for no suffix. Must be unique across all branch-configs. |
+| `branch` | `string` | ✅ | Git branch name to checkout for this benchmark. |
+| `config` | `string` | ✅ | Path to the benchmark config YAML file (relative to repository root). |
+
+### Output Matrix Schema
+
+The loader generates a GitHub Actions matrix JSON with the following structure:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `include` | `array` | Array of matrix include objects. |
+| `include[].benchmarkName` | `string` | Generated benchmark name (`{benchmark-name-prefix}{suffix}`). |
+| `include[].branch` | `string` | Branch name to checkout. |
+| `include[].config` | `string` | Path to benchmark config file. |
+
+### YAML Example
 
 ```yaml
 type: loader # Indicate config type. loader is used to define the benchmark loader configuration
@@ -84,11 +138,11 @@ branch-configs:
   # you can define more
 ```
 
-**IMPLEMENTATION**
+### Implementation
 
 See [C# BenchmarkLoader2MatrixCommand.cs](src/CysharpActions/Commands/BenchmarkLoader2MatrixCommand.cs) for implementation details.
 
-**EXAMPLE**
+### Conversion Example
 
 Following config will be converted to GitHub Actions matrix json like follows. benchmark name is passed as `benchmark-123`.
 
@@ -124,11 +178,77 @@ branch-configs:
 
 GitHub Actions `schedule` event invokes only on the default branch. The loader configuration will allow us to dispatch the benchmark for multiple branches. This sequence diagram indicates how to dispatch the benchmark for multiple branches.
 
-**SPEC**
+### YAML Schema
+
+**Root properties:**
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `apt-tools` | `string` | ✅ | APT tool names to install on VMs (space separated). Example: `"libmsquic"` |
+| `dotnet-version` | `string` | ✅ | .NET SDK version to install. Example: `"8.0"` |
+| `benchmark-location` | `string` | ✅ | Azure region for VM provisioning. Example: `"japaneast"` |
+| `benchmark-expire-min` | `integer` | ✅ | Benchmark environment expiration time in minutes. |
+| `benchmark-timeout-min` | `integer` | ✅ | Benchmark execution timeout in minutes. |
+| `benchmark-client-run-script-path` | `string` | ✅ | Path to client run script (relative to repository root). |
+| `benchmark-client-run-script-args` | `string` | ✅ | Client script arguments. Supports `{{ placeholder }}` template syntax. |
+| `benchmark-server-run-script-path` | `string` | ✅ | Path to server run script (relative to repository root). |
+| `benchmark-server-run-script-args` | `string` | ✅ | Server script arguments. Supports `{{ placeholder }}` template syntax. |
+| `benchmark-server-stop-script-path` | `string` | ✅ | Path to server stop script (relative to repository root). |
+| `jobs` | `array` | ✅ | Array of benchmark job configurations. At least one job is required. |
+
+**jobs[] properties:**
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `tags` | `string` | ✅ | Metrics tags for benchmark identification (comma separated). Example: `"legend:messagepack-h2c,protocol:h2c"` |
+| `protocol` | `string` | ✅ | gRPC protocol to use. Common values: `"h2c"`, `"h2"`, `"h3"` |
+| `channels` | `integer` | ❌ | Number of gRPC channels. Optional. |
+| `streams` | `integer` | ❌ | Number of gRPC streams. Optional. |
+| `serialization` | `string` | ✅ | Serialization format. Common values: `"messagepack"`, `"memorypack"` |
+| `buildArgsClient` | `string` | ❌ | Additional build arguments for client. Used in `{{ buildArgsClient }}` placeholder. |
+| `buildArgsServer` | `string` | ❌ | Additional build arguments for server. Used in `{{ buildArgsServer }}` placeholder. |
+
+### Template Placeholder Syntax
+
+Script argument properties (`benchmark-client-run-script-args`, `benchmark-server-run-script-args`) support placeholder replacement using the `{{ key }}` syntax. Placeholders are replaced with corresponding job property values.
+
+**Available placeholders:**
+
+| Placeholder | Source |
+|-------------|--------|
+| `{{ tags }}` | `jobs[].tags` |
+| `{{ protocol }}` | `jobs[].protocol` |
+| `{{ channels }}` | `jobs[].channels` |
+| `{{ streams }}` | `jobs[].streams` |
+| `{{ serialization }}` | `jobs[].serialization` |
+| `{{ buildArgsClient }}` | `jobs[].buildArgsClient` |
+| `{{ buildArgsServer }}` | `jobs[].buildArgsServer` |
+
+> **Note:** If a placeholder key is not found in the job, it is replaced with an empty string.
+
+### Output Matrix Schema
+
+The config2matrix generates a GitHub Actions matrix JSON with the following structure:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `include` | `array` | Array of matrix include objects. |
+| `include[].apt-tools` | `string` | APT tools to install. |
+| `include[].dotnet-version` | `string` | .NET version to install. |
+| `include[].benchmark-location` | `string` | Azure region. |
+| `include[].benchmark-expire-min` | `integer` | Environment expiration minutes. |
+| `include[].benchmark-timeout-min` | `integer` | Execution timeout minutes. |
+| `include[].benchmark-client-run-script-path` | `string` | Client script path. |
+| `include[].benchmark-client-run-script-args` | `string` | Client script arguments (placeholders replaced). |
+| `include[].benchmark-server-run-script-path` | `string` | Server script path. |
+| `include[].benchmark-server-run-script-args` | `string` | Server script arguments (placeholders replaced). |
+| `include[].benchmark-server-stop-script-path` | `string` | Server stop script path. |
+
+### YAML Example
 
 ```yaml
 apt-tools: string # apt tool names to install (space separated)
-dotnet-version: number  # dotnet version to install
+dotnet-version: string  # dotnet version to install
 benchmark-expire-min: number # Benchmark expire time in minutes
 benchmark-location: "string" # Benchmark location, indicate azure region
 benchmark-timeout-min: number # Benchmark timeout in minutes
@@ -140,19 +260,19 @@ benchmark-server-stop-script-path: "string" # Benchmark server stop script path
 jobs:
   - tags: string # Metrics Tags (comma separated)
     protocol: h2c|h2|h3 # gRPC Protocol
-    channels: number # gRPC Channels
-    streams: number # gRPC Streams
+    channels: number # gRPC Channels (optional)
+    streams: number # gRPC Streams (optional)
     serialization: messagepack|memorypack # Serialization
-    buildArgsClient: string # Build arguments for client
-    buildArgsServer: string # Build arguments for server
+    buildArgsClient: string # Build arguments for client (optional)
+    buildArgsServer: string # Build arguments for server (optional)
   # you can define more
 ```
 
-**IMPLEMENTATION**
+### Implementation
 
 See [C# BenchmarkConfig2MatrixCommand.cs](src/CysharpActions/Commands/BenchmarkConfig2MatrixCommand.cs) for implementation details.
 
-**EXAMPLE**
+### Conversion Example
 
 Following config will be converted to GitHub Actions matrix json like follows.
 
