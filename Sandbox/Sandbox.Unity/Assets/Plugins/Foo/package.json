@@ -1,6 +1,6 @@
 {
   "name": "com.unity.example",
-  "version": "1.3.3-dev",
+  "version": "1.3.7-dev",
   "displayName": "Package Example",
   "description": "This is an example package",
   "unity": "2019.1",
