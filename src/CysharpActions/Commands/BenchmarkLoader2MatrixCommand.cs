@@ -80,7 +80,7 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
             throw new ActionCommandException("All suffixes in branch-configs must be unique");
         }
 
-        var includes = config.BranchConfigs.Select(bc => new MatrixInclude
+        var includes = config.BranchConfigs.Select(bc => new BenchmarkJobMatrix.MatrixInclude
         {
             BenchmarkName = benchmarkNamePrefix + bc.Suffix,
             Branch = bc.Branch!,
@@ -103,7 +103,7 @@ public class BenchmarkLoader2MatrixCommand(string benchmarkNamePrefix, string? c
 
         var includes = new[]
         {
-            new MatrixInclude
+            new BenchmarkJobMatrix.MatrixInclude
             {
                 BenchmarkName = benchmarkNamePrefix,
                 Branch = branch,
@@ -155,21 +155,21 @@ public class BenchmarkLoaderConfig
             _ => BenchmarkConfigType.Unknown
         };
     }
-}
 
-/// <summary>
-/// Branch config structure in loader config
-/// </summary>
-public class BranchConfig
-{
-    [YamlMember(Alias = "suffix")]
-    public required string Suffix { get; init; }
+    /// <summary>
+    /// Branch config structure in loader config
+    /// </summary>
+    public class BranchConfig
+    {
+        [YamlMember(Alias = "suffix")]
+        public required string Suffix { get; init; }
 
-    [YamlMember(Alias = "branch")]
-    public required string Branch { get; init; }
+        [YamlMember(Alias = "branch")]
+        public required string Branch { get; init; }
 
-    [YamlMember(Alias = "config")]
-    public required string Config { get; init; }
+        [YamlMember(Alias = "config")]
+        public required string Config { get; init; }
+    }
 }
 
 /// <summary>
@@ -178,16 +178,16 @@ public class BranchConfig
 public class BenchmarkJobMatrix
 {
     public required MatrixInclude[] Include { get; init; }
-}
 
-/// <summary>
-/// Matrix include item
-/// </summary>
-public class MatrixInclude
-{
-    public required string BenchmarkName { get; init; }
-    public required string Branch { get; init; }
-    public required string Config { get; init; }
+    /// <summary>
+    /// Matrix include item
+    /// </summary>
+    public class MatrixInclude
+    {
+        public required string BenchmarkName { get; init; }
+        public required string Branch { get; init; }
+        public required string Config { get; init; }
+    }
 }
 
 [System.Text.Json.Serialization.JsonSourceGenerationOptions(

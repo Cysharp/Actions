@@ -101,7 +101,7 @@ public class BenchmarkLoader2MatrixCommandTest
             {
                 Include =
                 [
-                    new MatrixInclude
+                    new BenchmarkJobMatrix.MatrixInclude
                     {
                         BenchmarkName = "test-benchmark-123",
                         Branch = "feature/test",
