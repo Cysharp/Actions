@@ -163,6 +163,7 @@ jobs:
       # Download(All) Artifacts to current directory
       - uses: Cysharp/Actions/.github/actions/download-artifact@main
         with:
+          github-token: ${{ github.token }}
           run-id: ${{ inputs.download-run-id || github.run_id }}
       - name: Show download aritifacts
         run: ls -lR
