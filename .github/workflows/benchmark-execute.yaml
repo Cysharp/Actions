@@ -164,24 +164,30 @@ jobs:
           title: "Benchmark environment created"
           update: "true"
       - name: Show GitHub Actions runner public IP
-        run: curl -s https://checkip.amazonaws.com
-      # - name: Confirm VM is up and connectable
-      #   run: |
-      #     for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
-      #       echo "::group::Connect on $ip"
-      #         success=false
-      #         for i in {1..5}; do
-      #           ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" "echo OK" && { success=true; break; }
-      #           echo "Retrying SSH connection ($i)..."
-      #           sleep 15
-      #         done
-      #         if [ "$success" = false ]; then
-      #           echo "Failed to connect to $ip after 5 attempts."
-      #           exit 1
-      #         fi
-      #       echo "::endgroup::"
-      #     done
-      #   working-directory: ./Actions/.github
+        id: get-runner-ip
+        run: |
+          runnner=$(curl -s https://checkip.amazonaws.com)
+          echo "ip=$runnner" | tee -a "$GITHUB_OUTPUT"
+      - name: Update SG Rule
+        run: |
+          az network nsg rule update --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --nsg-name "${{ inputs.benchmark-name }}-vm-sg" --name "github-runner" --source-address-prefixes "${{ steps.get-runner-ip.outputs.ip }}/32" --no-wait "false"
+      - name: Confirm VM is up and connectable
+        run: |
+          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
+            echo "::group::Connect on $ip"
+              success=false
+              for i in {1..5}; do
+                ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" "echo OK" && { success=true; break; }
+                echo "Retrying SSH connection ($i)..."
+                sleep 15
+              done
+              if [ "$success" = false ]; then
+                echo "Failed to connect to $ip after 5 attempts."
+                exit 1
+              fi
+            echo "::endgroup::"
+          done
+        working-directory: ./Actions/.github
       # - name: Setup .NET on Benchmark VM
       #   run: |
       #     for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
