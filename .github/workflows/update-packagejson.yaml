@@ -11,7 +11,7 @@ on:
         description: "checkout ref"
         required: false
         type: string
-        default: ""
+        default: ${{ github.ref }}
       require-validation:
         description: "true require validation must pass, false to keep going even validation failed."
         required: false
