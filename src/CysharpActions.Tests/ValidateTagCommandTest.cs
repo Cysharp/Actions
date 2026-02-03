@@ -17,7 +17,7 @@ public class ValidateTagCommandTest
     }
 
     [Theory]
-    [InlineData("1.3.0")]// Current Release Tag is 1.2.0
+    [InlineData("1.5.0")]// Current Release Tag is 1.4.0
     [InlineData("999.0.0")]
     [InlineData("1.2.10")] // this should success
     public async Task ValidateSuccessTest(string tag)
