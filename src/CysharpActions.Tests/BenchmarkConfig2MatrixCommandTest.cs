@@ -15,45 +15,65 @@ public class BenchmarkConfig2MatrixCommandTest
             dotnet-version: 8.0
             benchmark-expire-min: 15
             benchmark-client-run-script-args: '--run-args "-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol {{ protocol }} --channels {{ channels }}" --build-args "{{ buildArgsClient }}"'
-            benchmark-server-run-script-args: '--run-args "-u http://0.0.0.0:5000 --protocol {{ protocol }}" --build-args "{{ buildArgsServer }}"'
+            benchmark-server-run-script-args: '--run-args "-u http://0.0.0.0:5000 --protocol {{ protocol }} --scenario {{ scenario }}" --build-args "{{ buildArgsServer }}"'
             jobs:
               - protocol: h2c
                 channels: 28
                 buildArgsClient: "--p:UseNuGetClient=6.14"
                 buildArgsServer: ""
+                scenario: CI
               - protocol: grpc
                 channels: 1
                 buildArgsClient: ""
                 buildArgsServer: "--p:UseNuGetServer=6.14"
+                scenario: CI
+              - protocol: h2
+                channels: 100
+                session: 1
+                buildArgsClient: ""
+                buildArgsServer: "--p:UseNuGetServer=6.14"
+                scenario: Broadcast60Fps
             """;
 
         var expectedResultJson = """
         {
             "include": [
-            {
-                "apt-tools": "libmsquic",
-                "dotnet-version": "8.0",
-                "benchmark-location": null,
-                "benchmark-expire-min": 15,
-                "benchmark-timeout-min": 0,
-                "benchmark-client-run-script-path": null,
-                "benchmark-server-run-script-path": null,
-                "benchmark-server-stop-script-path": null,
-                "benchmark-client-run-script-args": "--run-args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c --channels 28\" --build-args \"--p:UseNuGetClient=6.14\"",
-                "benchmark-server-run-script-args": "--run-args \"-u http://0.0.0.0:5000 --protocol h2c\" --build-args \"\""
-            },
-            {
-                "apt-tools": "libmsquic",
-                "dotnet-version": "8.0",
-                "benchmark-location": null,
-                "benchmark-expire-min": 15,
-                "benchmark-timeout-min": 0,
-                "benchmark-client-run-script-path": null,
-                "benchmark-server-run-script-path": null,
-                "benchmark-server-stop-script-path": null,
-                "benchmark-client-run-script-args": "--run-args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol grpc --channels 1\" --build-args \"\"",
-                "benchmark-server-run-script-args": "--run-args \"-u http://0.0.0.0:5000 --protocol grpc\" --build-args \"--p:UseNuGetServer=6.14\""
-            }
+                {
+                    "apt-tools": "libmsquic",
+                    "dotnet-version": "8.0",
+                    "benchmark-location": null,
+                    "benchmark-expire-min": 15,
+                    "benchmark-timeout-min": 0,
+                    "benchmark-client-run-script-path": null,
+                    "benchmark-server-run-script-path": null,
+                    "benchmark-server-stop-script-path": null,
+                    "benchmark-client-run-script-args": "--run-args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2c --channels 28\" --build-args \"--p:UseNuGetClient=6.14\"",
+                    "benchmark-server-run-script-args": "--run-args \"-u http://0.0.0.0:5000 --protocol h2c --scenario CI\" --build-args \"\""
+                },
+                {
+                    "apt-tools": "libmsquic",
+                    "dotnet-version": "8.0",
+                    "benchmark-location": null,
+                    "benchmark-expire-min": 15,
+                    "benchmark-timeout-min": 0,
+                    "benchmark-client-run-script-path": null,
+                    "benchmark-server-run-script-path": null,
+                    "benchmark-server-stop-script-path": null,
+                    "benchmark-client-run-script-args": "--run-args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol grpc --channels 1\" --build-args \"\"",
+                    "benchmark-server-run-script-args": "--run-args \"-u http://0.0.0.0:5000 --protocol grpc --scenario CI\" --build-args \"--p:UseNuGetServer=6.14\""
+                },
+                {
+                    "apt-tools": "libmsquic",
+                    "dotnet-version": "8.0",
+                    "benchmark-location": null,
+                    "benchmark-expire-min": 15,
+                    "benchmark-timeout-min": 0,
+                    "benchmark-client-run-script-path": null,
+                    "benchmark-server-run-script-path": null,
+                    "benchmark-server-stop-script-path": null,
+                    "benchmark-client-run-script-args": "--run-args \"-u http://${BENCHMARK_SERVER_NAME}:5000 --protocol h2 --channels 100\" --build-args \"\"",
+                    "benchmark-server-run-script-args": "--run-args \"-u http://0.0.0.0:5000 --protocol h2 --scenario Broadcast60Fps\" --build-args \"--p:UseNuGetServer=6.14\""
+                }
             ]
         }
         """;

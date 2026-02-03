@@ -150,6 +150,9 @@ public partial class BenchmarkJob
     [YamlMember("buildArgsServer")]
     public required string BuildArgsServer { get; init; }
 
+    [YamlMember("scenario")]
+    public required string Scenario { get; init; }
+
     /// <summary>
     /// Get all properties as dictionary for placeholder replacement
     /// </summary>
@@ -164,6 +167,7 @@ public partial class BenchmarkJob
         if (!string.IsNullOrEmpty(Serialization)) props["serialization"] = Serialization;
         if (BuildArgsClient != null) props["buildArgsClient"] = BuildArgsClient;
         if (BuildArgsServer != null) props["buildArgsServer"] = BuildArgsServer;
+        if (!string.IsNullOrEmpty(Scenario)) props["scenario"] = Scenario;
 
         return props;
     }
