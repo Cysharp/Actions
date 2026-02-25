@@ -3,7 +3,6 @@ using CysharpActions;
 using CysharpActions.Commands;
 using CysharpActions.Contexts;
 using CysharpActions.Utils;
-using Cysharp.Diagnostics;
 
 var app = ConsoleApp.Create();
 app.UseFilter<GlobalCompleteLogFilter>();
@@ -59,7 +58,8 @@ namespace CysharpActions
             // Git Commit
             using (_ = GitHubActions.StartGroup("git commit changes"))
             {
-                var (commited, sha, branchName, isBranchCreated) = await GitCommitAsync(dryRun, version);
+                var gitCommand = new GitCommand();
+                var (commited, sha, branchName, isBranchCreated) = await gitCommand.CommitAsync(dryRun, version);
 
                 GitHubActions.SetOutput("commited", commited ? "1" : "0");
                 GitHubActions.SetOutput("sha", sha);
@@ -221,49 +221,6 @@ namespace CysharpActions
 
             var command = new CreateDummyCommand();
             command.CreateDummy(basePath);
-        }
-
-        /// <summary>
-        /// Git Commit
-        /// </summary>
-        /// <param name="dryRun"></param>
-        /// <param name="tag"></param>
-        /// <returns></returns>
-        private async Task<(bool commited, string sha, string branchName, string isBranchCreated)> GitCommitAsync(bool dryRun, string tag)
-        {
-            Env.useShell = false;
-
-            GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
-            await GitHelper.SetGitUserEmailAsync();
-
-            GitHubActions.WriteLog($"Checking File change has been happen ...");
-            var commited = false;
-            var branchName = "";
-            var isBranchCreated = "false";
-            try
-            {
-                var result = await "git diff --exit-code"; // 0 = no diff, 1 = diff
-                GitHubActions.WriteLog("Diff not found, skipping commit.");
-            }
-            catch (ProcessErrorException)
-            {
-                GitHubActions.WriteLog("Diff found.");
-                if (dryRun)
-                {
-                    GitHubActions.WriteLog("Dryrun Mode detected, creating branch and switch.");
-                    branchName = $"test-release/{tag}";
-                    isBranchCreated = "true";
-                    await $"git switch -c {branchName}";
-                }
-
-                GitHubActions.WriteLog("Committing change. Running following.");
-                await $"git commit -a -m \"{$"chore(automate): Update package.json to {tag}"}\" -m \"{$"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})"}\"";
-
-                commited = true;
-            }
-
-            var sha = await "git rev-parse HEAD";
-            return (commited, sha, branchName, isBranchCreated);
         }
     }
 

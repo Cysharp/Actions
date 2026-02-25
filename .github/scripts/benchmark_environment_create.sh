@@ -14,7 +14,7 @@ Required:
   --name                        string The name of the environment.
   --project-name                string The name of the project.
 Options:
-  --expire-min                  int    The number of minutes until the environment expires. (default: 15)
+  --expire-min                  int    The number of minutes until the environment expires. (default: 20)
   --debug                       bool   Show debug output pr not. (default: false)
   --dry-run                     bool   Show the command that would be run, but do not run it. (default: true)
   --location                    string The location of the environment. (default: "")
