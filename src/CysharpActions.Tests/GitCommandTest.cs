@@ -7,7 +7,7 @@ public class GitCommandTest
 {
     // Run only on GitHub Actions
     [Fact]
-    public async Task DeleteBrancFalse_NotGitHubActionsLoginTest()
+    public async Task DeleteBranchFalse_NotGitHubActionsLoginTest()
     {
         if (!GitHubEnv.Current.CI)
             return;

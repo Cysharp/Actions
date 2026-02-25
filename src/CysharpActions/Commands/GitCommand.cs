@@ -1,6 +1,7 @@
 ﻿using Cysharp.Diagnostics;
 using CysharpActions.Contexts;
 using CysharpActions.Utils;
+using Octokit;
 using System.Text.Json;
 
 namespace CysharpActions.Commands;
@@ -104,4 +105,138 @@ public class GitCommand()
         return (commited, sha, branchName, isBranchCreated);
     }
 
+    /// <summary>
+    /// Git Commit with sign
+    /// </summary>
+    /// <param name="dryRun"></param>
+    /// <param name="tag"></param>
+    /// <returns></returns>
+    public async Task<(bool commited, string sha, string branchName, string isBranchCreated)> CommitWithSignAsync(bool dryRun, string tag)
+    {
+        Env.useShell = false;
+
+        GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
+        await GitHelper.SetGitUserEmailAsync();
+
+        GitHubActions.WriteLog($"Checking File change has been happen ...");
+        var commited = false;
+        var branchName = "";
+        var isBranchCreated = "false";
+        try
+        {
+            var result = await "git diff --exit-code"; // 0 = no diff, 1 = diff
+            GitHubActions.WriteLog("Diff not found, skipping commit.");
+        }
+        catch (ProcessErrorException)
+        {
+            GitHubActions.WriteLog("Diff found.");
+            if (dryRun)
+            {
+                GitHubActions.WriteLog("Dryrun Mode detected, creating branch and switch.");
+                branchName = $"test-release/{tag}";
+                isBranchCreated = "true";
+                await $"git switch -c {branchName}";
+            }
+
+            var currentBranch = dryRun ? branchName : await "git branch --show-current";
+
+            GitHubActions.WriteLog("Committing change via GitHub API (signed commit).");
+
+            var token = GHEnv.Current.GH_TOKEN ?? throw new ActionCommandException("GH_TOKEN is required.");
+            var repoEnv = GHEnv.Current.GH_REPO ?? throw new ActionCommandException("GH_REPO is required.");
+            var separatorIndex = repoEnv.IndexOf('/');
+            if (separatorIndex < 0)
+                throw new ActionCommandException($"Invalid repository format: {repoEnv}");
+            var owner = repoEnv[..separatorIndex];
+            var repoName = repoEnv[(separatorIndex + 1)..];
+
+            var client = new GitHubClient(new ProductHeaderValue("CysharpActions"))
+            {
+                Credentials = new Credentials(token)
+            };
+
+            // Get current HEAD commit and its tree SHA
+            var headSha = (await "git rev-parse HEAD").Trim();
+            var currentCommit = await client.Git.Commit.Get(owner, repoName, headSha);
+            var baseTreeSha = currentCommit.Tree.Sha;
+
+            // Collect changed files relative to HEAD (staged and unstaged)
+            var diffOutput = await "git diff HEAD --name-status";
+            var changedLines = diffOutput.ToMultiLine();
+
+            // Create tree with changed files, this is key for signed commit because we don't use GPG or SSH signing key.
+            // Instead, we create a new tree with the changed files and reference it in the commit. GitHub will verify the commit content and sign it if it matches the tree.
+            GitHubActions.WriteLog($"Building tree with {changedLines.Length} changed files.");
+            var newTree = new NewTree { BaseTree = baseTreeSha };
+            foreach (var line in changedLines)
+            {
+                var parts = line.Split('\t', 2);
+                if (parts.Length != 2) continue;
+                var status = parts[0].Trim();
+                var filePath = parts[1].Trim();
+
+                if (status == "D")
+                {
+                    newTree.Tree.Add(new NewTreeItem
+                    {
+                        Path = filePath,
+                        Mode = "100644",
+                        Type = TreeType.Blob,
+                        Sha = null,
+                    });
+                }
+                else
+                {
+                    var content = await File.ReadAllTextAsync(filePath);
+                    newTree.Tree.Add(new NewTreeItem
+                    {
+                        Path = filePath,
+                        Mode = GetTreeMode(filePath),
+                        Type = TreeType.Blob,
+                        Content = content,
+                    });
+                }
+            }
+
+            var treeResponse = await client.Git.Tree.Create(owner, repoName, newTree);
+
+            // Create signed commit via GitHub API
+            var commitMessage = $"chore(automate): Update package.json to {tag}\n\nCommit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})";
+            var newCommit = new NewCommit(commitMessage, treeResponse.Sha, [headSha]);
+            var createdCommit = await client.Git.Commit.Create(owner, repoName, newCommit);
+
+            // Update or create the remote branch reference
+            try
+            {
+                await client.Git.Reference.Update(owner, repoName, $"heads/{currentBranch}", new ReferenceUpdate(createdCommit.Sha));
+                GitHubActions.WriteLog($"Updated branch reference '{currentBranch}' to {createdCommit.Sha}.");
+            }
+            catch (ApiException ex) when (ex.Message.Contains("Reference does not exist"))
+            {
+                await client.Git.Reference.Create(owner, repoName, new NewReference($"refs/heads/{currentBranch}", createdCommit.Sha));
+                GitHubActions.WriteLog($"Created new branch reference '{currentBranch}' at {createdCommit.Sha}.");
+            }
+
+            // Sync local repo with the remote commit
+            await $"git fetch origin {currentBranch}";
+            await $"git reset --hard origin/{currentBranch}";
+
+            GitHubActions.WriteLog("Signed commit created successfully.");
+            commited = true;
+        }
+
+        var sha = await "git rev-parse HEAD";
+        return (commited, sha, branchName, isBranchCreated);
+    }
+
+    private static string GetTreeMode(string filePath)
+    {
+        // On Windows, file execute bits are not meaningful; default to regular file.
+        if (OperatingSystem.IsWindows())
+            return "100644";
+
+        var unixMode = File.GetUnixFileMode(filePath);
+        var isExecutable = (unixMode & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute)) != 0;
+        return isExecutable ? "100755" : "100644";
+    }
 }
