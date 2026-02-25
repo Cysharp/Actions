@@ -45,7 +45,7 @@ namespace CysharpActions
         [ConsoleAppFilter<GitHubContextFilter>]
         [ConsoleAppFilter<GitHubCliFilter>]
         [Command("update-version")]
-        public async Task UpdateVersion(string version, string pathString, bool dryRun)
+        public async Task UpdateVersion(string version, string pathString, bool dryRun, bool sign = true)
         {
             var paths = pathString.ToMultiLine();
             if (!paths.Any())
@@ -59,7 +59,9 @@ namespace CysharpActions
             using (_ = GitHubActions.StartGroup("git commit changes"))
             {
                 var gitCommand = new GitCommand();
-                var (commited, sha, branchName, isBranchCreated) = await gitCommand.CommitAsync(dryRun, version);
+                var (commited, sha, branchName, isBranchCreated) = sign 
+                    ? await gitCommand.CommitWithSignAsync(dryRun, version) 
+                    : await gitCommand.CommitAsync(dryRun, version);
 
                 GitHubActions.SetOutput("commited", commited ? "1" : "0");
                 GitHubActions.SetOutput("sha", sha);
