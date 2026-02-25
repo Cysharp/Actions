@@ -138,7 +138,7 @@ public class GitCommand()
                 await $"git switch -c {branchName}";
             }
 
-            var currentBranch = dryRun ? branchName : await "git branch --show-current";
+            var currentBranch = dryRun ? branchName : (await "git branch --show-current").Trim();
 
             GitHubActions.WriteLog("Committing change via GitHub API (signed commit).");
 
@@ -155,8 +155,11 @@ public class GitCommand()
                 Credentials = new Credentials(token)
             };
 
-            // Get current HEAD commit and its tree SHA
-            var headSha = (await "git rev-parse HEAD").Trim();
+            // For non-dryRun, get the remote branch HEAD via API to guarantee the new commit is a fast-forward.
+            // For dryRun (new branch), the remote ref does not yet exist, so use local HEAD.
+            var headSha = dryRun
+                ? (await "git rev-parse HEAD").Trim()
+                : (await client.Git.Reference.Get(owner, repoName, $"heads/{currentBranch}")).Object.Sha;
             var currentCommit = await client.Git.Commit.Get(owner, repoName, headSha);
             var baseTreeSha = currentCommit.Tree.Sha;
 
@@ -202,7 +205,7 @@ public class GitCommand()
 
             // Create signed commit via GitHub API
             var commitMessage = $"chore(automate): Update package.json to {tag}\n\nCommit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})";
-            var newCommit = new NewCommit(commitMessage, treeResponse.Sha, [headSha]);
+            var newCommit = new NewCommit(commitMessage, treeResponse.Sha, parents: [headSha]);
             var createdCommit = await client.Git.Commit.Create(owner, repoName, newCommit);
 
             // Update or create the remote branch reference
@@ -215,6 +218,12 @@ public class GitCommand()
             {
                 await client.Git.Reference.Create(owner, repoName, new NewReference($"refs/heads/{currentBranch}", createdCommit.Sha));
                 GitHubActions.WriteLog($"Created new branch reference '{currentBranch}' at {createdCommit.Sha}.");
+            }
+            catch (ApiException ex) when (ex.Message.Contains("Update is not a fast forward") && dryRun)
+            {
+                // dryRun test branch already exists on remote with different history (e.g. leftover from a previous run); force-push.
+                await client.Git.Reference.Update(owner, repoName, $"heads/{currentBranch}", new ReferenceUpdate(createdCommit.Sha, force: true));
+                GitHubActions.WriteLog($"Force updated branch reference '{currentBranch}' to {createdCommit.Sha}.");
             }
 
             // Sync local repo with the remote commit
