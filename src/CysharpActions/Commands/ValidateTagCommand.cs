@@ -61,25 +61,19 @@ public class ValidateTagCommand(IGitHubReleaseExe gitHubRelaeseExe)
             var githubReleases = await gitHubRelaeseExe.GetGitHubReleaseAsync();
             var releaseTag = githubReleases?.SingleOrDefault(x => x.IsLatest)?.TagName;
 
-            if (releaseTag is null)
-            {
-                // no release tag
+            // no release tag
+            if (string.IsNullOrEmpty(releaseTag))
                 return;
-            }
-            else if (releaseTag == tag)
-            {
-                // input tag is same or newer than latest tag
+            // input tag is same or newer than latest tag
+            if (releaseTag == tag)
                 return;
-            }
 
             // 1.0.9 と 1.0.10のようにバージョンに変換できる場合、変換して適切に比較できるようにする。
             if (Version.TryParse(releaseTag, out var versionedReleaseTag) && Version.TryParse(tag, out var versionedTag))
             {
+                // input tag is same or newer than latest tag
                 if (versionedTag >= versionedReleaseTag)
-                {
-                    // input tag is same or newer than latest tag
                     return;
-                }
             }
 
             // バージョンに変換できない場合、文字列として比較にフォールバック。1.0.9と1.0.10が適切に比較できないので微妙。
