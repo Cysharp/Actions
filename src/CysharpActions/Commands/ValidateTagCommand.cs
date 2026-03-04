@@ -61,35 +61,24 @@ public class ValidateTagCommand(IGitHubReleaseExe gitHubRelaeseExe)
             var githubReleases = await gitHubRelaeseExe.GetGitHubReleaseAsync();
             var releaseTag = githubReleases?.SingleOrDefault(x => x.IsLatest)?.TagName;
 
-            if (releaseTag is null)
-            {
-                // no release tag
+            // no release tag
+            if (string.IsNullOrEmpty(releaseTag))
                 return;
-            }
-            else if (releaseTag == tag)
-            {
-                // input tag is same or newer than latest tag
+            // input tag is same or newer than latest tag
+            if (releaseTag == tag)
                 return;
-            }
 
             // 1.0.9 と 1.0.10のようにバージョンに変換できる場合、変換して適切に比較できるようにする。
             if (Version.TryParse(releaseTag, out var versionedReleaseTag) && Version.TryParse(tag, out var versionedTag))
             {
+                // input tag is same or newer than latest tag
                 if (versionedTag >= versionedReleaseTag)
-                {
-                    // input tag is same or newer than latest tag
                     return;
-                }
             }
 
-            // バージョンに変換できない場合、文字列として比較にフォールバック。1.0.9と1.0.10が適切に比較できないので微妙。
-            // .NET10の自然な比較が来たら書き換えるのがヨサソウ
-            var sortedLatest = new[] { releaseTag, tag }.OrderBy(x => x).Last();
-            if (sortedLatest == tag)
-            {
-                // input tag is same or newer than latest tag
+            // バージョンに変換できない場合、セグメントごとに数値比較することで 1.0.9 と 1.0.10 を適切に比較する。
+            if (CompareVersionString(tag, releaseTag) >= 0)
                 return;
-            }
 
             // input tag is older than latest tag, reverting!!
             throw new ActionCommandException($"Tag is invalid, reverting to old version. Please bump the version.");
@@ -97,6 +86,97 @@ public class ValidateTagCommand(IGitHubReleaseExe gitHubRelaeseExe)
         catch (ProcessErrorException ex)
         {
             throw new ActionCommandException($"Failed to get latest release tag. {ex.Message}", ex);
+        }
+
+        static int CompareVersionString(string a, string b)
+        {
+            var spanA = a.AsSpan();
+            var spanB = b.AsSpan();
+            while (true)
+            {
+                var dotA = spanA.IndexOf('.');
+                var dotB = spanB.IndexOf('.');
+                var segA = dotA < 0 ? spanA : spanA[..dotA];
+                var segB = dotB < 0 ? spanB : spanB[..dotB];
+
+                var cmp = CompareSegment(segA, segB);
+                if (cmp != 0) return cmp;
+                if (dotA < 0 && dotB < 0) return 0;
+                spanA = dotA < 0 ? default : spanA[(dotA + 1)..];
+                spanB = dotB < 0 ? default : spanB[(dotB + 1)..];
+            }
+        }
+
+        static int CompareSegment(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
+        {
+            // セグメント内で '-' を探す (例: "10-beta1" → "10" と "beta1" に分割)
+            var dashA = a.IndexOf('-');
+            var dashB = b.IndexOf('-');
+
+            var mainA = dashA < 0 ? a : a[..dashA];
+            var mainB = dashB < 0 ? b : b[..dashB];
+
+            // メイン部分を数値または文字列で比較
+            var mainCmp = int.TryParse(mainA, out var numA) && int.TryParse(mainB, out var numB)
+                ? numA.CompareTo(numB)
+                : mainA.CompareTo(mainB, StringComparison.Ordinal);
+
+            if (mainCmp != 0) return mainCmp;
+
+            // メイン部分が同じ場合、プレリリース部分を比較
+            // '-' がない場合は、ある方よりも大きい（リリース版 > プレリリース）
+            if (dashA < 0 && dashB < 0) return 0;
+            if (dashA < 0) return 1;  // a はリリース版、b はプレリリース
+            if (dashB < 0) return -1; // a はプレリリース、b はリリース版
+
+            var preA = a[(dashA + 1)..];
+            var preB = b[(dashB + 1)..];
+
+            return ComparePreRelease(preA, preB);
+        }
+
+        static int ComparePreRelease(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
+        {
+            // プレリリースラベル（alpha, beta, preview, rc など）を抽出して比較
+            var (labelA, numA) = ExtractPreReleaseLabel(a);
+            var (labelB, numB) = ExtractPreReleaseLabel(b);
+
+            // ラベルの優先順位を比較
+            var labelCmp = GetPreReleasePriority(labelA).CompareTo(GetPreReleasePriority(labelB));
+            if (labelCmp != 0) return labelCmp;
+
+            // ラベルが同じ場合、番号を比較
+            return numA.CompareTo(numB);
+        }
+
+        static (string label, int number) ExtractPreReleaseLabel(ReadOnlySpan<char> preRelease)
+        {
+            // 末尾の連続した数値を抽出 (例: "beta1" → label="beta", number=1)
+            var i = preRelease.Length - 1;
+            while (i >= 0 && char.IsDigit(preRelease[i]))
+            {
+                i--;
+            }
+
+            var label = preRelease[..(i + 1)].ToString();
+            var numberPart = preRelease[(i + 1)..];
+            var number = numberPart.IsEmpty ? 0 : int.Parse(numberPart);
+
+            return (label, number);
+        }
+
+        static int GetPreReleasePriority(string label)
+        {
+            // プレリリースラベルの優先順位 (alpha < beta < preview < rc < リリース版)
+            return label.ToLowerInvariant() switch
+            {
+                "alpha" => 1,
+                "beta" => 2,
+                "preview" or "pre" => 3,
+                "rc" => 4,
+                "" => 5, // リリース版
+                _ => 0, // 不明なラベルは最低優先度（文字列として扱う）
+            };
         }
     }
 }
