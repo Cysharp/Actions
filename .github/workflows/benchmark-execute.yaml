@@ -131,7 +131,7 @@ jobs:
         run: ls -l
       - name: Load secret
         id: op-load-secret
-        uses: 1password/load-secrets-action@8d0d610af187e78a2772c2d18d627f4c52d3fbfb # v3.1.0
+        uses: 1password/load-secrets-action@92467eb28f72e8255933372f1e0707c567ce2259 # v4.0.0
         with:
           export-env: false
         env:
@@ -145,7 +145,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ steps.op-load-secret.outputs.SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-      - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+      - uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
         with:
           client-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_CLIENTID }}
           tenant-id: ${{ steps.op-load-secret.outputs.AZURE_OIDC_TENANTID }}
