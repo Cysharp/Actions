@@ -1,0 +1,103 @@
+# Seiton linter configuration
+# Preferred location: .github/seiton.yaml
+
+rules:
+  unpinned-uses:
+    ignore-actions:
+      - Cysharp/Actions
+
+  # Example: override a rule's behavior.
+  # dangerous-triggers:
+  #   severity: warning
+  #   events:
+  #     extend:
+  #       - issue_comment
+
+  # runner-label:
+  #   known-hosted-labels:
+  #     extend:
+  #       - ubuntu-24.04-large
+
+  # credentials:
+  #   public-registries:
+  #     extend:
+  #       - ghcr.io
+
+  # cache-poisoning:
+  #   untrusted-triggers:
+  #     extend:
+  #       - issue_comment
+
+  # unredacted-secrets:
+  #   output-commands:
+  #     extend:
+  #       - tee
+
+  # forbidden-uses:
+  #   allow:
+  #     - actions/*
+  #   deny:
+  #     - some-untrusted-org/*
+
+  # unpinned-uses:
+  #   ignore-actions:
+  #     - my-org/internal-action
+  #     - my-org/setup-*
+
+  # overprovisioned-secrets:
+  #   max-step-env-secrets: 5
+  #   max-job-secrets: 5
+
+  # expr-undefined-var:
+  #   assume-events:
+  #     - workflow_dispatch
+
+  # Online rules (default: disabled). Enable individually:
+  # known-vulnerable-actions:
+  #   enabled: true
+  # impostor-commit:
+  #   enabled: true
+  # ref-confusion:
+  #   enabled: true
+  # stale-action-refs:
+  #   enabled: true
+
+exclusions:
+  # - file: .github/workflows/legacy-*.yml
+  #   rules:
+  #     - runner-no-latest
+  #   jobs:
+  #     - legacy
+  # File-only exclusion (excludes entire file from rule checks):
+  # - file: .github/workflows/generated.yml
+
+fix:
+  defaults:
+    # job-timeout-minutes: 15
+  pinning:
+    # enable-network: false
+    # min-age-days: 14
+    # exclude-branches:
+    #   - main
+    #   - master
+    # ignore-actions:
+    #   - uses: "slsa-framework/*"
+    #     ref: "*"
+  images:
+    # exclude-images:
+    #   - scratch
+    # exclude-tags:
+    #   - latest
+    # ignore-images:
+    #   - mcr.microsoft.com/**
+
+network:
+  # on-error: skip
+  # timeout-seconds: 30
+  # max-concurrency: (omit; default is min(4, logical CPUs))
+  # github:
+  #   ghes-api-url: ""
+  #   ghes-fallback: false
+
+output:
+  # sort-order: location    # location (default) | rule
