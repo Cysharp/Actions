@@ -85,7 +85,9 @@ jobs:
           fi
       - name: Generate Matrix json from config
         id: config2matrix
-        run: ${{ steps.actions-caller.outputs.path }} benchmark-config2matrix --config-path "./Repo/${{ inputs.benchmark-config-path }}"
+        run: ${{ steps.actions-caller.outputs.path }} benchmark-config2matrix --config-path "${BENCHMARK_CONFIG_PATH}"
+        env:
+          BENCHMARK_CONFIG_PATH: "./Repo/${{ inputs.benchmark-config-path }}"
       - name: Comment (Running - Config loaded)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
@@ -154,8 +156,17 @@ jobs:
         run: az extension add --name devcenter --upgrade
       - name: Create benchmark environment
         id: create-benchmark
-        run: bash ./scripts/benchmark_environment_create.sh --catalog-name '${{ inputs.benchmark-catalog }}' --dev-center-name '${{ inputs.benchmark-devcenter }}' --environment-definition-name '${{ inputs.benchmark-definition-name }}' --environment-type '${{ inputs.benchmark-environment }}' --location '${{ matrix.benchmark-location }}' --name '${{ inputs.benchmark-name }}' --project-name '${{ inputs.benchmark-project }}' --expire-min "${{ matrix.benchmark-expire-min }}" --dry-run false
+        run: bash ./scripts/benchmark_environment_create.sh --catalog-name "${BENCHMARK_CATALOG}" --dev-center-name "${BENCHMARK_DEV_CENTER}" --environment-definition-name "${BENCHMARK_ENV_DEFINITION_NAME}" --environment-type "${BENCHMARK_ENV_TYPE}" --location "${BENCHMARK_LOCATION}" --name "${BENCHMARK_NAME}" --project-name "${BENCHMARK_PROJECT}" --expire-min "${BENCHMARK_EXPIRE_MIN}" --dry-run false
         working-directory: ./Actions/.github
+        env:
+          BENCHMARK_CATALOG: ${{ inputs.benchmark-catalog }}
+          BENCHMARK_DEV_CENTER: ${{ inputs.benchmark-devcenter }}
+          BENCHMARK_ENV_DEFINITION_NAME: ${{ inputs.benchmark-definition-name }}
+          BENCHMARK_ENV_TYPE: ${{ inputs.benchmark-environment }}
+          BENCHMARK_LOCATION: ${{ matrix.benchmark-location }}
+          BENCHMARK_NAME: ${{ inputs.benchmark-name }}
+          BENCHMARK_PROJECT: ${{ inputs.benchmark-project }}
+          BENCHMARK_EXPIRE_MIN: ${{ matrix.benchmark-expire-min }}
       - name: Comment (Progess - Benchmark environment)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
@@ -170,7 +181,9 @@ jobs:
           echo "ip=$runnner" | tee -a "$GITHUB_OUTPUT"
       - name: Update SG Rule
         run: |
-          az network nsg rule update --resource-group "${BENCHMARK_RESOURCE_GROUP}" --nsg-name "${{ inputs.benchmark-name }}-vm-sg" --name "github-runner" --source-address-prefixes "${{ steps.get-runner-ip.outputs.ip }}/32" --no-wait "false"
+          az network nsg rule update --resource-group "${BENCHMARK_RESOURCE_GROUP}" --nsg-name "${NSG_NAME}" --name "github-runner" --source-address-prefixes "${{ steps.get-runner-ip.outputs.ip }}/32" --no-wait "false"
+        env:
+          NSG_NAME: "${{ inputs.benchmark-name }}-vm-sg"
       - name: Confirm VM is up and connectable
         run: |
           for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
@@ -208,10 +221,14 @@ jobs:
         run: |
           for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
             echo "::group::Install on $ip"
-              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --branch "${{ inputs.branch }}" --owner "${{ github.repository_owner }}" --repo "${{ github.event.repository.name }}"' < ./scripts/git_clone.sh
+              ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --branch "${BRANCH}" --owner "${OWNER}" --repo "${REPO}"' < ./scripts/git_clone.sh
             echo "::endgroup::"
           done
         working-directory: ./Actions/.github
+        env:
+          BRANCH: ${{ inputs.branch }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
       - name: Comment (Progress - Server begin)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:

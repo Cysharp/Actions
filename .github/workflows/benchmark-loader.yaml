@@ -103,5 +103,8 @@ jobs:
           fi
       - name: Generate Matrix json from config
         id: loader2matrix
-        run: ${{ steps.actions-caller.outputs.path }} benchmark-loader2matrix --benchmark-name-prefix "${{ inputs.benchmark-name-prefix }}" --config-path "${{ inputs.benchmark-config-path }}" --branch "${{ steps.branch.outputs.name }}"
+        run: ${{ steps.actions-caller.outputs.path }} benchmark-loader2matrix --benchmark-name-prefix "${BENCHMARK_NAME_PREFIX}" --config-path "${BENCHMARK_CONFIG_PATH}" --branch "${{ steps.branch.outputs.name }}"
         working-directory: Repo
+        env:
+          BENCHMARK_NAME_PREFIX: ${{ inputs.benchmark-name-prefix }}
+          BENCHMARK_CONFIG_PATH: ${{ inputs.benchmark-config-path }}

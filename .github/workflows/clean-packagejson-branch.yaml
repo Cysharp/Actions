@@ -39,7 +39,8 @@ jobs:
           fi
       - name: Delete branch
         id: delete-branch
-        run: ${{ steps.actions-caller.outputs.path }} delete-branch --branch "${{ inputs.branch }}"
+        run: ${{ steps.actions-caller.outputs.path }} delete-branch --branch "${BRANCH}"
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ inputs.branch }}

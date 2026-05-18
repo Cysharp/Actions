@@ -165,7 +165,10 @@ jobs:
       # validate
       - name: Validate and normalize tag
         id: validate
-        run: ${{ steps.actions-caller.outputs.path }} validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
+        run: ${{ steps.actions-caller.outputs.path }} validate-tag --tag "${TAG}" ${VALIDATE_ARGS}
+        env:
+          TAG: ${{ inputs.tag }}
+          VALIDATE_ARGS: ${{ inputs.require-validation && '--require-validation' || '' }}
 
       # Download(All) Artifacts to current directory
       - uses: Cysharp/Actions/.github/actions/download-artifact@main
@@ -176,24 +179,33 @@ jobs:
         run: ls -lR
       - name: Validate package exists in artifact - release assets
         if: ${{ inputs.release-upload }}
-        run: ${{ steps.actions-caller.outputs.path }} validate-file-exists --path-pattern-string "${{ inputs.release-asset-path }}"
+        run: ${{ steps.actions-caller.outputs.path }} validate-file-exists --path-pattern-string "${PATH_PATTERN_STRING}"
+        env:
+          PATH_PATTERN_STRING: ${{ inputs.release-asset-path }}
       - name: Validate package exists in artifact - NuGet
         if: ${{ inputs.nuget-push }}
-        run: ${{ steps.actions-caller.outputs.path }} validate-nupkg-exists --path-pattern-string "${{ inputs.nuget-path }}"
+        run: ${{ steps.actions-caller.outputs.path }} validate-nupkg-exists --path-pattern-string "${PATH_PATTERN_STRING}"
+        env:
+          PATH_PATTERN_STRING: ${{ inputs.nuget-path }}
 
       # Create Releases
       - name: Create Release
-        run: ${{ steps.actions-caller.outputs.path }} create-release --tag "${{ inputs.tag }}" --release-title "${{ format(inputs.release-format, inputs.tag) }}" --release-asset-path-string "${{ inputs.release-asset-path }}"
+        run: ${{ steps.actions-caller.outputs.path }} create-release --tag "${TAG}" --release-title "${RELEASE_TITLE}" --release-asset-path-string "${RELEASE_ASSET_PATH_STRING}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+          RELEASE_TITLE: ${{ format(inputs.release-format, inputs.tag) }}
+          RELEASE_ASSET_PATH_STRING: ${{ inputs.release-asset-path }}
 
       # Upload to NuGet
       - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
         if: ${{ inputs.nuget-push }}
-        run: ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --api-key "${NUGET_KEY}" ${{ inputs.dry-run && '--dry-run' || '' }}
+        run: ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${NUGET_PATH_STRING}" --api-key "${NUGET_KEY}" ${DRY_RUN_ARGS}
         env:
           NUGET_KEY: ${{ steps.op-load-secret.outputs.NUGET_KEY }}
+          NUGET_PATH_STRING: ${{ inputs.nuget-path }}
+          DRY_RUN_ARGS: ${{ inputs.dry-run && '--dry-run' || '' }}
       # 2025/10/1: NuGet Trusted Publish for Org is not yet supported.
       # run: ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --api-key "${NUGET_KEY}" ${{ inputs.dry-run && '--dry-run' || '' }}
       # env:
@@ -203,10 +215,11 @@ jobs:
       - name: Clean up. Wait 60s and delete release if dry-run or failure. (dry-run=${{ inputs.dry-run }}})
         if: ${{ inputs.dry-run || failure() }}
         run: |
-          if gh release list | grep Draft | grep ${{ inputs.tag }}; then
+          if gh release list | grep Draft | grep "${TAG}"; then
             sleep 60
-            gh release delete ${{ inputs.tag }} --yes --cleanup-tag
+            gh release delete "${TAG}" --yes --cleanup-tag
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}

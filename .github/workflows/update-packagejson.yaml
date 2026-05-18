@@ -105,10 +105,12 @@ jobs:
       # validate
       - name: Validate and normalize tag
         id: validate
-        run: ${{ steps.actions-caller.outputs.path }} validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
+        run: ${{ steps.actions-caller.outputs.path }} validate-tag --tag "${TAG}" ${VALIDATE_ARGS}
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          VALIDATE_ARGS: ${{ inputs.require-validation && '--require-validation' || '' }}
 
       # dotnet run external
       - name: Execute external dotnet run with --version ${{ steps.validate.outputs.normalized-tag }}
@@ -119,8 +121,10 @@ jobs:
             echo "::group::Execute"
               dotnet run --project "$file_path" --no-launch-profile -- --version "${{ steps.validate.outputs.normalized-tag }}"
             echo "::endgroup::"
-          done <<< "${{ inputs.dotnet-run-path }}"
+          done <<< "${DOTNET_RUN_PATH}"
         if: ${{ inputs.dotnet-run-path != '' }}
+        env:
+          DOTNET_RUN_PATH: ${{ inputs.dotnet-run-path }}
 
       # update files, git configure, git commit.
       # ------------------------------------------
@@ -128,10 +132,12 @@ jobs:
       # "version": 1.2.3 -> "version": 2.0.0
       - name: Update files to version ${{ steps.validate.outputs.normalized-tag }}
         id: update
-        run: ${{ steps.actions-caller.outputs.path }} update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${{ inputs.file-path }}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
+        run: ${{ steps.actions-caller.outputs.path }} update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${PATH_STRING}" ${UPDATE_VERSION_ARGS}
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ inputs.use-bot-token && steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          PATH_STRING: ${{ inputs.file-path }}
+          UPDATE_VERSION_ARGS: ${{ inputs.dry-run && '--dry-run' || '' }}
 
       - name: Push changes
         if: ${{ steps.update.outputs.commited == '1' }}
