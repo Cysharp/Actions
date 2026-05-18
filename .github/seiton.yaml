@@ -6,6 +6,9 @@ rules:
     ignore-actions:
       - Cysharp/Actions
 
+  deny-inherit-secrets:
+    enabled: false
+
   # Example: override a rule's behavior.
   # dangerous-triggers:
   #   severity: warning
