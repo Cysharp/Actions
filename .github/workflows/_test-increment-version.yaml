@@ -22,7 +22,7 @@ jobs:
 
   new-version-major:
     needs: [set-tag]
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     permissions:
       actions: read
       contents: read
@@ -34,7 +34,7 @@ jobs:
 
   new-version-minor:
     needs: [set-tag]
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     permissions:
       actions: read
       contents: read
@@ -46,7 +46,7 @@ jobs:
 
   new-version-patch:
     needs: [set-tag]
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     permissions:
       actions: read
       contents: read
@@ -58,7 +58,7 @@ jobs:
 
   new-version-prefix:
     needs: [set-tag]
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     permissions:
       actions: read
       contents: read
@@ -71,7 +71,7 @@ jobs:
 
   new-version-suffix:
     needs: [set-tag]
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     permissions:
       actions: read
       contents: read
@@ -84,7 +84,7 @@ jobs:
 
   new-version-add-suffix:
     needs: [set-tag]
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     permissions:
       actions: read
       contents: read

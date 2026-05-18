@@ -27,7 +27,7 @@ jobs:
 
   update-packagejson:
     needs: [set-tag]
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     permissions:
       actions: read
       contents: write
@@ -47,7 +47,7 @@ jobs:
 
   # omit `dotnet-run-path`
   update-packagejson2:
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     needs: [set-tag, update-packagejson]
     permissions:
       actions: read
@@ -66,7 +66,7 @@ jobs:
 
   # use v Prefixed version
   update-packagejson3:
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     needs: [set-tag, update-packagejson2]
     permissions:
       actions: read
