@@ -27,7 +27,7 @@ jobs:
 
   update-packagejson:
     needs: [set-tag]
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     permissions:
       actions: read
       contents: write
