@@ -21,6 +21,13 @@ on:
         required: true
         type: string
       # nuget
+      nuget-path:
+        description: "nuget path to upload."
+        required: false
+        type: string
+        default: |
+          ./nuget/*.nupkg
+          ./nuget/*.snupkg
       nuget-push:
         description: "nuget-push: true = upload nuget package. false = not upload"
         required: false
