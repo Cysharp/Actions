@@ -36,7 +36,7 @@ runs:
     # see: https://github.com/game-ci/unity-builder
     # see: https://game.ci/docs/github/builder/
     - name: Build Unity
-      uses: game-ci/unity-builder@81ed299e10d0ca8f55616c5c74505ffce511163c # v4.4.0
+      uses: game-ci/unity-builder@d829bfc901f2347c8fe18898f06712b66916ef42 # v5.0.0
       with:
         targetPlatform: ${{ inputs.targetPlatform }}
         unityVersion: ${{ inputs.unityVersion }}
