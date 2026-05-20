@@ -76,7 +76,9 @@ public class GitCommand()
         GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
         await GitHelper.SetGitUserEmailAsync();
 
-        // Stage modified files (handles untracked/gitignored files)
+        // Stage all tracked file changes
+        await "git add -A";
+        // Force-stage modified files that may be untracked/gitignored
         foreach (var path in modifiedPaths)
         {
             await $"git add -f \"{path}\"";
@@ -126,7 +128,9 @@ public class GitCommand()
         GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
         await GitHelper.SetGitUserEmailAsync();
 
-        // Stage modified files (handles untracked/gitignored files)
+        // Stage all tracked file changes
+        await "git add -A";
+        // Force-stage modified files that may be untracked/gitignored
         foreach (var path in modifiedPaths)
         {
             await $"git add -f \"{path}\"";
