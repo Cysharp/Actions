@@ -17,7 +17,7 @@ public class UpdateVersionCommand(string version)
                 GitHubActions.WriteLog("Empty path detected, skip execution.");
                 continue;
             }
-            
+
             if (!File.Exists(path))
                 throw new FileNotFoundException(path);
 
@@ -36,7 +36,8 @@ public class UpdateVersionCommand(string version)
 
     private UpdateVersionCommandResult UpdateVersion(string path, bool dryRun)
     {
-        var writeBack = !dryRun;
+        // Always write files regardless of dryRun. dryRun only controls the branch strategy in commit methods.
+        var writeBack = true;
         var fileName = Path.GetFileName(path);
         return fileName switch
         {
