@@ -81,7 +81,7 @@ public class GitCommand()
         var isBranchCreated = "false";
         try
         {
-            var result = await "git diff --exit-code"; // 0 = no diff, 1 = diff
+            var result = await "git diff HEAD --exit-code"; // 0 = no diff, 1 = diff
             GitHubActions.WriteLog("Diff not found, skipping commit.");
         }
         catch (ProcessErrorException)
@@ -124,7 +124,7 @@ public class GitCommand()
         var isBranchCreated = "false";
         try
         {
-            var result = await "git diff --exit-code"; // 0 = no diff, 1 = diff
+            var result = await "git diff HEAD --exit-code"; // 0 = no diff, 1 = diff
             GitHubActions.WriteLog("Diff not found, skipping commit.");
         }
         catch (ProcessErrorException)
