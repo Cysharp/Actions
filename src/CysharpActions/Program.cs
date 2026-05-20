@@ -53,15 +53,16 @@ namespace CysharpActions
 
             // update version
             var command = new UpdateVersionCommand(version);
-            command.UpdateVersions(paths, dryRun);
+            var results = command.UpdateVersions(paths, dryRun);
+            var modifiedPaths = results.Where(r => r.Before != r.After).Select(r => r.Path).ToArray();
 
             // Git Commit
             using (_ = GitHubActions.StartGroup("git commit changes"))
             {
                 var gitCommand = new GitCommand();
-                var (commited, sha, branchName, isBranchCreated) = sign 
-                    ? await gitCommand.CommitWithSignAsync(dryRun, version) 
-                    : await gitCommand.CommitAsync(dryRun, version);
+                var (commited, sha, branchName, isBranchCreated) = sign
+                    ? await gitCommand.CommitWithSignAsync(dryRun, version, modifiedPaths)
+                    : await gitCommand.CommitAsync(dryRun, version, modifiedPaths);
 
                 GitHubActions.SetOutput("commited", commited ? "1" : "0");
                 GitHubActions.SetOutput("sha", sha);

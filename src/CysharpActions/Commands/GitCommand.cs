@@ -67,13 +67,22 @@ public class GitCommand()
     /// </summary>
     /// <param name="dryRun"></param>
     /// <param name="tag"></param>
+    /// <param name="modifiedPaths"></param>
     /// <returns></returns>
-    public async Task<(bool commited, string sha, string branchName, string isBranchCreated)> CommitAsync(bool dryRun, string tag)
+    public async Task<(bool commited, string sha, string branchName, string isBranchCreated)> CommitAsync(bool dryRun, string tag, string[] modifiedPaths)
     {
         Env.useShell = false;
 
         GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
         await GitHelper.SetGitUserEmailAsync();
+
+        // Stage all tracked file changes
+        await "git add -A";
+        // Force-stage modified files that may be untracked/gitignored
+        foreach (var path in modifiedPaths)
+        {
+            await $"git add -f \"{path}\"";
+        }
 
         GitHubActions.WriteLog($"Checking File change has been happen ...");
         var commited = false;
@@ -81,7 +90,7 @@ public class GitCommand()
         var isBranchCreated = "false";
         try
         {
-            var result = await "git diff HEAD --exit-code"; // 0 = no diff, 1 = diff
+            var result = await "git diff --cached HEAD --exit-code"; // 0 = no diff, 1 = diff
             GitHubActions.WriteLog("Diff not found, skipping commit.");
         }
         catch (ProcessErrorException)
@@ -110,13 +119,22 @@ public class GitCommand()
     /// </summary>
     /// <param name="dryRun"></param>
     /// <param name="tag"></param>
+    /// <param name="modifiedPaths"></param>
     /// <returns></returns>
-    public async Task<(bool commited, string sha, string branchName, string isBranchCreated)> CommitWithSignAsync(bool dryRun, string tag)
+    public async Task<(bool commited, string sha, string branchName, string isBranchCreated)> CommitWithSignAsync(bool dryRun, string tag, string[] modifiedPaths)
     {
         Env.useShell = false;
 
         GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
         await GitHelper.SetGitUserEmailAsync();
+
+        // Stage all tracked file changes
+        await "git add -A";
+        // Force-stage modified files that may be untracked/gitignored
+        foreach (var path in modifiedPaths)
+        {
+            await $"git add -f \"{path}\"";
+        }
 
         GitHubActions.WriteLog($"Checking File change has been happen ...");
         var commited = false;
@@ -124,7 +142,7 @@ public class GitCommand()
         var isBranchCreated = "false";
         try
         {
-            var result = await "git diff HEAD --exit-code"; // 0 = no diff, 1 = diff
+            var result = await "git diff --cached HEAD --exit-code"; // 0 = no diff, 1 = diff
             GitHubActions.WriteLog("Diff not found, skipping commit.");
         }
         catch (ProcessErrorException)
@@ -163,8 +181,8 @@ public class GitCommand()
             var currentCommit = await client.Git.Commit.Get(owner, repoName, headSha);
             var baseTreeSha = currentCommit.Tree.Sha;
 
-            // Collect changed files relative to HEAD (staged and unstaged)
-            var diffOutput = await "git diff HEAD --name-status";
+            // Collect changed files relative to HEAD (staged)
+            var diffOutput = await "git diff --cached HEAD --name-status";
             var changedLines = diffOutput.ToMultiLine();
 
             // Create tree with changed files, this is key for signed commit because we don't use GPG or SSH signing key.
