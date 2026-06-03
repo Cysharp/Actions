@@ -1,10 +1,9 @@
-name: cysharp actions linter
+name: cysharp actions lint
 
 # Instructions:
-# * This workflow is schedule linter for Cysharp repositories.
-# * If any errors are found, "fix each repository" or "ignore error".
-# * fix each repository: Check repository workflow and fix it.
-# * ignore error: ignore config is located in Cysharp/Actions repository. Add ignore to .github/actionlint.yaml or .ghalint.yaml, depends on the error.
+# * The worktflow to lint Cysharp public repositories' workflows and actions.
+# * If any errors are found, "fix each repository" or "ignore error" by `seiton --fix -c ../Actions/.github/seiton.yaml`.
+# * ignore error: ignore config is located in Cysharp/Actions repository. Add ignore to .github/seiton.yaml.
 
 on:
   workflow_dispatch:
