@@ -1,0 +1,128 @@
+# Seiton linter configuration
+# Preferred location: .github/seiton.yaml
+
+rules:
+  # Example: override a rule's behavior.
+  # dangerous-triggers:
+  #   severity: warning
+  #   events:
+  #     - issue_comment
+
+  # runner-label:
+  #   known-hosted-labels:
+  #     - ubuntu-24.04-large
+
+  runner-no-latest:
+    fix-mapping:
+      ubuntu-latest: "ubuntu-24.04"
+      windows-latest: "windows-2025"
+      macos-latest: "macos-15"
+
+  # allow inherit secrets to Cysharp/Actions itself.
+  deny-inherit-secrets:
+    enabled: false
+
+  # credentials:
+  #   public-registries:
+  #     - ghcr.io
+
+  # cache-poisoning:
+  #   untrusted-triggers:
+  #     - issue_comment
+
+  # unredacted-secrets:
+  #   output-commands:
+  #     - tee
+
+  # forbidden-uses:
+  #   allow:
+  #     - actions/*
+  #   deny:
+  #     - some-untrusted-org/*
+
+  # unpinned-uses:
+  #   ignore-actions:
+  #     - owner: "my-org/*"
+  #     - owner: "my-org/internal-action"
+  #     - owner: "my-org/setup-*"
+  #       refs: [main, master]
+  unpinned-uses:
+    ignore-actions:
+      - owner: "Cysharp/*"
+
+  # overprovisioned-secrets:
+  #   max-step-env-secrets: 5
+  #   max-job-secrets: 5
+
+  # expr-undefined-var:
+  #   assume-events:
+  #     - workflow_dispatch
+
+  # Online rules (default: disabled). Enable individually:
+  # known-vulnerable-actions:
+  #   enabled: true
+  # impostor-commit:
+  #   enabled: true
+  # ref-confusion:
+  #   enabled: true
+  # stale-action-refs:
+  #   enabled: true
+
+exclusions:
+  # Glob + jobs scope: exclude rules for specific jobs only
+  # - file: .github/workflows/legacy-*.yml
+  #   rules:
+  #     - runner-no-latest
+  #   jobs:
+  #     - legacy
+  # One file, multiple rules (entire file, no jobs scope):
+  # - file: .github/workflows/demo.yml
+  #   rules:
+  #     - run-env-context-direct-use
+  #     - unpinned-image
+  # File-only exclusion (skips lint for the entire file):
+  # - file: .github/workflows/generated.yml
+  # Agentic Workflow files (# gh-aw-metadata: header or *.lock.yml):
+  # - file: .github/workflows/agentics-maintenance.yml
+  # - file: .github/workflows/*.lock.yml
+
+  - file: .github/workflows/_test-*.yaml
+    rules:
+      - deny-inherit-secrets
+      - run-inputs-context-direct-use
+
+discovery:
+  # skip-agentic-workflows: true   # opt-in: skip files with # gh-aw-metadata:
+
+fix:
+  defaults:
+    job-timeout-minutes: 20
+  pinning:
+    enable-network: true
+    exclude-branches: []
+    # min-age-days: 14
+    # exclude-branches:
+    #   - main
+    #   - master
+    # ignore-actions:
+    #   - uses: "slsa-framework/*"
+    #     ref: "*"
+  images:
+    enable-network: true
+    # exclude-images:
+    #   - scratch
+    # exclude-tags:
+    #   - latest
+    # ignore-images:
+    #   - mcr.microsoft.com/**
+
+network:
+  # on-error: skip
+  # timeout-seconds: 30
+  # max-concurrency: (omit; default is min(4, logical CPUs))
+  # github:
+  #   ghes-api-url: ""
+  #   ghes-fallback: false
+
+output:
+  # sort-order: location    # location (default) | rule

@@ -67,7 +67,7 @@ jobs:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
           ACTIONBOT_PRIVATE_KEY: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/GITHUB_ACTIONS_BOT/private key"
           ACTIONBOT_APPID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/GITHUB_ACTIONS_BOT/appid"
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      - uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
         if: ${{ inputs.use-bot-token }}
         id: app-token
         with:
@@ -105,8 +105,15 @@ jobs:
       # validate
       - name: Validate and normalize tag
         id: validate
-        run: ${{ steps.actions-caller.outputs.path }} validate-tag --tag "${{ inputs.tag }}" ${{ inputs.require-validation && '--require-validation' || '' }}
+        run: |
+          extra_args=""
+          if [[ "${REQUIRE_VALIDATION}" == "true" ]]; then
+            extra_args="--require-validation"
+          fi
+          ${{ steps.actions-caller.outputs.path }} validate-tag --tag "${TAG}" ${extra_args}
         env:
+          TAG: ${{ inputs.tag }}
+          REQUIRE_VALIDATION: ${{ inputs.require-validation }}
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -119,7 +126,9 @@ jobs:
             echo "::group::Execute"
               dotnet run --project "$file_path" --no-launch-profile -- --version "${{ steps.validate.outputs.normalized-tag }}"
             echo "::endgroup::"
-          done <<< "${{ inputs.dotnet-run-path }}"
+          done <<< "${DOTNET_RUN_PATH}"
+        env:
+          DOTNET_RUN_PATH: ${{ inputs.dotnet-run-path }}
         if: ${{ inputs.dotnet-run-path != '' }}
 
       # update files, git configure, git commit.
@@ -128,8 +137,15 @@ jobs:
       # "version": 1.2.3 -> "version": 2.0.0
       - name: Update files to version ${{ steps.validate.outputs.normalized-tag }}
         id: update
-        run: ${{ steps.actions-caller.outputs.path }} update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${{ inputs.file-path }}" ${{ inputs.dry-run &&  '--dry-run' || '' }}
+        run: |
+          dry_run_flag=""
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            dry_run_flag="--dry-run"
+          fi
+          ${{ steps.actions-caller.outputs.path }} update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${FILE_PATH}" ${dry_run_flag}
         env:
+          FILE_PATH: ${{ inputs.file-path }}
+          DRY_RUN: ${{ inputs.dry-run }}
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ inputs.use-bot-token && steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
 
