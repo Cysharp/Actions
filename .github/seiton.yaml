@@ -100,7 +100,7 @@ fix:
   pinning:
     enable-network: true
     exclude-branches: []
-    # min-age-days: 14
+    min-age-days: 14
     # exclude-branches:
     #   - main
     #   - master
