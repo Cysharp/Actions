@@ -23,11 +23,13 @@ runs:
         if git ls-files --others --exclude-standard -t | grep --regexp='[.]meta$'; then
           echo "Detected .meta file generated. Do you forgot commit a .meta file?"
           echo "meta-exists=true" | tee -a "$GITHUB_OUTPUT"
-          if [[ "${{inputs.exit-on-error }}" == "true" ]]; then
+          if [[ "${EXIT_ON_ERROR}" == "true" ]]; then
             exit 1
           fi
         else
           echo "Great, all .meta files are commited."
           echo "meta-exists=false" | tee -a "$GITHUB_OUTPUT"
         fi
+      env:
+        EXIT_ON_ERROR: ${{ inputs.exit-on-error }}
       working-directory: ${{ inputs.directory }}

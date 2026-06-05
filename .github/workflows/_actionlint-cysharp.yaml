@@ -1,10 +1,9 @@
-name: actionlint cysharp
+name: cysharp actions lint
 
 # Instructions:
-# * This workflow is for checking the actionlint and ghalint of cysharp's public repositories.
-# * If any errors are found, "fix each repository" or "ignore error".
-# * fix each repository: Check repository workflow and fix it.
-# * ignore error: ignore config is located in Cysharp/Actions repository. Add ignore to .github/actionlint.yaml or .ghalint.yaml, depends on the error.
+# * The worktflow to lint Cysharp public repositories' workflows and actions.
+# * If any errors are found, "fix each repository" or "ignore error" by `seiton --fix -c ../Actions/.github/seiton.yaml`.
+# * ignore error: ignore config is located in Cysharp/Actions repository. Add ignore to .github/seiton.yaml.
 
 on:
   workflow_dispatch:
@@ -29,7 +28,7 @@ jobs:
       - name: Try json parse (Should output as Array)
         run: echo "${{ fromJson(steps.list.outputs.repositories) }}"
 
-  actionlint:
+  lint:
     needs: [pre]
     strategy:
       fail-fast: false
@@ -43,22 +42,15 @@ jobs:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
-      - uses: aquaproj/aqua-installer@9ebf656952a20c45a5d66606f083ff34f58b8ce0 # v4.0.0
+      - uses: guitarrapc/setup-seiton@92f424f8dae8130d8f6299c74716356437d746ba # v1.0.2
         with:
-          aqua_version: v2.51.2
+          seiton-version: v0.9.19
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
           repository: "cysharp/${{ matrix.repository }}"
           path: ${{ matrix.repository }}
       # github workflows/action's Static Checker
-      - name: Run actionlint
-        run: actionlint -color -oneline --config-file ../.github/actionlint.yaml
-        working-directory: ${{ matrix.repository }}
-      # checkout's persist-credentials: false checker
-      - name: Run ghalint
-        run: ghalint -c ../.ghalint.yaml run
-        working-directory: ${{ matrix.repository }}
-      - name: Run ghalint
-        run: ghalint -c ../.ghalint.yaml run-action
+      - name: Run seiton
+        run: seiton --include-actions -color -oneline --config-file ../.github/seiton.yaml
         working-directory: ${{ matrix.repository }}
