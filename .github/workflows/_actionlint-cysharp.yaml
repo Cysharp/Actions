@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
-      - uses: guitarrapc/setup-seiton@54eaed905ec553142a82a5b916987dc2228f63a4 # v1.0.0
+      - uses: guitarrapc/setup-seiton@92f424f8dae8130d8f6299c74716356437d746ba # v1.0.2
         with:
           seiton-version: v0.9.19
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
