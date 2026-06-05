@@ -50,5 +50,5 @@ jobs:
           path: ${{ matrix.repository }}
       # github workflows/action's Static Checker
       - name: Run seiton
-        run: seiton --include-actions -color -oneline --config ../.github/seiton.yaml
+        run: seiton --include-actions -oneline --config ../.github/seiton.yaml
         working-directory: ${{ matrix.repository }}
