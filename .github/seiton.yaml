@@ -88,6 +88,32 @@ exclusions:
       - deny-inherit-secrets
       - run-inputs-context-direct-use
 
+  # temporary exclusion for build-release workflow, which use inputs.tag pattern.
+  - file: .github/workflows/build-release.yaml
+    rules:
+      - run-inputs-context-direct-use
+
+  # temporary exclusion for MessagePipe workflows
+  - file: .github/workflows/build-debug.yaml
+    rules:
+      - unpinned-image
+
+  # temporary exclusion for NativeCompressions workflows
+  - file: .github/workflows/build-native-*.yaml
+    rules:
+      - if-expr-wrapper
+  - file: .github/workflows/check-new-release.yaml
+    rules:
+      - run-inputs-context-direct-use
+
+  # temporary exclusion for ZLinq workflows
+  - file: .github/workflows/benchmark.yaml
+    rules:
+      - run-inputs-context-direct-use
+  - file: .github/workflows/benchmark_on_release.yaml
+    rules:
+      - runner-no-latest
+
   # Glob + jobs scope: exclude rules for specific jobs only
   # - file: .github/workflows/legacy-*.yml
   #   rules:
