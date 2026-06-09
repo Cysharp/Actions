@@ -85,7 +85,9 @@ jobs:
           fi
       - name: Generate Matrix json from config
         id: config2matrix
-        run: ${{ steps.actions-caller.outputs.path }} benchmark-config2matrix --config-path "./Repo/${{ inputs.benchmark-config-path }}"
+        run: ${{ steps.actions-caller.outputs.path }} benchmark-config2matrix --config-path "./Repo/${BENCHMARK_CONFIG_PATH}"
+        env:
+          BENCHMARK_CONFIG_PATH: ${{ inputs.benchmark-config-path }}
       - name: Comment (Running - Config loaded)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
@@ -154,7 +156,14 @@ jobs:
         run: az extension add --name devcenter --upgrade
       - name: Create benchmark environment
         id: create-benchmark
-        run: bash ./scripts/benchmark_environment_create.sh --catalog-name '${{ inputs.benchmark-catalog }}' --dev-center-name '${{ inputs.benchmark-devcenter }}' --environment-definition-name '${{ inputs.benchmark-definition-name }}' --environment-type '${{ inputs.benchmark-environment }}' --location '${{ matrix.benchmark-location }}' --name '${{ inputs.benchmark-name }}' --project-name '${{ inputs.benchmark-project }}' --expire-min "${{ matrix.benchmark-expire-min }}" --dry-run false
+        run: bash ./scripts/benchmark_environment_create.sh --catalog-name "${BENCHMARK_CATALOG}" --dev-center-name "${BENCHMARK_DEVCENTER}" --environment-definition-name "${BENCHMARK_DEFINITION_NAME}" --environment-type "${BENCHMARK_ENVIRONMENT}" --location "${{ matrix.benchmark-location }}" --name "${BENCHMARK_NAME}" --project-name "${BENCHMARK_PROJECT}" --expire-min "${{ matrix.benchmark-expire-min }}" --dry-run false
+        env:
+          BENCHMARK_CATALOG: ${{ inputs.benchmark-catalog }}
+          BENCHMARK_DEVCENTER: ${{ inputs.benchmark-devcenter }}
+          BENCHMARK_DEFINITION_NAME: ${{ inputs.benchmark-definition-name }}
+          BENCHMARK_ENVIRONMENT: ${{ inputs.benchmark-environment }}
+          BENCHMARK_NAME: ${{ inputs.benchmark-name }}
+          BENCHMARK_PROJECT: ${{ inputs.benchmark-project }}
         working-directory: ./Actions/.github
       - name: Comment (Progess - Benchmark environment)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
@@ -170,10 +179,12 @@ jobs:
           echo "ip=$runnner" | tee -a "$GITHUB_OUTPUT"
       - name: Update SG Rule
         run: |
-          az network nsg rule update --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --nsg-name "${{ inputs.benchmark-name }}-vm-sg" --name "github-runner" --source-address-prefixes "${{ steps.get-runner-ip.outputs.ip }}/32" --no-wait "false"
+          az network nsg rule update --resource-group "${BENCHMARK_RESOURCE_GROUP}" --nsg-name "${BENCHMARK_NAME}-vm-sg" --name "github-runner" --source-address-prefixes "${{ steps.get-runner-ip.outputs.ip }}/32" --no-wait "false"
+        env:
+          BENCHMARK_NAME: ${{ inputs.benchmark-name }}
       - name: Confirm VM is up and connectable
         run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
             echo "::group::Connect on $ip"
               success=false
               for i in {1..5}; do
@@ -190,7 +201,7 @@ jobs:
         working-directory: ./Actions/.github
       - name: Setup .NET on Benchmark VM
         run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
             echo "::group::Install on $ip"
               ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --dotnet-version ${{ matrix.dotnet-version }}' < ./scripts/dotnet_install.sh
             echo "::endgroup::"
@@ -198,7 +209,7 @@ jobs:
         working-directory: ./Actions/.github
       - name: Setup apt tools on Benchmark VM
         run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
             echo "::group::Install on $ip"
               ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --tools "${{ matrix.apt-tools }}"' < ./scripts/apt_install.sh
             echo "::endgroup::"
@@ -206,7 +217,7 @@ jobs:
         working-directory: ./Actions/.github
       - name: Clone repository on VM
         run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running'].publicIps" -o tsv); do
             echo "::group::Install on $ip"
               ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- --branch "${{ inputs.branch }}" --owner "${{ github.repository_owner }}" --repo "${{ github.event.repository.name }}"' < ./scripts/git_clone.sh
             echo "::endgroup::"
@@ -221,7 +232,7 @@ jobs:
           update: "true"
       - name: Run benchmark server on VM
         run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_SERVER_NAME }}'].publicIps" -o tsv); do
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running' && name=='${BENCHMARK_SERVER_NAME}'].publicIps" -o tsv); do
             ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-server-run-script-args }}' < ${{ matrix.benchmark-server-run-script-path }}
           done
         working-directory: ./Repo/
@@ -234,7 +245,7 @@ jobs:
           update: "true"
       - name: Run benchmark client on VM
         run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_CLIENT_NAME }}'].publicIps" -o tsv); do
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running' && name=='${BENCHMARK_CLIENT_NAME}'].publicIps" -o tsv); do
             ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-client-run-script-args }}' < ${{ matrix.benchmark-client-run-script-path }}
           done
         working-directory: ./Repo/
@@ -243,7 +254,7 @@ jobs:
       - name: Stop benchmark server on VM
         if: ${{ matrix.benchmark-server-stop-script-path != '' }}
         run: |
-          for ip in $(az vm list -d --resource-group "${{ env.BENCHMARK_RESOURCE_GROUP }}" --query "[?powerState=='VM running' && name=='${{ env.BENCHMARK_SERVER_NAME }}'].publicIps" -o tsv); do
+          for ip in $(az vm list -d --resource-group "${BENCHMARK_RESOURCE_GROUP}" --query "[?powerState=='VM running' && name=='${BENCHMARK_SERVER_NAME}'].publicIps" -o tsv); do
             ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 azure-user@"$ip" 'bash -s -- ${{ matrix.benchmark-server-run-script-args }}' < ${{ matrix.benchmark-server-stop-script-path }}
           done
         working-directory: ./Repo/
