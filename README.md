@@ -46,6 +46,7 @@ jobs:
   timeline:
     uses: Cysharp/Actions/.github/workflows/actions-timeline.yaml@main
     secrets:
+      # actions-timeline.yaml requires this exact secret name.
       github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
@@ -56,20 +57,27 @@ jobs:
   loader:
     uses: Cysharp/Actions/.github/workflows/benchmark-loader.yaml@main
     with:
+      # Prefix is used to construct benchmark environment names.
+      # MagicOnion uses issue/run context to avoid name collisions.
       benchmark-name-prefix: myrepo-pr-${{ github.event.number }}
+      # Loader config path consumed by benchmark-loader2matrix.
       benchmark-config-path: .github/benchmark-loader.yaml
 
   benchmark:
     needs: [loader]
+    # loader output is a string ('true'/'false'), compare explicitly.
     if: ${{ needs.loader.outputs.is-benchmarkable == 'true' }}
     strategy:
       fail-fast: false
+      # Matrix JSON is produced by benchmark-loader output.
       matrix: ${{ fromJson(needs.loader.outputs.matrix) }}
     uses: Cysharp/Actions/.github/workflows/benchmark-execute.yaml@main
     with:
+      # Key names come from your loader config output schema.
       benchmark-name: ${{ matrix.benchmark-name }}
       benchmark-config-path: ${{ matrix.benchmark-config-path }}
       branch: ${{ matrix.branch }}
+    # benchmark-execute needs Azure/1Password-related secrets.
     secrets: inherit
 ```
 
@@ -80,8 +88,11 @@ jobs:
   cleanup:
     uses: Cysharp/Actions/.github/workflows/benchmark-cleanup.yaml@main
     with:
+      # Failed/Succeeded/All depending on your cleanup policy.
       state: Failed
+      # Scheduled runs can optionally redeploy before cleanup.
       try-redeploy: false
+      # Keep false for normal cleanup (true means dry-maintenance mode).
       no-delete: false
 ```
 
@@ -91,9 +102,11 @@ jobs:
 jobs:
   cleanup:
     permissions:
+      # Required because the workflow deletes remote branches.
       contents: write
     uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
     with:
+      # Usually pass update-packagejson output branch-name.
       branch: test-release/1.2.3
 ```
 
@@ -104,16 +117,25 @@ jobs:
   create-release:
     uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
     with:
+      # Empty means current checked out commit.
       commit-id: ""
+      # Raw tag like 1.2.3 (workflow validates/normalizes internally).
       tag: ${{ inputs.tag }}
+      # true keeps dry-run behavior and cleanup path.
       dry-run: ${{ inputs.dry-run }}
+      # Guard to prevent accidentally releasing older tags.
       require-validation: true
+      # If true, NuGet push runs and NUGET_KEY is required.
       nuget-push: false
+      # If true, release-asset-path must be provided.
       release-upload: true
       release-asset-path: |
         ./MyUnityPackage/MyUnityPackage.unitypackage
+      # v{0} -> v1.2.3, {0} -> 1.2.3.
       release-format: v{0}
+      # Empty means download artifacts from current run.
       download-run-id: ""
+    # Reusable workflow reads org/repo secrets (1Password/NuGet).
     secrets: inherit
 ```
 
@@ -122,11 +144,14 @@ jobs:
 ```yaml
 jobs:
   post-dd-event:
+    # Typical trigger pattern: only post when PR was actually merged.
     if: ${{ github.event.pull_request.merged == true }}
     uses: Cysharp/Actions/.github/workflows/dd-event-post.yaml@main
     with:
+      # Keep consistent with dashboard aggregation keys/tags.
       event: pr-merged
       alert-type: info
+    # Required because workflow loads DD_API_KEY via 1Password.
     secrets: inherit
 ```
 
@@ -137,10 +162,14 @@ jobs:
   new-version:
     uses: Cysharp/Actions/.github/workflows/increment-version.yaml@main
     with:
+      # Use default branch when you want to continue development after release.
       ref: ${{ github.event.repository.default_branch }}
+      # Released tag to increment from.
       tag: 1.2.3
+      # major | minor | patch
       type: patch
       prefix: ""
+      # Common post-release convention.
       suffix: -dev
 ```
 
@@ -150,11 +179,13 @@ jobs:
 on:
   pull_request:
     paths:
+      # Run only when GitHub config files are touched.
       - ".github/**/*.yaml"
       - ".github/**/*.yml"
 
 jobs:
   detect:
+    # Reusable workflow blocks fork PR changes to .github files.
     uses: Cysharp/Actions/.github/workflows/prevent-github-change.yaml@main
 ```
 
@@ -168,6 +199,7 @@ on:
 jobs:
   stale:
     permissions:
+      # actions/stale needs write perms for labels/comments/close.
       contents: read
       pull-requests: write
       issues: write
@@ -181,31 +213,40 @@ jobs:
   update-packagejson:
     permissions:
       actions: read
+      # Required because this workflow can commit/push version updates.
       contents: write
     uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
     with:
-      ref: ${{ github.ref_name }}
+      # Keep checkout target explicit (MagicOnion uses github.ref/default branch).
+      ref: ${{ github.ref }}
       file-path: |
+        # Supported: package.json / plugin.cfg / Directory.Build.props
         ./src/MyUnityProject/package.json
         ./addons/MyPlugin/plugin.cfg
         ./Directory.Build.props
+      # Release tag to propagate into version files.
       tag: ${{ inputs.tag }}
       require-validation: true
+      # true if your default branch requires GitHub App authentication.
       use-bot-token: false
+      # true writes to test-release/{tag} branch instead of target ref.
       dry-run: false
       dotnet-run-path: |
+        # Optional hook; workflow always passes: -- --version {tag}
         ./tools/VersionOutput/VersionOutput.csproj
 ```
 
 ```yaml
 jobs:
   cleanup:
+    # Branch cleanup is only needed when dry-run created a temp branch.
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
     needs: [update-packagejson]
     permissions:
       contents: write
     uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
     with:
+      # Output of update-packagejson workflow.
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 ```
 
@@ -228,11 +269,13 @@ jobs:
 
 ```yaml
 steps:
+  # This action posts comments only for issue/PR events with issue.number.
   - uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
     with:
       comment: "Benchmark started"
       state: running
       title: "Benchmark"
+      # "true" edits latest benchmark comment; "false" appends a new one.
       update: "true"
 ```
 
@@ -243,8 +286,10 @@ steps:
   - id: auth
     uses: Cysharp/Actions/.github/actions/benchmark-runnable@main
     with:
+      # Usually github.actor
       username: ${{ github.actor }}
 
+  # authorized output is 'true' or 'false'.
   - run: echo "authorized=${{ steps.auth.outputs.authorized }}"
 ```
 
@@ -257,8 +302,10 @@ steps:
     with:
       repository: ${{ github.repository }}
       ref: ${{ github.ref_name }}
+      # 0 to fetch full history/tags when versioning logic needs it.
       fetch-depth: 0
 
+  # Wrapper exposes the same useful outputs as actions/checkout.
   - run: echo "checked out ${{ steps.co.outputs.ref }} @ ${{ steps.co.outputs.commit }}"
 ```
 
@@ -269,6 +316,7 @@ steps:
   - uses: Cysharp/Actions/.github/actions/check-metas@main
     with:
       directory: ./Sandbox/Sandbox.Unity
+      # Keep true in CI to fail immediately on untracked .meta files.
       exit-on-error: "true"
 ```
 
@@ -280,6 +328,7 @@ steps:
     with:
       dotnet-version: |
         10.0.x
+      # false also sets CI-friendly env vars (telemetry off, etc.).
       skip-env: "false"
 ```
 
@@ -291,12 +340,14 @@ steps:
     with:
       name: my-artifact
       path: ./artifacts/**
+      # Default is already error, but explicit value is clearer in docs.
       if-no-files-found: error
 
   - uses: Cysharp/Actions/.github/actions/download-artifact@main
     with:
       name: my-artifact
       path: ./downloaded
+      # false keeps each artifact in its own directory.
       merge-multiple: "false"
 ```
 
@@ -304,6 +355,7 @@ steps:
 
 ```yaml
 steps:
+  # UNITY_* env vars must be set from secrets before this step.
   - uses: Cysharp/Actions/.github/actions/unity-builder@main
     with:
       projectPath: ./Sandbox/Sandbox.Unity
@@ -311,6 +363,7 @@ steps:
       targetPlatform: StandaloneLinux64
       buildMethod: PackageExporter.Export
       customParameters: ""
+      # Pass-through to game-ci/unity-builder versioning option.
       versioning: None
 ```
 
