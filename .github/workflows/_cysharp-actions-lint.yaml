@@ -26,7 +26,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Try json parse (Should output as Array)
-        run: echo "${{ fromJson(steps.list.outputs.repositories) }}"
+        run: echo '${{ toJson(fromJson(steps.list.outputs.repositories)) }}'
 
   lint:
     needs: [pre]
