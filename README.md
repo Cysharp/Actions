@@ -17,7 +17,30 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-## Table of Contents
+# 📖 Table of Contents
+
+- [Reusable workflows](#reusable-workflows)
+  - [Usage examples](#usage-examples)
+    - [actions-timeline](#actions-timeline)
+    - [benchmark-loader + benchmark-execute](#benchmark-loader--benchmark-execute)
+    - [benchmark-cleanup](#benchmark-cleanup)
+    - [clean-packagejson-branch](#clean-packagejson-branch)
+    - [create-release](#create-release)
+    - [dd-event-post](#dd-event-post)
+    - [increment-version](#increment-version)
+    - [prevent-github-change](#prevent-github-change)
+    - [stale-issue](#stale-issue)
+    - [update-packagejson](#update-packagejson)
+- [Composite actions](#composite-actions)
+  - [Action examples](#action-examples)
+    - [benchmark-progress-comment](#benchmark-progress-comment)
+    - [benchmark-runnable](#benchmark-runnable)
+    - [checkout](#checkout)
+    - [check-metas](#check-metas)
+    - [setup-dotnet](#setup-dotnet)
+    - [upload-artifact + download-artifact](#upload-artifact--download-artifact)
+    - [unity-builder](#unity-builder)
+- [Notes](#notes)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
