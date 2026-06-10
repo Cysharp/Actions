@@ -4,7 +4,7 @@ on:
   workflow_call:
     secrets:
       github-token:
-        description: 'GitHub Token'
+        description: "GitHub Token"
         required: true
 
 jobs:
