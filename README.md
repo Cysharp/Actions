@@ -10,423 +10,188 @@
 
 # Actions
 
-Cysharp OSS repository uses and maintained GitHub Actions "reusable workflows" and "composite actions".
+Reusable workflows and composite actions maintained for Cysharp repositories.
+
+This README reflects the current public definitions under `.github/workflows` and `.github/actions`.
+Test and maintenance workflows prefixed with `_` are intentionally omitted here.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-# 📖 Table of Contents
-
-- [♻️ Reusable workflows](#-reusable-workflows)
-  - [clean-packagejson-branch](#clean-packagejson-branch)
-  - [create-release](#create-release)
-  - [dd-event-post](#dd-event-post)
-  - [increment-version](#increment-version)
-  - [prevent-github-change](#prevent-github-change)
-  - [stale-issue](#stale-issue)
-  - [update-packagejson](#update-packagejson)
-  - [validate-tag](#validate-tag)
-- [🎬 Actions](#-actions)
-  - [check-benchmarkable](#check-benchmarkable)
-  - [check-metas](#check-metas)
-  - [checkout](#checkout)
-  - [download-artifact](#download-artifact)
-  - [setup-dotnet](#setup-dotnet)
-  - [unity-builder](#unity-builder)
-  - [upload-artifact](#upload-artifact)
+## Table of Contents
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# ♻️ Reusable workflows
+## Reusable workflows
 
-## clean-packagejson-branch
+| Workflow | Purpose | Key inputs / notes |
+| --- | --- | --- |
+| `actions-timeline` | Post workflow timing information using `Kesin11/actions-timeline`. | Requires `secrets.github-token`. |
+| `benchmark-loader` | Authorize benchmark requests and generate a benchmark execution matrix from a loader config. | Inputs: `benchmark-name-prefix`, `benchmark-config-path`. Outputs: `is-benchmarkable`, `matrix`. |
+| `benchmark-execute` | Provision benchmark infrastructure, execute benchmark matrix entries, and update PR/issue progress comments. | Inputs include `benchmark-name`, `benchmark-config-path`, `branch`. Requires the `benchmark` environment and 1Password/Azure secrets. |
+| `benchmark-cleanup` | Clean benchmark environments on schedule or on demand. | Inputs: `state`, `try-redeploy`, `no-delete`. Scheduled hourly in this repo. |
+| `clean-packagejson-branch` | Delete a temporary branch created by release/update automation. | Only deletes non-default branches created by `github-actions[bot]`. Input: `branch`. |
+| `create-release` | Validate a tag, create a GitHub release, optionally push NuGet packages, and optionally upload release assets. | Inputs include `commit-id`, `tag`, `dry-run`, `nuget-push`, `release-upload`, `release-asset-path`, `download-run-id`. Uses 1Password to load `NUGET_KEY` when NuGet push is enabled. |
+| `dd-event-post` | Post an event to Datadog, typically for PR merge notifications. | Inputs include `title`, `text`, `event`, `additional-tags`, `alert-type`. |
+| `increment-version` | Increment a semantic version string and expose the computed version. | Inputs: `tag`, `type`, optional `prefix`, `suffix`, `ref`. Output: `version`. |
+| `prevent-github-change` | Fail PRs from forks when they modify `.github/**/*.yml` or `.github/**/*.yaml`. | Intended for policy enforcement around GitHub configuration changes. |
+| `stale-issue` | Mark and close stale issues and PRs using `actions/stale`. | Current defaults: stale after 180 days, close 30 days later. |
+| `update-packagejson` | Normalize a release tag, update version-bearing files, optionally run project-specific `dotnet run -- --version {tag}`, and push the result. | Supports `package.json`, `plugin.cfg`, and `Directory.Build.props`. Outputs: `branch-name`, `is-branch-created`, `sha`. |
 
-> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/clean-packagejson-branch.yaml)
+### Usage examples
 
-Delete specic github branch. Mainly used for cleanup branch created by [update-packagejson](#update-packagejson) workflow. Action has following limitation to prevent accidental deletion.
-
-1. Branch is NOT default branch.
-2. Branch is created & commited by github-actions[bot].
-
-**Sample usage**
+#### actions-timeline
 
 ```yaml
-name: Build-Release
+jobs:
+  timeline:
+    uses: Cysharp/Actions/.github/workflows/actions-timeline.yaml@main
+    secrets:
+      # actions-timeline.yaml requires this exact secret name.
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+```
 
-on:
-  workflow_dispatch:
+#### benchmark-loader + benchmark-execute
 
+```yaml
+jobs:
+  loader:
+    uses: Cysharp/Actions/.github/workflows/benchmark-loader.yaml@main
+    with:
+      # Prefix is used to construct benchmark environment names.
+      # MagicOnion uses issue/run context to avoid name collisions.
+      benchmark-name-prefix: myrepo-pr-${{ github.event.number }}
+      # Loader config path consumed by benchmark-loader2matrix.
+      benchmark-config-path: .github/benchmark-loader.yaml
+
+  benchmark:
+    needs: [loader]
+    # loader output is a string ('true'/'false'), compare explicitly.
+    if: ${{ needs.loader.outputs.is-benchmarkable == 'true' }}
+    strategy:
+      fail-fast: false
+      # Matrix JSON is produced by benchmark-loader output.
+      matrix: ${{ fromJson(needs.loader.outputs.matrix) }}
+    uses: Cysharp/Actions/.github/workflows/benchmark-execute.yaml@main
+    with:
+      # Key names come from your loader config output schema.
+      benchmark-name: ${{ matrix.benchmark-name }}
+      benchmark-config-path: ${{ matrix.benchmark-config-path }}
+      branch: ${{ matrix.branch }}
+    # benchmark-execute needs Azure/1Password-related secrets.
+    secrets: inherit
+```
+
+#### benchmark-cleanup
+
+```yaml
+jobs:
+  cleanup:
+    uses: Cysharp/Actions/.github/workflows/benchmark-cleanup.yaml@main
+    with:
+      # Failed/Succeeded/All depending on your cleanup policy.
+      state: Failed
+      # Scheduled runs can optionally redeploy before cleanup.
+      try-redeploy: false
+      # Keep false for normal cleanup (true means dry-maintenance mode).
+      no-delete: false
+```
+
+#### clean-packagejson-branch
+
+```yaml
 jobs:
   cleanup:
     permissions:
+      # Required because the workflow deletes remote branches.
       contents: write
     uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
     with:
-      branch: branch_name_to_delete
+      # Usually pass update-packagejson output branch-name.
+      branch: test-release/1.2.3
 ```
 
-## create-release
-
-> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/create-release.yaml)
-
-Create GitHub Release, upload NuGet and upload artifact to release assets. Mainly used for NuGet and Unity release workflow.
-
-Required secrets.
-
-| SecretKey | When | Description |
-| ---- | ---- | ---- |
-| `NUGET_KEY` | `with.nuget-push` is true | This secret is required to push nupkg, snupkg to NuGet.org |
-
-**Sample usage**
-
-Create release only.
+#### create-release
 
 ```yaml
-name: Build-Release
-
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "tag: git tag you want create. (sample 1.0.0)"
-        required: true
-      dry-run:
-        description: "dry_run: true will never create release/nuget."
-        required: true
-        default: false
-        type: boolean
-
 jobs:
   create-release:
     uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
     with:
-      commit-id: ''
+      # Empty means current checked out commit.
+      commit-id: ""
+      # Raw tag like 1.2.3 (workflow validates/normalizes internally).
       tag: ${{ inputs.tag }}
-      dry-run: ${{ inputs.dry-run }} # if true, delete tag after Release creation & 60s later.
+      # true keeps dry-run behavior and cleanup path.
+      dry-run: ${{ inputs.dry-run }}
+      # Guard to prevent accidentally releasing older tags.
+      require-validation: true
+      # If true, NuGet push runs and NUGET_KEY is required.
       nuget-push: false
-      release-upload: false
-    secrets: inherit
-```
-
-Change release name not to use `Ver.` prefix.
-
-```yaml
-name: Build-Release
-
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "tag: git tag you want create. (sample 1.0.0)"
-        required: true
-      dry-run:
-        description: "dry_run: true will never create release/nuget."
-        required: true
-        default: false
-        type: boolean
-
-jobs:
-  create-release:
-    uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
-    with:
-      commit-id: ''
-      tag: ${{ inputs.tag }}
-      dry-run: ${{ inputs.dry-run }} # if true, delete tag after Release creation & 60s later.
-      nuget-push: false
-      release-upload: false
-      release-format: '{0}'
-    secrets: inherit
-```
-
-Download other workflows artifacts to upload to release assets.
-
-```yaml
-name: Build-Release
-
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "tag: git tag you want create. (sample 1.0.0)"
-        required: true
-      dry-run:
-        description: "dry_run: true will never create release/nuget."
-        required: true
-        default: false
-        type: boolean
-
-jobs:
-  create-release:
-    uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
-    with:
-      commit-id: ''
-      tag: ${{ inputs.tag }}
-      dry-run: ${{ inputs.dry-run }} # if true, delete tag after Release creation & 60s later.
-      nuget-push: false
+      # If true, release-asset-path must be provided.
       release-upload: true
       release-asset-path: |
-        ./FooBar/win-amd64/FooBar.pdb
-        ./FooBar/win-arm64/FooBar.pdb
-      download-run-id: '123456789' # specify run id to download artifacts from.
+        ./MyUnityPackage/MyUnityPackage.unitypackage
+      # v{0} -> v1.2.3, {0} -> 1.2.3.
+      release-format: v{0}
+      # Empty means download artifacts from current run.
+      download-run-id: ""
+    # Reusable workflow reads org/repo secrets (1Password/NuGet).
     secrets: inherit
 ```
 
-Build .NET then create release. `create-release` will push nuget packages.
+#### dd-event-post
 
 ```yaml
-name: Build-Release
-
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "tag: git tag you want create. (sample 1.0.0)"
-        required: true
-      dry-run:
-        description: "dry_run: true will never create release/nuget."
-        required: true
-        default: false
-        type: boolean
-
 jobs:
-  build-dotnet:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 3
-    defaults:
-      run:
-        working-directory: ./Sandbox
-    steps:
-      - uses: actions/checkout@v4
-      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-      - run: dotnet build -c Release -p:Version=${{ inputs.tag }}
-      - run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
-      - name: upload artifacts
-        uses: Cysharp/Actions/.github/actionsupload-artifact@main
-        with:
-          name: nuget
-          path: ./Sandbox/publish
-          retention-days: 1
-
-  create-release:
-    needs: [build-dotnet]
-    uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
-    with:
-      commit-id: ''
-      tag: ${{ inputs.tag }}
-      dry-run: ${{ inputs.dry-run }} # if true, delete tag after Release creation & 60s later.
-      nuget-push: true
-      release-upload: false
-    secrets: inherit                 # to allow workflow to access NUGET_KEY secret
-```
-
-Build .NET and Unity, then create release. `create-release` will push nuget packages and upload unitypackage to release assets.
-
-```yaml
-name: Build-Release
-
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "tag: git tag you want create. (sample 1.0.0)"
-        required: true
-      dry-run:
-        description: "dry_run: true will never create release/nuget."
-        required: true
-        default: false
-        type: boolean
-
-jobs:
-  update-packagejson:
-    if: ${{ github.actor != 'dependabot[bot]' }}
-    permissions:
-      actions: read
-      contents: write
-    uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
-    with:
-      file-path: |
-        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
-        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
-        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
-        ./Sandbox/Directory.Build.props
-      tag: ${{ inputs.tag }}
-      use-bot-token: false # false to use GITHUB_TOKEN, true to use GitHub App token
-      dry-run: false
-
-  build-dotnet:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 3
-    defaults:
-      run:
-        working-directory: ./Sandbox
-    steps:
-      - uses: actions/checkout@v4
-      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-      - run: dotnet build -c Release -p:Version=${{ inputs.tag }}
-      - run: dotnet pack --no-build -c Release -p:Version=${{ inputs.tag }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o ./publish
-      - name: upload artifacts
-        uses: Cysharp/Actions/.github/actionsupload-artifact@main
-        with:
-          name: nuget
-          path: ./Sandbox/publish
-          retention-days: 1
-
-  build-unity:
-    needs: [update-packagejson]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - run: echo ${{ needs.update-packagejson.outputs.sha }}
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.update-packagejson.outputs.sha }}
-      # Store artifacts.
-      - uses: Cysharp/Actions/.github/actions/upload-artifact@main
-        with:
-          name: Sandbox.Unity.unitypackage
-          path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.unitypackage
-          if-no-files-found: error
-      - uses: Cysharp/Actions/.github/actions/upload-artifact@main
-        with:
-          name: Sandbox.Unity.Plugin.unitypackage
-          path: ./Sandbox/Sandbox.Unity/output/Sandbox.Unity.Plugin.unitypackage
-          if-no-files-found: error
-
-  create-release:
-    needs: [update-packagejson, build-dotnet, build-unity]
-    uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
-    with:
-      commit-id: ${{ needs.update-packagejson.outputs.sha }}
-      tag: ${{ inputs.tag }}
-      dry-run: ${{ inputs.dry-run }} # if true, delete tag after Release creation & 60s later.
-      nuget-push: true
-      release-upload: true
-      release-asset-path: |
-        ./Sandbox.Unity.unitypackage/Sandbox.Unity.unitypackage
-        ./Sandbox.Unity.Plugin.unitypackage/Sandbox.Unity.Plugin.unitypackage
-        ./nuget/ClassLibrary.${{ inputs.tag }}.nupkg
-        ./nuget/ClassLibrary.${{ inputs.tag }}.snupkg
-    secrets: inherit                 # to allow workflow to access NUGET_KEY secret
-
-  cleanup:
-    if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
-    needs: [update-packagejson]
-    permissions:
-      contents: write
-    uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
-    with:
-      branch: ${{ needs.update-packagejson.outputs.branch-name }}
-```
-
-
-## dd-event-post
-
-> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/dd-event-post.yaml)
-
-Post Datadog event.
-
-1. Use for Pull Request Merge event.
-
-**Sample usage**
-
-```yaml
-name: PR Merged
-
-on:
-  pull_request:
-    types: [closed]
-
-jobs:
-  post:
+  post-dd-event:
+    # Typical trigger pattern: only post when PR was actually merged.
     if: ${{ github.event.pull_request.merged == true }}
     uses: Cysharp/Actions/.github/workflows/dd-event-post.yaml@main
+    with:
+      # Keep consistent with dashboard aggregation keys/tags.
+      event: pr-merged
+      alert-type: info
+    # Required because workflow loads DD_API_KEY via 1Password.
     secrets: inherit
 ```
 
-## increment-version
-
-> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/increment-version.yaml)
-
-Update specified version file with incremented version. Mainly used for [post-release workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/post-release.yaml).
-
-**Sample usage**
-
-Following workflow will increment patch version from released tag and update specified package.json, plugin.cfg and Directory.Build.props files with new version with `-dev` suffix.
+#### increment-version
 
 ```yaml
-name: Post Release
-
-on:
-  release:
-    types: [published]
-
 jobs:
   new-version:
-    permissions:
-      actions: read
-      contents: read
     uses: Cysharp/Actions/.github/workflows/increment-version.yaml@main
     with:
+      # Use default branch when you want to continue development after release.
       ref: ${{ github.event.repository.default_branch }}
-      tag: ${{ github.ref_name }} # tag value will here. 1.2.1
+      # Released tag to increment from.
+      tag: 1.2.3
+      # major | minor | patch
       type: patch
-      suffix: "-dev"
-
-  update-packagejson:
-    needs: [new-version]
-    permissions:
-      actions: read
-      contents: write
-    uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
-    with:
-      ref: ${{ github.event.repository.default_branch }}
-      file-path: |
-        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
-        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
-        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
-        ./Sandbox/Directory.Build.props
-      tag: ${{ needs.new-version.outputs.version }}
-      use-bot-token: false # false to use GITHUB_TOKEN, true to use GitHub App token
-      dry-run: false
-
+      prefix: ""
+      # Common post-release convention.
+      suffix: -dev
 ```
 
-## prevent-github-change
-
-> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/prevent-github-change.yaml)
-
-Prevent fork users to change files triggered by. Only Organization contributors can change these files.
-
-**Sample usage**
+#### prevent-github-change
 
 ```yaml
-name: Prevent github change
 on:
   pull_request:
     paths:
+      # Run only when GitHub config files are touched.
       - ".github/**/*.yaml"
       - ".github/**/*.yml"
 
 jobs:
   detect:
-    permissions:
-      contents: read
+    # Reusable workflow blocks fork PR changes to .github files.
     uses: Cysharp/Actions/.github/workflows/prevent-github-change.yaml@main
 ```
 
-
-## stale-issue
-
-> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/stale-issue.yaml)
-
-Stale issue and PRs.
-Mainly used for Issue/PR management.
-
-**Sample usage**
-
+#### stale-issue
 
 ```yaml
-name: "Close stale issues"
-
 on:
   schedule:
     - cron: "0 0 * * *"
@@ -434,380 +199,176 @@ on:
 jobs:
   stale:
     permissions:
+      # actions/stale needs write perms for labels/comments/close.
       contents: read
       pull-requests: write
       issues: write
     uses: Cysharp/Actions/.github/workflows/stale-issue.yaml@main
 ```
 
-## update-packagejson
-
-> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/update-packagejson.yaml)
-
-Update specified `Unity package.json` and `Godot plugin.cfg` version with tag version. Mainly used for UPM and Godot plugin release workflow.
-
-Consider use GitHub App token, when your repository want's restrict direct push to default branch.
-
-```yaml
-jobs:
-  use-bot-token:
-    permissions:
-      actions: read
-      contents: write
-    uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
-    with:
-      file-path: ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
-      tag: ${{ inputs.tag }}
-      use-bot-token: true # <-- Use GitHub App token
-      dry-run: ${{ inputs.dry-run }}
-```
-
-If you want to run dotnet run during workflow, you can specify `dotnet-run-path` input. Make sure arguments are always `--version "{tag}"`.
+#### update-packagejson
 
 ```yaml
 jobs:
   update-packagejson:
     permissions:
       actions: read
+      # Required because this workflow can commit/push version updates.
       contents: write
     uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
     with:
-      file-path: ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
-      # you can write multi path.
-      dotnet-run-path: |
-        ./Sandbox/Sandbox.Console/Sandbox.Console.csproj
-      tag: ${{ inputs.tag }}
-      use-bot-token: false
-      dry-run: ${{ inputs.dry-run }}
-```
-
-**Sample usage**
-
-```yaml
-name: Build-Release
-
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "tag: git tag you want create. (sample 1.0.0)"
-        required: true
-      dry-run:
-        description: "dry_run: true will never create release/nuget."
-        required: true
-        default: false
-        type: boolean
-
-jobs:
-  update-packagejson:
-    permissions:
-      actions: read
-      contents: write
-    uses: Cysharp/Actions/.github/workflows/update-packagejson.yaml@main
-    with:
-      # you can write multi path.
+      # Keep checkout target explicit (MagicOnion uses github.ref/default branch).
+      ref: ${{ github.ref }}
       file-path: |
-        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
-        ./Sandbox/Sandbox.Godot/addons/Foo/plguin.cfg
-        ./Sandbox/Directory.Build.props
+        # Supported: package.json / plugin.cfg / Directory.Build.props
+        ./src/MyUnityProject/package.json
+        ./addons/MyPlugin/plugin.cfg
+        ./Directory.Build.props
+      # Release tag to propagate into version files.
       tag: ${{ inputs.tag }}
-      use-bot-token: false # false to use GITHUB_TOKEN, true to use GitHub App token
-      dry-run: ${{ inputs.dry-run }}
+      require-validation: true
+      # true if your default branch requires GitHub App authentication.
+      use-bot-token: false
+      # true writes to test-release/{tag} branch instead of target ref.
+      dry-run: false
+      dotnet-run-path: |
+        # Optional hook; workflow always passes: -- --version {tag}
+        ./tools/VersionOutput/VersionOutput.csproj
+```
 
-  build-unity:
-    needs: [update-packagejson]
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.update-packagejson.outputs.sha }}  # use updated package.json
-
-  # use clean-packagejson-branch.yaml to delete dry-run branch.
+```yaml
+jobs:
   cleanup:
+    # Branch cleanup is only needed when dry-run created a temp branch.
     if: ${{ needs.update-packagejson.outputs.is-branch-created == 'true' }}
     needs: [update-packagejson]
     permissions:
       contents: write
     uses: Cysharp/Actions/.github/workflows/clean-packagejson-branch.yaml@main
     with:
+      # Output of update-packagejson workflow.
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 ```
 
-## validate-tag
+## Composite actions
 
-> [See workflow](https://github.com/Cysharp/Actions/blob/main/.github/workflows/validate-tag.yaml)
+| Action | Purpose | Key inputs / notes |
+| --- | --- | --- |
+| `benchmark-progress-comment` | Post or update a benchmark progress comment on an issue or PR. | Inputs: `comment`, `state`, `title`, `update`. No-op when the event has no issue number. |
+| `benchmark-runnable` | Authorize whether a GitHub user may trigger benchmark execution. | Input: `username`. Output: `authorized`. Current allowlist is maintained in the action itself. |
+| `check-metas` | Fail or report when untracked Unity `.meta` files exist. | Inputs: `directory`, optional `exit-on-error`. Output: `meta-exists`. |
+| `checkout` | SHA-pinned wrapper around `actions/checkout`. | Mirrors most `actions/checkout` inputs while centralizing the pinned version. |
+| `download-artifact` | SHA-pinned wrapper around `actions/download-artifact`. | Supports `name`, `path`, `pattern`, `merge-multiple`, `github-token`, `repository`, `run-id`. |
+| `setup-dotnet` | Install one or more .NET SDKs and configure CI-friendly environment variables. | Defaults to .NET `6.0.x` through `10.0.x`. Optional `dotnet-quality`, `skip-env`. |
+| `unity-builder` | SHA-pinned wrapper around `game-ci/unity-builder`. | Inputs include `projectPath`, `unityVersion`, `targetPlatform`, `buildMethod`, `customParameters`, `versioning`. |
+| `upload-artifact` | SHA-pinned wrapper around `actions/upload-artifact`. | Default `if-no-files-found` is `error`, not `warn`. |
 
-Validate tag is newer than latest release tag.
+### Action examples
 
-**Sample usage**
+#### benchmark-progress-comment
 
 ```yaml
-name: "Validate release tag"
-
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "tag: git tag you want create. (sample 1.0.0)"
-        required: true
-      require-validation:
-        description: "require-validation: true require validation must pass, false to keep going even validation failed."
-        required: false
-        type: boolean
-        default: true
-
-jobs:
-  validate:
-    uses: Cysharp/Actions/.github/workflows/validate-tag.yaml@main
+steps:
+  # This action posts comments only for issue/PR events with issue.number.
+  - uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
     with:
-      tag: ${{ inputs.tag }}
-      require-validation: ${{ inputs.require-validation }} # true = exit 1 if tag is older than current release. false = keep going even failed.
-
-  test:
-    needs: [validate]
-    runs-on: ubuntu-24.04
-    steps:
-      - run: echo "${{ needs.validate.outputs.validated }}" # true or false
-
+      comment: "Benchmark started"
+      state: running
+      title: "Benchmark"
+      # "true" edits latest benchmark comment; "false" appends a new one.
+      update: "true"
 ```
 
-# 🎬 Actions
-
-## check-benchmarkable
-
-> [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/check-benchmarkable/action.yaml)
-
-Check if GitHub User is allow to run benchmark.
-Mainly used for benchmark CI workflow.
-
-> [!NOTE]
-> This action is workaround for current `github.event.comment.author_association` inconsistence behavior.
-> `github.event.comment.author_association` should return `OWNER`, `MEMBER` or `CORABORATOR` for organization member, however currently it returns `CONTRIBUTOR` even actor is Org member.
-> It means `github.event.comment.author_association` can't be used to check if actor is Org member == "benchmark command allowed user" or not.
-> This action checks if actor is Benchmark allowd by statically defined list, lol.
-
-**sample usage**
+#### benchmark-runnable
 
 ```yaml
-name: benchmark
+steps:
+  - id: auth
+    uses: Cysharp/Actions/.github/actions/benchmark-runnable@main
+    with:
+      # Usually github.actor
+      username: ${{ github.actor }}
 
-jobs:
-  # is actor is benchmarkable
-  verify:
-    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.comment.body, '/benchmark') }}
-    outputs:
-      is-benchmarkable: ${{ steps.is-benchmarkable.outputs.authorized }} # true or false
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - name: Check actor is benchmarkable
-        id: is-benchmarkable
-        uses: Cysharp/Actions/.github/actions/check-benchmarkable@main
-        with:
-          username: ${{ github.actor }}
-
-  # run benchmark
-  benchmark:
-    needs: [verify]
-    if: ${{ needs.verify.outputs.is-benchmarkable == 'true' }}
-    environment: benchmark # required for Azure login
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - run: echo "run benchmark"
+  # authorized output is 'true' or 'false'.
+  - run: echo "authorized=${{ steps.auth.outputs.authorized }}"
 ```
 
-## check-metas
-
-> [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/check-metas/action.yaml)
-
-Check Unity .meta files are not generated.
-Mainly used for Unity CI workflow.
-
-**Sample usage**
+#### checkout
 
 ```yaml
-name: build-debug
+steps:
+  - id: co
+    uses: Cysharp/Actions/.github/actions/checkout@main
+    with:
+      repository: ${{ github.repository }}
+      ref: ${{ github.ref_name }}
+      # 0 to fetch full history/tags when versioning logic needs it.
+      fetch-depth: 0
 
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  build-unity:
-    name: "Build Unity package"
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      # Any actions that create .meta when it was not comitted.
-      - name: Unity Build
-        run: touch ./Sandbox/Sandbox.Unity/Assets/Scene1.unity.meta
-      - name: Check all .meta is comitted
-        uses: Cysharp/Actions/.github/actions/check-metas@main
-        with:
-          directory: ./Sandbox/Sandbox.Unity
+  # Wrapper exposes the same useful outputs as actions/checkout.
+  - run: echo "checked out ${{ steps.co.outputs.ref }} @ ${{ steps.co.outputs.commit }}"
 ```
 
-## checkout
-
-> [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/checkout/action.yaml)
-
-Wrapper of [actions/checkout](https://github.com/actions/checkout/tree/main) to offer centrlral managed checkout by sha pinning.
-
-**Sample usage**
+#### check-metas
 
 ```yaml
-name: build-debug
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  build-unity:
-    name: "Build Unity package"
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      # - uses: actions/checkout@v4
-      - use: Cysharp/Actions/.github/actions/checkout@main
-      # Any actions that create .meta when it was not comitted.
-      - name: Unity Build
-        run: touch ./Sandbox/Sandbox.Unity/Assets/Scene1.unity.meta
-      - name: Check all .meta is comitted
-        uses: Cysharp/Actions/.github/actions/check-metas@main
-        with:
-          directory: ./Sandbox/Sandbox.Unity
+steps:
+  - uses: Cysharp/Actions/.github/actions/check-metas@main
+    with:
+      directory: ./Sandbox/Sandbox.Unity
+      # Keep true in CI to fail immediately on untracked .meta files.
+      exit-on-error: "true"
 ```
 
-
-## download-artifact
-
-> [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/download-artifact/action.yaml)
-
-Wrapper of [actions/download-artifact](https://github.com/actions/download-artifact/tree/main) to offer default value and consistent action versioning. Mainly used for Release artifact.
-
-> [!TIP]
-> See [upload-artifact](#upload-artifact) for upload.
-
-**Sample usage**
+#### setup-dotnet
 
 ```yaml
-name: build-debug
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  # must prepare upload-artifact
-
-  download-artifact:
-    needs: [upload-artifact]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: Cysharp/Actions/.github/actions/download-artifact@main
-        with:
-          name: my-artifact
-      - name: Display structure of downloaded files
-        run: ls -R
+steps:
+  - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+    with:
+      dotnet-version: |
+        10.0.x
+      # false also sets CI-friendly env vars (telemetry off, etc.).
+      skip-env: "false"
 ```
 
-
-## setup-dotnet
-
-> [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/setup-dotnet/action.yaml)
-
-Wrapper of [actions/setup-dotnet](https://github.com/actions/setup-dotnet) to offer default value and consistent action versioning and Environment variables. Mainly used for .NET CI workflow.
-
-**Sample usage**
+#### upload-artifact + download-artifact
 
 ```yaml
-name: build-debug
+steps:
+  - uses: Cysharp/Actions/.github/actions/upload-artifact@main
+    with:
+      name: my-artifact
+      path: ./artifacts/**
+      # Default is already error, but explicit value is clearer in docs.
+      if-no-files-found: error
 
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  dotnet-build:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+  - uses: Cysharp/Actions/.github/actions/download-artifact@main
+    with:
+      name: my-artifact
+      path: ./downloaded
+      # false keeps each artifact in its own directory.
+      merge-multiple: "false"
 ```
 
-## unity-builder
-
-> [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/unity-builder/action.yaml)
-
-Build Unity projects for different platforms.
-
-**Sample usage**
+#### unity-builder
 
 ```yaml
-name: build-debug
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  dotnet-build:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      # execute scripts/Export Package
-      # /opt/Unity/Editor/Unity -quit -batchmode -nographics -silent-crashes -logFile -projectPath . -executeMethod PackageExporter.Export
-      - name: Build Unity (.unitypacakge)
-        uses: Cysharp/Actions/.github/actions/unity-builder@main
-        with:
-          projectPath: src/MyProject.Unity
-          unityVersion: "2020.3.33f1"
-          targetPlatform: StandaloneLinux64
-          buildMethod: PackageExporter.Export
-          versioning: None
+steps:
+  # UNITY_* env vars must be set from secrets before this step.
+  - uses: Cysharp/Actions/.github/actions/unity-builder@main
+    with:
+      projectPath: ./Sandbox/Sandbox.Unity
+      unityVersion: "2022.3.62f1"
+      targetPlatform: StandaloneLinux64
+      buildMethod: PackageExporter.Export
+      customParameters: ""
+      # Pass-through to game-ci/unity-builder versioning option.
+      versioning: None
 ```
 
-## upload-artifact
+## Notes
 
-> [See action](https://github.com/Cysharp/Actions/blob/main/.github/actions/upload-artifact/action.yaml)
-
-Wrapper of [actions/upload-artifact](https://github.com/actions/upload-artifact/tree/main) to offer default value and consistent action versioning. Mainly used for Release artifact.
-
-> [!TIP]
-> See [download-artifact](#download-artifact) for download.
-
-**Sample usage**
-
-```yaml
-name: build-debug
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  upload-artifact:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - run: mkdir -p path/to/artifact
-      - run: echo hello > path/to/artifact/world.txt
-      - uses: Cysharp/Actions/.github/actions/upload-artifact@main
-        with:
-          name: my-artifact
-          path: path/to/artifact/world.txt
-```
+- `secure-checkout` and `secure-setup-dotnet` directories currently exist but do not contain action definitions.
+- `validate-tag` is implemented by the `CysharpActions` CLI and used internally by reusable workflows such as `create-release` and `update-packagejson`; it is not exposed as a standalone reusable workflow.
+- The repo also contains internal test and maintenance workflows such as `_test-*`, `_toc-generator.yaml`, and `_update-actions-binaries.yaml`.
