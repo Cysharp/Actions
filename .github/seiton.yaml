@@ -93,14 +93,6 @@ exclusions:
     rules:
       - run-inputs-context-direct-use
 
-  # temporary exclusion for MessagePipe workflows
-  - file: .github/workflows/build-debug.yaml
-    rules:
-      - unpinned-image
-  - file: .github/workflows/build-release.yaml
-    rules:
-      - unpinned-image
-
   # Glob + jobs scope: exclude rules for specific jobs only
   # - file: .github/workflows/legacy-*.yml
   #   rules:
