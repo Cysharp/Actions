@@ -1,46 +1,46 @@
 name: (R) Clean package.json branch
 
 on:
-    workflow_call:
-        inputs:
-            branch:
-                description: "branch name to delete. Only delete branches that are created by github-actions[bot] and are not the default branch."
-                required: true
-                type: string
-        outputs:
-            branch-deleted:
-                description: "Indicate branch is deleted or not by boolean. true = branch deleted, false = branch not deleted."
-                value: ${{ jobs.cleanup.outputs.branch-deleted }}
+  workflow_call:
+    inputs:
+      branch:
+        description: "branch name to delete. Only delete branches that are created by github-actions[bot] and are not the default branch."
+        required: true
+        type: string
+    outputs:
+      branch-deleted:
+        description: "Indicate branch is deleted or not by boolean. true = branch deleted, false = branch not deleted."
+        value: ${{ jobs.cleanup.outputs.branch-deleted }}
 
 jobs:
-    cleanup:
-        permissions:
-            contents: write
-        runs-on: ubuntu-24.04
-        timeout-minutes: 5
-        outputs:
-            branch-deleted: ${{ steps.delete-branch.outputs.deleted }}
-        steps:
-            - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-              with:
-                  persist-credentials: false
-            - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-              with:
-                  dotnet-version: 9.0.x
-            - name: Set Cysharp/Actions binary path
-              id: actions-caller
-              run: |
-                  branch=main
-                  if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}//CysharpActions" ]]; then
-                    echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" | tee -a "$GITHUB_OUTPUT"
-                    chmod +x "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions"
-                  else
-                    echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
-                  fi
-            - name: Delete branch
-              id: delete-branch
-              run: ${{ steps.actions-caller.outputs.path }} delete-branch --branch "${BRANCH}"
-              env:
-                  BRANCH: ${{ inputs.branch }}
-                  GH_REPO: ${{ github.repository }}
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  cleanup:
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      branch-deleted: ${{ steps.delete-branch.outputs.deleted }}
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
+      - name: Set Cysharp/Actions binary path
+        id: actions-caller
+        run: |
+          branch=main
+          if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}//CysharpActions" ]]; then
+            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" | tee -a "$GITHUB_OUTPUT"
+            chmod +x "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions"
+          else
+            echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
+          fi
+      - name: Delete branch
+        id: delete-branch
+        run: ${{ steps.actions-caller.outputs.path }} delete-branch --branch "${BRANCH}"
+        env:
+          BRANCH: ${{ inputs.branch }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

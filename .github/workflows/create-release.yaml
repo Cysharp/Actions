@@ -1,234 +1,234 @@
 name: (R) Create Release
 
 on:
-    workflow_dispatch:
-        inputs:
-            commit-id:
-                description: "commit-id: CommitId to create release & tag."
-                required: false
-                type: string
-            dry-run:
-                description: "dry-run: true = no upload. false = dry run changes && delete release after 60s."
-                required: true
-                type: boolean
-            require-validation:
-                description: "require-validation: true require validation must pass, false to keep going even validation failed."
-                required: false
-                type: boolean
-                default: true
-            tag:
-                description: "tag: Git tag to create. (sample 1.0.0)"
-                required: true
-                type: string
-            # nuget
-            nuget-path:
-                description: "nuget path to upload."
-                required: false
-                type: string
-                default: |
-                    ./nuget/*.nupkg
-                    ./nuget/*.snupkg
-            nuget-push:
-                description: "nuget-push: true = upload nuget package. false = not upload"
-                required: false
-                type: boolean
-                default: false
-            # release
-            release-asset-path:
-                description: "release assets path to upload. This is a list of paths separated by a newline."
-                required: false
-                type: string
-            release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
-                description: "release-format: if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred."
-                required: false
-                type: string
-                default: "v{0}"
-            release-upload:
-                description: "release-upload: true = upload assets. false = not upload"
-                required: false
-                type: boolean
-                default: false
-            download-run-id:
-                description: "Run ID to download artifacts from. If not specified, downloads from the current run."
-                required: false
-                type: string
-                default: ""
-    workflow_call:
-        inputs:
-            commit-id:
-                description: "CommitId to create release & tag."
-                required: true
-                type: string
-            dry-run:
-                description: "true = no upload. false = dry run changes && delete release after 60s."
-                required: true
-                type: boolean
-            require-validation:
-                description: "true require validation must pass, false to keep going even validation failed."
-                required: false
-                type: boolean
-                default: true
-            tag:
-                description: "Git tag to create. (sample 1.0.0)"
-                required: true
-                type: string
-            # nuget
-            nuget-path:
-                description: "nuget path to upload."
-                required: false
-                type: string
-                default: |
-                    ./nuget/*.nupkg
-                    ./nuget/*.snupkg
-            nuget-push:
-                description: "true = upload nuget package. false = not upload"
-                required: false
-                type: boolean
-                default: false
-            # release
-            release-asset-path:
-                description: "release assets path to upload. This is a list of paths separated by a newline."
-                required: false
-                type: string
-            release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
-                description: "Release format. (if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred.)"
-                required: false
-                type: string
-                default: "v{0}"
-            release-upload:
-                description: "true = upload assets. false = not upload"
-                required: false
-                type: boolean
-                default: false
-            download-run-id:
-                description: "Run ID to download artifacts from. If not specified, downloads from the current run."
-                required: false
-                type: string
-                default: ""
+  workflow_dispatch:
+    inputs:
+      commit-id:
+        description: "commit-id: CommitId to create release & tag."
+        required: false
+        type: string
+      dry-run:
+        description: "dry-run: true = no upload. false = dry run changes && delete release after 60s."
+        required: true
+        type: boolean
+      require-validation:
+        description: "require-validation: true require validation must pass, false to keep going even validation failed."
+        required: false
+        type: boolean
+        default: true
+      tag:
+        description: "tag: Git tag to create. (sample 1.0.0)"
+        required: true
+        type: string
+      # nuget
+      nuget-path:
+        description: "nuget path to upload. (DEPRECATED)"
+        required: false
+        type: string
+        default: |
+          ./nuget/*.nupkg
+          ./nuget/*.snupkg
+      nuget-push:
+        description: "nuget-push: true = upload nuget package. false = not upload (DEPRECATED, write your own NUGET Trusted publish step in your workflow instead.)"
+        required: false
+        type: boolean
+        default: false
+      # release
+      release-asset-path:
+        description: "release assets path to upload. This is a list of paths separated by a newline."
+        required: false
+        type: string
+      release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
+        description: "release-format: if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred."
+        required: false
+        type: string
+        default: "v{0}"
+      release-upload:
+        description: "release-upload: true = upload assets. false = not upload"
+        required: false
+        type: boolean
+        default: false
+      download-run-id:
+        description: "Run ID to download artifacts from. If not specified, downloads from the current run."
+        required: false
+        type: string
+        default: ""
+  workflow_call:
+    inputs:
+      commit-id:
+        description: "CommitId to create release & tag."
+        required: true
+        type: string
+      dry-run:
+        description: "true = no upload. false = dry run changes && delete release after 60s."
+        required: true
+        type: boolean
+      require-validation:
+        description: "true require validation must pass, false to keep going even validation failed."
+        required: false
+        type: boolean
+        default: true
+      tag:
+        description: "Git tag to create. (sample 1.0.0)"
+        required: true
+        type: string
+      # nuget
+      nuget-path:
+        description: "nuget path to upload. (DEPRECATED)"
+        required: false
+        type: string
+        default: |
+          ./nuget/*.nupkg
+          ./nuget/*.snupkg
+      nuget-push:
+        description: "nuget-push: true = upload nuget package. false = not upload (DEPRECATED, write your own NUGET Trusted publish step in your workflow instead.)"
+        required: false
+        type: boolean
+        default: false
+      # release
+      release-asset-path:
+        description: "release assets path to upload. This is a list of paths separated by a newline."
+        required: false
+        type: string
+      release-format: # see: https://docs.github.com/en/actions/learn-github-actions/expressions#format
+        description: "Release format. (if 'Ver.{0}' is specified, the release title will be 'Ver.1.0.0'. set '{0}' if no prefix is preferred.)"
+        required: false
+        type: string
+        default: "v{0}"
+      release-upload:
+        description: "true = upload assets. false = not upload"
+        required: false
+        type: boolean
+        default: false
+      download-run-id:
+        description: "Run ID to download artifacts from. If not specified, downloads from the current run."
+        required: false
+        type: string
+        default: ""
 
 env:
-    GH_REPO: ${{ github.repository }}
-    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GH_REPO: ${{ github.repository }}
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-    create-release:
-        name: Create Release
-        permissions:
-            contents: write # required for creating release
-            id-token: write # required for NuGet Trusted Publish
-        runs-on: ubuntu-24.04
-        timeout-minutes: 10
-        steps:
-            - name: Validate inputs - unitypackage
-              shell: bash
-              if: ${{ inputs.release-upload && inputs.release-asset-path == '' }}
-              run: |
-                  echo "Validation error! 'inputs.release-asset-path' cannot be blank when 'inputs.release-upload' is true."
-                  exit 1
+  create-release:
+    name: Create Release
+    permissions:
+      contents: write # required for creating release
+      id-token: write # required for NuGet Trusted Publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Validate inputs - unitypackage
+        shell: bash
+        if: ${{ inputs.release-upload && inputs.release-asset-path == '' }}
+        run: |
+          echo "Validation error! 'inputs.release-asset-path' cannot be blank when 'inputs.release-upload' is true."
+          exit 1
 
-            - name: Load secrets
-              id: op-load-secret
-              uses: 1password/load-secrets-action@92467eb28f72e8255933372f1e0707c567ce2259 # v4.0.0
-              with:
-                  export-env: false
-              env:
-                  OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
-                  NUGET_KEY: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/NUGET_KEY/credential"
-                  # NUGET_USER: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/NUGET_KEY/username"
+      - name: Load secrets
+        id: op-load-secret
+        uses: 1password/load-secrets-action@92467eb28f72e8255933372f1e0707c567ce2259 # v4.0.0
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
+          NUGET_KEY: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/NUGET_KEY/credential"
+          # NUGET_USER: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/NUGET_KEY/username"
 
-            # 2025/10/1: NuGet Trusted Publish with reusable workflows is not yet supported: see https://github.com/NuGet/login/issues/6
-            # - name: NuGet login (OIDC → temp API key)
-            #   if: ${{ inputs.nuget-push }}
-            #   uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1.1.0
-            #   id: login
-            #   with:
-            #     user: ${{ steps.op-load-secret.outputs.NUGET_USER }}
+      # 2025/10/1: NuGet Trusted Publish with reusable workflows is not yet supported: see https://github.com/NuGet/login/issues/6
+      # - name: NuGet login (OIDC → temp API key)
+      #   if: ${{ inputs.nuget-push }}
+      #   uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1.1.0
+      #   id: login
+      #   with:
+      #     user: ${{ steps.op-load-secret.outputs.NUGET_USER }}
 
-            - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-              with:
-                  ref: ${{ inputs.commit-id }}
-                  persist-credentials: false
-            - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
-              with:
-                  dotnet-version: 9.0.x
-            - name: Set Cysharp/Actions binary path
-              id: actions-caller
-              run: |
-                  branch=main
-                  if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" ]]; then
-                    echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" | tee -a "$GITHUB_OUTPUT"
-                    chmod +x "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions"
-                  else
-                    echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
-                  fi
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ inputs.commit-id }}
+          persist-credentials: false
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
+      - name: Set Cysharp/Actions binary path
+        id: actions-caller
+        run: |
+          branch=main
+          if [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" ]]; then
+            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" | tee -a "$GITHUB_OUTPUT"
+            chmod +x "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions"
+          else
+            echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
+          fi
 
-            # validate
-            - name: Validate and normalize tag
-              id: validate
-              run: |
-                  extra_args=""
-                  if [[ "${REQUIRE_VALIDATION}" == "true" ]]; then
-                    extra_args="--require-validation"
-                  fi
-                  ${{ steps.actions-caller.outputs.path }} validate-tag --tag "${TAG}" ${extra_args}
-              env:
-                  TAG: ${{ inputs.tag }}
-                  REQUIRE_VALIDATION: ${{ inputs.require-validation }}
-            # Download(All) Artifacts to current directory
-            - uses: Cysharp/Actions/.github/actions/download-artifact@main
-              with:
-                  github-token: ${{ github.token }}
-                  run-id: ${{ inputs.download-run-id || github.run_id }}
-            - name: Show download aritifacts
-              run: ls -lR
-            - name: Validate package exists in artifact - release assets
-              if: ${{ inputs.release-upload }}
-              run: ${{ steps.actions-caller.outputs.path }} validate-file-exists --path-pattern-string "${RELEASE_ASSET_PATH}"
-              env:
-                  RELEASE_ASSET_PATH: ${{ inputs.release-asset-path }}
-            - name: Validate package exists in artifact - NuGet
-              if: ${{ inputs.nuget-push }}
-              run: ${{ steps.actions-caller.outputs.path }} validate-nupkg-exists --path-pattern-string "${NUGET_PATH}"
+      # validate
+      - name: Validate and normalize tag
+        id: validate
+        run: |
+          extra_args=""
+          if [[ "${REQUIRE_VALIDATION}" == "true" ]]; then
+            extra_args="--require-validation"
+          fi
+          ${{ steps.actions-caller.outputs.path }} validate-tag --tag "${TAG}" ${extra_args}
+        env:
+          TAG: ${{ inputs.tag }}
+          REQUIRE_VALIDATION: ${{ inputs.require-validation }}
+      # Download(All) Artifacts to current directory
+      - uses: Cysharp/Actions/.github/actions/download-artifact@main
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.download-run-id || github.run_id }}
+      - name: Show download aritifacts
+        run: ls -lR
+      - name: Validate package exists in artifact - release assets
+        if: ${{ inputs.release-upload }}
+        run: ${{ steps.actions-caller.outputs.path }} validate-file-exists --path-pattern-string "${RELEASE_ASSET_PATH}"
+        env:
+          RELEASE_ASSET_PATH: ${{ inputs.release-asset-path }}
+      - name: Validate package exists in artifact - NuGet
+        if: ${{ inputs.nuget-push }}
+        run: ${{ steps.actions-caller.outputs.path }} validate-nupkg-exists --path-pattern-string "${NUGET_PATH}"
 
-              env:
-                  NUGET_PATH: ${{ inputs.nuget-path }}
-            # Create Releases
-            - name: Create Release
-              run: ${{ steps.actions-caller.outputs.path }} create-release --tag "${TAG}" --release-title "${RELEASE_TITLE}" --release-asset-path-string "${RELEASE_ASSET_PATH}"
-              env:
-                  TAG: ${{ inputs.tag }}
-                  RELEASE_TITLE: ${{ format(inputs.release-format, inputs.tag) }}
-                  RELEASE_ASSET_PATH: ${{ inputs.release-asset-path }}
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  GH_REPO: ${{ github.repository }}
+        env:
+          NUGET_PATH: ${{ inputs.nuget-path }}
+      # Create Releases
+      - name: Create Release
+        run: ${{ steps.actions-caller.outputs.path }} create-release --tag "${TAG}" --release-title "${RELEASE_TITLE}" --release-asset-path-string "${RELEASE_ASSET_PATH}"
+        env:
+          TAG: ${{ inputs.tag }}
+          RELEASE_TITLE: ${{ format(inputs.release-format, inputs.tag) }}
+          RELEASE_ASSET_PATH: ${{ inputs.release-asset-path }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
 
-            # Upload to NuGet
-            - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
-              if: ${{ inputs.nuget-push }}
-              run: |
-                  dry_run_flag=""
-                  if [[ "${DRY_RUN}" == "true" ]]; then
-                    dry_run_flag="--dry-run"
-                  fi
-                  ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${NUGET_PATH}" --api-key "${NUGET_KEY}" ${dry_run_flag}
-              env:
-                  DRY_RUN: ${{ inputs.dry-run }}
-                  NUGET_PATH: ${{ inputs.nuget-path }}
-                  NUGET_KEY: ${{ steps.op-load-secret.outputs.NUGET_KEY }}
-            # 2025/10/1: NuGet Trusted Publish for Org is not yet supported.
-            # run: ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --api-key "${NUGET_KEY}" ${{ inputs.dry-run && '--dry-run' || '' }}
-            # env:
-            #   NUGET_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+      # Upload to NuGet
+      - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
+        if: ${{ inputs.nuget-push }}
+        run: |
+          dry_run_flag=""
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            dry_run_flag="--dry-run"
+          fi
+          ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${NUGET_PATH}" --api-key "${NUGET_KEY}" ${dry_run_flag}
+        env:
+          DRY_RUN: ${{ inputs.dry-run }}
+          NUGET_PATH: ${{ inputs.nuget-path }}
+          NUGET_KEY: ${{ steps.op-load-secret.outputs.NUGET_KEY }}
+      # 2025/10/1: NuGet Trusted Publish for Org is not yet supported.
+      # run: ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --api-key "${NUGET_KEY}" ${{ inputs.dry-run && '--dry-run' || '' }}
+      # env:
+      #   NUGET_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
 
-            # Clean up
-            - name: Clean up. Wait 60s and delete release if dry-run or failure. (dry-run=${{ inputs.dry-run }}})
-              if: ${{ inputs.dry-run || failure() }}
-              run: |
-                  if gh release list | grep Draft | grep "${TAG}"; then
-                    sleep 60
-                    gh release delete "${TAG}" --yes --cleanup-tag
-                  fi
-              env:
-                  TAG: ${{ inputs.tag }}
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  GH_REPO: ${{ github.repository }}
+      # Clean up
+      - name: Clean up. Wait 60s and delete release if dry-run or failure. (dry-run=${{ inputs.dry-run }}})
+        if: ${{ inputs.dry-run || failure() }}
+        run: |
+          if gh release list | grep Draft | grep "${TAG}"; then
+            sleep 60
+            gh release delete "${TAG}" --yes --cleanup-tag
+          fi
+        env:
+          TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}

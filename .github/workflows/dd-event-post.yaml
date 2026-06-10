@@ -69,7 +69,7 @@ jobs:
           echo "::endgroup::"
         env:
           _TITLE: ${{ inputs.title }}
-          _TEXT:  ${{ inputs.text }}
+          _TEXT: ${{ inputs.text }}
           _REPOSITORY: ${{ github.repository }}
           _BRANCH: ${{ github.base_ref }}
           _EVENT: ${{ inputs.event }}
