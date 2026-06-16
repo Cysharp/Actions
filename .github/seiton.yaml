@@ -90,6 +90,7 @@ exclusions:
 
   # temporary exclusion for build-release workflow, which use inputs.tag pattern.
   - file: .github/workflows/build-release.yaml
+    job: build-dotnet
     rules:
       - run-inputs-context-direct-use
 
