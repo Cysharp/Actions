@@ -1,0 +1,76 @@
+name: (R) PR Harness Check
+
+on:
+  workflow_call:
+
+jobs:
+  prevent-githubactions-changes:
+    permissions:
+      pull-requests: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+
+            if (!pr) {
+              core.info("This workflow only checks pull request events.");
+              return;
+            }
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              ...context.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+
+            const changedFiles = files.map(file => file.filename);
+            const isExternalPr = pr.head.repo.full_name !== pr.base.repo.full_name;
+
+            if (!isExternalPr) {
+              core.info("Not an external contributor PR.");
+              return;
+            }
+
+            const blocked = changedFiles.filter(name =>
+              /^\.github\/workflows\/.*\.ya?ml$/.test(name) ||
+              /^\.github\/actions\/.*$/.test(name) ||
+              /^\.github\/dependabot\.ya?ml$/.test(name) ||
+              name === ".github/CODEOWNERS"
+            );
+
+            if (blocked.length > 0) {
+              core.setFailed(
+                `External contributor PR may not change protected files:\n${blocked.join("\n")}`
+              );
+              return;
+            }
+
+            core.info("No protected files changed by external contributor.");
+
+  dependency-review:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: cysharp/actions/.github/actions/checkout@main
+        with:
+          persist-credentials: false
+      - name: "Dependency Review"
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # 5.0.0
+        with:
+          allow-licenses: Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MIT, MPL-2.0
+          license-check: true
+          vulnerability-check: true
+
+  pr-harness-check:
+    needs: [prevent-githubactions-changes, dependency-review]
+    permissions: {}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: "Pass"
+        run: echo "PR Harness checks passed."
