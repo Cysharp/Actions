@@ -2,7 +2,15 @@
 version: 2
 updates:
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - "/"
+      - "/.github/actions/benchmark-progress-comment"
+      - "/.github/actions/benchmark-runnable"
+      - "/.github/actions/check-metas"
+      - "/.github/actions/checkout"
+      - "/.github/actions/setup-dotnet"
+      - "/.github/actions/unity-builder"
+      - "/.github/actions/upload-artifact"
     schedule:
       interval: "weekly" # Check for updates to GitHub Actions every week
     groups:
