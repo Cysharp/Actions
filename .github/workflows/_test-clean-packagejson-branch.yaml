@@ -30,9 +30,7 @@ jobs:
           private-key: ${{ steps.op-load-secret.outputs.ACTIONBOT_PRIVATE_KEY }}
           permission-contents: write
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
+        uses: Cysharp/Actions/.github/actions/checkout@main
       - name: Set branch name
         id: branch
         run: echo "name=test-branch-${{ github.run_id }}" | tee -a "$GITHUB_OUTPUT"

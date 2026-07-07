@@ -76,11 +76,10 @@ jobs:
             # issue_comment (issue) and other trigger
             echo "name=${{ github.ref_name }}" | tee -a "$GITHUB_OUTPUT"
           fi
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: Cysharp/Actions/.github/actions/checkout@main
         with:
           ref: ${{ steps.branch.outputs.name }}
           path: Repo
-          persist-credentials: false
       - name: Set Cysharp/Actions binary path
         id: actions-caller
         run: |
