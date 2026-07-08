@@ -146,7 +146,7 @@ jobs:
           FILE_PATH: ${{ inputs.file-path }}
           DRY_RUN: ${{ inputs.dry-run }}
           GH_REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ inputs.use-bot-token && steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ case(inputs.use-bot-token, steps.app-token.outputs.token, secrets.GITHUB_TOKEN) }}
 
       - name: Push changes
         if: ${{ steps.update.outputs.commited == '1' }}
