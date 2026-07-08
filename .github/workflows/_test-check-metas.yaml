@@ -16,15 +16,15 @@ jobs:
       - uses: ./.github/actions/check-metas
         id: check-metas
         with:
-          directory: "Sandbox/Sandbox.Unity"
+          directory: "sandbox/Sandbox.Unity"
           exit-on-error: false
       # Any actions that create .meta when it was not comitted.
       - name: Unity Build
-        run: touch ./Sandbox/Sandbox.Unity/Assets/Scene1.unity.meta
+        run: touch ./sandbox/Sandbox.Unity/Assets/Scene1.unity.meta
       - uses: ./.github/actions/check-metas
         id: check-metas2
         with:
-          directory: "Sandbox/Sandbox.Unity"
+          directory: "sandbox/Sandbox.Unity"
           exit-on-error: false
       - name: Test
         run: |
@@ -38,7 +38,7 @@ jobs:
       - uses: ./.github/actions/check-metas
         id: check-metas3
         with:
-          directory: "Sandbox/Sandbox.Unity"
+          directory: "sandbox/Sandbox.Unity"
           exit-on-error: true
         continue-on-error: true
       - name: Test on .meta found exit 1

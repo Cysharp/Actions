@@ -35,11 +35,11 @@ jobs:
     with:
       ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
       file-path: |
-        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
-        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
-        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
-        ./Sandbox/Directory.Build.props
-      dotnet-run-path: ./Sandbox/VersionOutput/VersionOutput.csproj
+        ./sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
+        ./sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
+        ./sandbox/Directory.Build.props
+      dotnet-run-path: ./sandbox/VersionOutput/VersionOutput.csproj
       tag: ${{ needs.set-tag.outputs.tag }}
       use-bot-token: true
       dry-run: true
@@ -56,10 +56,10 @@ jobs:
     with:
       ref: ${{ needs.update-packagejson.outputs.sha }}
       file-path: |
-        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
-        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
-        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
-        ./Sandbox/Directory.Build.props
+        ./sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
+        ./sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
+        ./sandbox/Directory.Build.props
       tag: ${{ needs.set-tag.outputs.tag }}
       use-bot-token: false
       dry-run: true
@@ -75,10 +75,10 @@ jobs:
     with:
       ref: ${{ needs.update-packagejson2.outputs.sha }}
       file-path: |
-        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
-        ./Sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
-        ./Sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
-        ./Sandbox/Directory.Build.props
+        ./sandbox/Sandbox.Unity/Assets/Plugins/Foo/package.json
+        ./sandbox/Sandbox.Unity/Assets/Plugins/Foo.Plugin/package.json
+        ./sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
+        ./sandbox/Directory.Build.props
       tag: v${{ needs.set-tag.outputs.tag }}
       dry-run: true
 

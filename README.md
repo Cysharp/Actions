@@ -338,7 +338,7 @@ steps:
 steps:
   - uses: Cysharp/Actions/.github/actions/check-metas@main
     with:
-      directory: ./Sandbox/Sandbox.Unity
+      directory: ./sandbox/Sandbox.Unity
       # Keep true in CI to fail immediately on untracked .meta files.
       exit-on-error: "true"
 ```
@@ -381,7 +381,7 @@ steps:
   # UNITY_* env vars must be set from secrets before this step.
   - uses: Cysharp/Actions/.github/actions/unity-builder@main
     with:
-      projectPath: ./Sandbox/Sandbox.Unity
+      projectPath: ./sandbox/Sandbox.Unity
       unityVersion: "2022.3.62f1"
       targetPlatform: StandaloneLinux64
       buildMethod: PackageExporter.Export
