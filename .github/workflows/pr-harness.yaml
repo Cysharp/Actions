@@ -60,6 +60,7 @@ jobs:
         with:
           persist-credentials: false
       - name: "Dependency Review"
+        if: ${{ github.repository_visibility == 'public' }}
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # 5.0.0
         with:
           allow-licenses: Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MIT, MPL-2.0
