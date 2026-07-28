@@ -76,3 +76,8 @@ crashlytics-build.properties
 
 # VS Counter
 !*.meta
+
+# custom
+!output.csproj
+!Sandbox.Unity.Plugin.unitypackage
+!Sandbox.Unity.unitypackage
