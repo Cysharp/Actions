@@ -52,7 +52,6 @@ public class ProcessRunnerTest
             new CommandSpec("dotnet", ["--version"]),
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(0, result.ExitCode);
         Assert.False(string.IsNullOrWhiteSpace(result.Stdout));
         Assert.Equal(string.Empty, result.Stderr);
     }
@@ -66,7 +65,6 @@ public class ProcessRunnerTest
 
         var result = await ProcessRunner.RunAsync(command, TestContext.Current.CancellationToken);
 
-        Assert.Equal(0, result.ExitCode);
         Assert.Equal(string.Empty, result.Stdout);
         Assert.Contains("progress", result.Stderr, StringComparison.Ordinal);
     }

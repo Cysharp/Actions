@@ -14,7 +14,7 @@ public class CommandBoundaryTest
         Task<ProcessResult> Run(CommandSpec command, CancellationToken cancellationToken)
         {
             actual = command;
-            return Task.FromResult(new ProcessResult(0, "", ""));
+            return Task.FromResult(new ProcessResult("", ""));
         }
 
         try
@@ -41,7 +41,7 @@ public class CommandBoundaryTest
         Task<ProcessResult> Run(CommandSpec command, CancellationToken cancellationToken)
         {
             actual = command;
-            return Task.FromResult(new ProcessResult(0, "[{\"tagName\":\"1.2.3\",\"isLatest\":true}]", ""));
+            return Task.FromResult(new ProcessResult("[{\"tagName\":\"1.2.3\",\"isLatest\":true}]", ""));
         }
 
         var releases = await new GitHubReleaseExeGh(Run).GetGitHubReleaseAsync(TestContext.Current.CancellationToken);

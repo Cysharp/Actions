@@ -43,7 +43,7 @@ public readonly record struct CommandSpec(
     }
 }
 
-public readonly record struct ProcessResult(int ExitCode, string Stdout, string Stderr)
+public readonly record struct ProcessResult(string Stdout, string Stderr)
 {
     public string[] OutputLines => Stdout.ToMultiLine();
 }
@@ -59,6 +59,8 @@ public static class ProcessRunner
         var startInfo = new ProcessStartInfo(command.FileName)
         {
             UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
         };
         if (!string.IsNullOrWhiteSpace(Env.workingDirectory))
         {
@@ -74,9 +76,7 @@ public static class ProcessRunner
         var stderrTask = stderr.ToTask(cancellationToken);
         await Task.WhenAll(stdoutTask, stderrTask);
 
-        // ProcessX throws from the stdout iterator when the exit code is not acceptable.
         return new ProcessResult(
-            0,
             string.Join(Environment.NewLine, await stdoutTask),
             string.Join(Environment.NewLine, await stderrTask));
     }

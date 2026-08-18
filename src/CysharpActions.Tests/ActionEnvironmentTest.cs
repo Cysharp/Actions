@@ -100,7 +100,7 @@ public class ActionEnvironmentTest
         Task<ProcessResult> Run(CommandSpec command, CancellationToken cancellationToken)
         {
             processCalled = true;
-            return Task.FromResult(new ProcessResult(0, "", ""));
+            return Task.FromResult(new ProcessResult("", ""));
         }
 
         var command = new GitCommand(runProcess: Run);

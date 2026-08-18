@@ -19,7 +19,7 @@ public class NuGetCommandTest
         {
             actual = command;
             actualCancellationToken = cancellationToken;
-            return Task.FromResult(new CysharpActions.Runtime.ProcessResult(0, "", ""));
+            return Task.FromResult(new CysharpActions.Runtime.ProcessResult("", ""));
         }
 
         try
