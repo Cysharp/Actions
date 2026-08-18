@@ -46,11 +46,25 @@ jobs:
         run: dotnet publish ./src/CysharpActions -c Release --runtime linux-x64 -o ./actions/Linux-X64 -p:Version="${VERSION}"
       - name: dotnet publish (arm64)
         run: dotnet publish ./src/CysharpActions -c Release --runtime linux-arm64 -o ./actions/Linux-ARM64 -p:Version="${VERSION}"
+      - name: Smoke test generated x64 binary
+        run: |
+          chmod +x ./actions/Linux-X64/CysharpActions
+          ./actions/Linux-X64/CysharpActions --help | grep -Fq "update-version"
+          ./actions/Linux-X64/CysharpActions update-version --help | grep -Fq -- "--additional-commit-path-string"
+          output_file="${RUNNER_TEMP}/generated-binary-output.txt"
+          GITHUB_OUTPUT="${output_file}" ./actions/Linux-X64/CysharpActions increment-version --version 1.2.3 --type patch
+          grep -Fxq "version=1.2.4" "${output_file}"
+      - name: Validate generated architectures
+        run: |
+          file ./actions/Linux-X64/CysharpActions
+          file ./actions/Linux-ARM64/CysharpActions
+          readelf -h ./actions/Linux-X64/CysharpActions | grep -Eq "Machine:.*(Advanced Micro Devices X86-64|X86-64)"
+          readelf -h ./actions/Linux-ARM64/CysharpActions | grep -Eq "Machine:.*AArch64"
       - name: list files
         run: ls -lR ./actions/
       - name: Check update on git
         id: check_update
-        run: git diff --exit-code || echo "changed=1" | tee -a "$GITHUB_OUTPUT"
+        run: git diff --exit-code -- ./actions || echo "changed=1" | tee -a "$GITHUB_OUTPUT"
       - name: Commit and push files (add/updated? = ${{ steps.check_update.outputs.changed == '1' }})
         if: ${{ steps.check_update.outputs.changed == '1' }}
         id: update
@@ -59,8 +73,8 @@ jobs:
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-          git add -A
-          git commit -m "[automate] New CysharpActions.exe committed" -m "Commit by [GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          git add -A -- ./actions
+          git commit -m "[automate] New CysharpActions.exe committed" -m "Commit by [GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" -- ./actions
 
           git push origin "${BRANCH_NAME}"
           echo "commited=1" | tee -a "$GITHUB_OUTPUT"

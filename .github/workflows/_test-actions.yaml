@@ -7,7 +7,7 @@ on:
 jobs:
   dotnet:
     permissions:
-      contents: write # dotnet test runs gh cli
+      contents: read
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -18,10 +18,78 @@ jobs:
       - name: dotnet build
         run: dotnet build -c Release
       - name: dotnet test
-        run: dotnet test -c Release --no-build --logger:"console;verbosity=normal"
+        run: dotnet test -c Release --no-build --filter "Category!=LiveGitHub" --logger:"console;verbosity=normal"
+
+  live-github:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    concurrency:
+      group: cysharp-actions-live-github-tests
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: Cysharp/Actions/.github/actions/checkout@main
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
+      - name: dotnet build
+        run: dotnet build -c Release
+      - name: Run live GitHub tests
+        run: dotnet test -c Release --no-build --filter "Category=LiveGitHub" --logger:"console;verbosity=normal" --logger:"trx;LogFileName=live-github.trx" --results-directory ./TestResults/LiveGitHub
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify live test count
+        shell: pwsh
+        run: |
+          $counters = (Select-Xml -Path ./TestResults/LiveGitHub/live-github.trx -XPath "//*[local-name()='Counters']").Node
+          $executed = [int]$counters.executed
+          $skipped = @(Select-Xml -Path ./TestResults/LiveGitHub/live-github.trx -XPath "//*[local-name()='UnitTestResult' and @outcome='NotExecuted']").Count
+          if ($executed -lt 5 -or $skipped -ne 0) {
+            throw "Expected at least 5 executed LiveGitHub test cases and no skips, but executed=$executed, skipped=$skipped."
+          }
+          Write-Output "Executed $executed LiveGitHub test cases with no skips."
+
+  cysharp-actions-cli:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: Cysharp/Actions/.github/actions/checkout@main
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
+      - name: Smoke test committed x64 binary
+        run: |
+          chmod +x ./actions/Linux-X64/CysharpActions
+          ./actions/Linux-X64/CysharpActions --help | grep -Fq "increment-version"
+          output_file="${RUNNER_TEMP}/committed-binary-output.txt"
+          GITHUB_OUTPUT="${output_file}" ./actions/Linux-X64/CysharpActions increment-version --version 1.2.3 --type patch
+          grep -Fxq "version=1.2.4" "${output_file}"
+      - name: Publish current source to runner temp
+        run: |
+          dotnet publish ./src/CysharpActions -c Release --runtime linux-x64 -o "${RUNNER_TEMP}/CysharpActions/Linux-X64" -p:Version="0.0.0-test"
+          dotnet publish ./src/CysharpActions -c Release --runtime linux-arm64 -o "${RUNNER_TEMP}/CysharpActions/Linux-ARM64" -p:Version="0.0.0-test"
+      - name: Smoke test published x64 binary
+        run: |
+          binary="${RUNNER_TEMP}/CysharpActions/Linux-X64/CysharpActions"
+          chmod +x "${binary}"
+          "${binary}" --help | grep -Fq "update-version"
+          "${binary}" update-version --help | grep -Fq -- "--additional-commit-path-string"
+          output_file="${RUNNER_TEMP}/published-binary-output.txt"
+          GITHUB_OUTPUT="${output_file}" "${binary}" increment-version --version 1.2.3 --type patch
+          grep -Fxq "version=1.2.4" "${output_file}"
+      - name: Validate published architectures
+        run: |
+          file "${RUNNER_TEMP}/CysharpActions/Linux-X64/CysharpActions"
+          file "${RUNNER_TEMP}/CysharpActions/Linux-ARM64/CysharpActions"
+          readelf -h "${RUNNER_TEMP}/CysharpActions/Linux-X64/CysharpActions" | grep -Eq "Machine:.*(Advanced Micro Devices X86-64|X86-64)"
+          readelf -h "${RUNNER_TEMP}/CysharpActions/Linux-ARM64/CysharpActions" | grep -Eq "Machine:.*AArch64"
+      - name: Ensure PR test did not update committed binaries
+        run: git diff --exit-code -- ./actions
 
   upload-artifact:
     permissions:

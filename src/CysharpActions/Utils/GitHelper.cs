@@ -1,6 +1,8 @@
 ﻿using Cysharp.Diagnostics;
 using CysharpActions.Contexts;
 
+using CysharpActions.Runtime;
+
 namespace CysharpActions.Utils;
 
 public static class GitHelper
@@ -11,46 +13,49 @@ public static class GitHelper
     /// <param name="email"></param>
     /// <param name="user"></param>
     /// <returns></returns>
-    public static async Task SetGitUserEmailAsync(string email = "41898282+github-actions[bot]@users.noreply.github.com", string user = "github-actions[bot]")
+    public static async Task SetGitUserEmailAsync(
+        GitHubCredentials credentials,
+        string email = "41898282+github-actions[bot]@users.noreply.github.com",
+        string user = "github-actions[bot]",
+        RunProcess? runProcess = null,
+        CancellationToken cancellationToken = default)
     {
-        try
-        {
-            GHEnv.Current.Validate();
-        }
-        catch (ArgumentNullException ex)
-        {
-            throw new ActionCommandException("GH_REPO and GH_TOKEN is required, but not set.", ex);
-        }
+        runProcess ??= ProcessRunner.RunAsync;
+        credentials.Validate();
+        var token = credentials.RequireToken();
+        var repository = RepositoryContext.Required(credentials.Repository, "GH_REPO");
 
         try
         {
-            var remote = await "git config --get remote.origin.url";
-            if (remote != $"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/{GHEnv.Current.GH_REPO}")
+            var remoteUrl = $"https://github-actions:{token}@github.com/{repository}";
+            var remote = await runProcess(new CommandSpec("git", ["config", "--get", "remote.origin.url"]), cancellationToken);
+            if (remote.Stdout != remoteUrl)
             {
-                await $"git remote set-url origin \"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/{GHEnv.Current.GH_REPO}\"";
+                await runProcess(new CommandSpec("git", ["remote", "set-url", "origin", remoteUrl], new HashSet<int> { 3 }), cancellationToken);
             }
         }
         catch (ProcessErrorException)
         {
-            await $"git remote set-url origin \"https://github-actions:{GHEnv.Current.GH_TOKEN}@github.com/{GHEnv.Current.GH_REPO}\"";
+            var remoteUrl = $"https://github-actions:{token}@github.com/{repository}";
+            await runProcess(new CommandSpec("git", ["remote", "set-url", "origin", remoteUrl], new HashSet<int> { 3 }), cancellationToken);
         }
 
         try
         {
-            await "git config --get user.email";
+            await runProcess(new CommandSpec("git", ["config", "--get", "user.email"]), cancellationToken);
         }
         catch (ProcessErrorException)
         {
-            await $"git config --local user.email \"{email}\"";
+            await runProcess(new CommandSpec("git", ["config", "--local", "user.email", email]), cancellationToken);
         }
 
         try
         {
-            await "git config --get user.name";
+            await runProcess(new CommandSpec("git", ["config", "--get", "user.name"]), cancellationToken);
         }
         catch (ProcessErrorException)
         {
-            await $"git config --local user.name \"{user}\"";
+            await runProcess(new CommandSpec("git", ["config", "--local", "user.name", user]), cancellationToken);
         }
     }
 }

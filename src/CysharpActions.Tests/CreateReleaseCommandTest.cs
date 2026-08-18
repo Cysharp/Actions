@@ -2,18 +2,23 @@
 using CysharpActions.Utils;
 using Zx;
 
+using CysharpActions.Runtime;
+
 namespace CysharpActions.Tests;
 
+[Collection(LiveGitHubTest.Category)]
+[Trait("Category", LiveGitHubTest.Category)]
 public class CreateReleaseCommandTest
 {
-    // Run only on GitHub Actions
-    [Theory]
+    [Theory(
+        Skip = LiveGitHubTest.SkipReason,
+        SkipUnless = nameof(LiveGitHubTest.IsAvailable),
+        SkipType = typeof(LiveGitHubTest))]
     [InlineData("1.2.0-pre", "v1.2.0-pre")]
     public async Task SkipTagAndReleaseTest(string tag, string releaseTitle)
     {
-        if (!GitHubEnv.Current.CI)
-            return;
-        GHEnv.Current.Validate();
+        var environment = ActionEnvironment.ReadFromProcess();
+        environment.GitHubCredentials.Validate();
 
         Zx.Env.useShell = false;
 
@@ -24,8 +29,8 @@ public class CreateReleaseCommandTest
         {
             CreateFile(path, tag);
             var command = new CreateReleaseCommand(tag, releaseTitle);
-            await command.CreateReleaseAsync();
-            await command.UploadAssetFilesAsync([path]);
+            await command.CreateReleaseAsync(environment.GitHubCredentials, TestContext.Current.CancellationToken);
+            await command.UploadAssetFilesAsync([path], TestContext.Current.CancellationToken);
         }
         finally
         {
@@ -45,15 +50,17 @@ public class CreateReleaseCommandTest
         }
     }
 
-    [Theory]
+    [Theory(
+        Skip = LiveGitHubTest.SkipReason,
+        SkipUnless = nameof(LiveGitHubTest.IsAvailable),
+        SkipType = typeof(LiveGitHubTest))]
     [InlineData("test.0.1.0", "Ver.test.0.1.0")]
     [InlineData("test.1.0.0", "Ver.test.1.0.0")]
     [InlineData("test.10.1.0", "Ver.test.10.1.0")]
     public async Task CreateTagAndReleaseTest(string tag, string releaseTitle)
     {
-        if (!GitHubEnv.Current.CI)
-            return;
-        GHEnv.Current.Validate();
+        var environment = ActionEnvironment.ReadFromProcess();
+        environment.GitHubCredentials.Validate();
 
         Zx.Env.useShell = false;
 
@@ -64,8 +71,8 @@ public class CreateReleaseCommandTest
         {
             CreateFile(path, tag);
             var command = new CreateReleaseCommand(tag, releaseTitle);
-            await command.CreateReleaseAsync();
-            await command.UploadAssetFilesAsync([path]);
+            await command.CreateReleaseAsync(environment.GitHubCredentials, TestContext.Current.CancellationToken);
+            await command.UploadAssetFilesAsync([path], TestContext.Current.CancellationToken);
         }
         finally
         {

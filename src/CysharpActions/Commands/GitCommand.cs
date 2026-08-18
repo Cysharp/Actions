@@ -1,30 +1,48 @@
 ﻿using Cysharp.Diagnostics;
 using CysharpActions.Contexts;
 using CysharpActions.Utils;
-using Octokit;
 using System.Text.Json;
+
+using CysharpActions.Runtime;
 
 namespace CysharpActions.Commands;
 
-public class GitCommand()
+public class GitCommand
 {
-    public async Task<bool> DeleteBranchAsync(string branch)
-    {
-        Env.useShell = false;
+    private readonly Func<GitHubCredentials, CancellationToken, Task> configureGit;
+    private readonly RunProcess runProcess;
+    private readonly RunGitHubCommit runGitHubCommit;
 
+    public GitCommand(
+        Func<GitHubCredentials, CancellationToken, Task>? configureGit = null,
+        RunProcess? runProcess = null,
+        RunGitHubCommit? runGitHubCommit = null)
+    {
+        this.runProcess = runProcess ?? ProcessRunner.RunAsync;
+        this.runGitHubCommit = runGitHubCommit ?? GitHubCommitRunner.RunAsync;
+        this.configureGit = configureGit ?? ((credentials, cancellationToken) =>
+            GitHelper.SetGitUserEmailAsync(credentials, runProcess: this.runProcess, cancellationToken: cancellationToken));
+    }
+
+    public async Task<bool> DeleteBranchAsync(
+        string branch,
+        RepositoryContext repositoryContext,
+        CancellationToken cancellationToken = default)
+    {
+        var repository = repositoryContext.RequireRepository();
         // Search branches to delete
         using (var _ = GitHubActions.StartGroup($"Searching branch for repo. branch: {branch}"))
         {
             // Check if the branch is the default branch
-            var repoJson = await $"gh api /repos/{GitHubContext.Current.Repository}";
-            var repo = JsonSerializer.Deserialize(repoJson, JsonSourceGenerationContext.Default.GitHubApiRepo) ?? throw new ActionCommandException("gh api could not get repository info.");
+            var repoResult = await runProcess(new CommandSpec("gh", ["api", $"/repos/{repository}"]), cancellationToken);
+            var repo = JsonSerializer.Deserialize(repoResult.Stdout, JsonSourceGenerationContext.Default.GitHubApiRepo) ?? throw new ActionCommandException("gh api could not get repository info.");
 
             if (repo.DefaultBranch == branch)
                 throw new ActionCommandException($"Branch is default, you cannot delete this branch. branch: {branch}");
 
             // Check if the branch is created by github-actions[bot]
-            var branchesJson = await $"gh api /repos/{GitHubContext.Current.Repository}/branches";
-            var branches = JsonSerializer.Deserialize(branchesJson, JsonSourceGenerationContext.Default.GitHubApiBranchesArray) ?? throw new ActionCommandException("gh api could not get branches info.");
+            var branchesResult = await runProcess(new CommandSpec("gh", ["api", $"/repos/{repository}/branches"]), cancellationToken);
+            var branches = JsonSerializer.Deserialize(branchesResult.Stdout, JsonSourceGenerationContext.Default.GitHubApiBranchesArray) ?? throw new ActionCommandException("gh api could not get branches info.");
             if (!branches.Any(x => x.Name == branch))
             {
                 GitHubActions.WriteLog($"Branch not exists, exiting. branch: {branch}");
@@ -39,8 +57,8 @@ public class GitCommand()
         // check branch detail
         using (var _ = GitHubActions.StartGroup($"Branch detail. branch: {branch}"))
         {
-            var branchJson = await $"gh api /repos/{GitHubContext.Current.Repository}/branches/{branch}";
-            var branchDetail = JsonSerializer.Deserialize(branchJson, JsonSourceGenerationContext.Default.GitHubApiBranch) ?? throw new ActionCommandException("gh api could not get branch info.");
+            var branchResult = await runProcess(new CommandSpec("gh", ["api", $"/repos/{repository}/branches/{branch}"]), cancellationToken);
+            var branchDetail = JsonSerializer.Deserialize(branchResult.Stdout, JsonSourceGenerationContext.Default.GitHubApiBranch) ?? throw new ActionCommandException("gh api could not get branch info.");
 
             GitHubActions.WriteLog($"Checking who created the branch.");
 
@@ -55,7 +73,7 @@ public class GitCommand()
         using (var _ = GitHubActions.StartGroup($"Deleteting branch. branch: {branch}"))
         {
             GitHubActions.WriteLog($"Branch is created by github-actions[bot], deleting branch. branch: {branch}");
-            await $"gh api -X DELETE /repos/{GitHubContext.Current.Repository}/git/refs/heads/{branch}";
+            await runProcess(new CommandSpec("gh", ["api", "-X", "DELETE", $"/repos/{repository}/git/refs/heads/{branch}"]), cancellationToken);
 
             GitHubActions.WriteLog($"Branch deleted.");
         }
@@ -69,31 +87,37 @@ public class GitCommand()
     /// <param name="tag"></param>
     /// <param name="modifiedPaths"></param>
     /// <returns></returns>
-    public async Task<(bool commited, string sha, string branchName, string isBranchCreated)> CommitAsync(bool dryRun, string tag, string[] modifiedPaths)
+    public async Task<(bool commited, string sha, string branchName, string isBranchCreated)> CommitAsync(
+        bool dryRun,
+        string tag,
+        string[] modifiedPaths,
+        WorkflowRunContext workflowRun,
+        GitHubCredentials credentials,
+        CancellationToken cancellationToken = default)
     {
-        Env.useShell = false;
+        var commitPaths = NormalizeCommitPaths(modifiedPaths);
+        if (commitPaths.Length == 0)
+        {
+            GitHubActions.WriteLog("No commit paths specified, skipping commit.");
+            return (false, (await RunGitAsync(["rev-parse", "HEAD"], cancellationToken)).Stdout, "", "false");
+        }
 
         GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
-        await GitHelper.SetGitUserEmailAsync();
+        await configureGit(credentials, cancellationToken);
 
-        // Stage all tracked file changes
-        await "git add -A";
-        // Force-stage modified files that may be untracked/gitignored
-        foreach (var path in modifiedPaths)
-        {
-            await $"git add -f \"{path}\"";
-        }
+        // Only stage explicitly allowed paths. -f is required for generated files that may be ignored.
+        await RunGitAsync(["add", "-f", "--", .. commitPaths], cancellationToken);
 
         GitHubActions.WriteLog($"Checking File change has been happen ...");
         var commited = false;
         var branchName = "";
         var isBranchCreated = "false";
-        try
+        var changedLines = await GetStagedChangesAsync(commitPaths, cancellationToken);
+        if (changedLines.Length == 0)
         {
-            var result = await "git diff --cached HEAD --exit-code"; // 0 = no diff, 1 = diff
             GitHubActions.WriteLog("Diff not found, skipping commit.");
         }
-        catch (ProcessErrorException)
+        else
         {
             GitHubActions.WriteLog("Diff found.");
             if (dryRun)
@@ -101,16 +125,22 @@ public class GitCommand()
                 GitHubActions.WriteLog("Dryrun Mode detected, creating branch and switch.");
                 branchName = $"test-release/{tag}";
                 isBranchCreated = "true";
-                await $"git switch -c {branchName}";
+                await RunGitAsync(["switch", "-c", branchName], cancellationToken);
             }
 
             GitHubActions.WriteLog("Committing change. Running following.");
-            await $"git commit -a -m \"{$"chore(automate): Update package.json to {tag}"}\" -m \"{$"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})"}\"";
+            await RunGitAsync([
+                "commit",
+                "--only",
+                "-m", $"chore(automate): Update package.json to {tag}",
+                "-m", $"Commit by [GitHub Actions]({workflowRun.WorkflowRunUrl})",
+                "--",
+                .. commitPaths], cancellationToken);
 
             commited = true;
         }
 
-        var sha = await "git rev-parse HEAD";
+        var sha = (await RunGitAsync(["rev-parse", "HEAD"], cancellationToken)).Stdout;
         return (commited, sha, branchName, isBranchCreated);
     }
 
@@ -121,31 +151,37 @@ public class GitCommand()
     /// <param name="tag"></param>
     /// <param name="modifiedPaths"></param>
     /// <returns></returns>
-    public async Task<(bool commited, string sha, string branchName, string isBranchCreated)> CommitWithSignAsync(bool dryRun, string tag, string[] modifiedPaths)
+    public async Task<(bool commited, string sha, string branchName, string isBranchCreated)> CommitWithSignAsync(
+        bool dryRun,
+        string tag,
+        string[] modifiedPaths,
+        WorkflowRunContext workflowRun,
+        GitHubCredentials credentials,
+        CancellationToken cancellationToken = default)
     {
-        Env.useShell = false;
+        var commitPaths = NormalizeCommitPaths(modifiedPaths);
+        if (commitPaths.Length == 0)
+        {
+            GitHubActions.WriteLog("No commit paths specified, skipping commit.");
+            return (false, (await RunGitAsync(["rev-parse", "HEAD"], cancellationToken)).Stdout, "", "false");
+        }
 
         GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
-        await GitHelper.SetGitUserEmailAsync();
+        await configureGit(credentials, cancellationToken);
 
-        // Stage all tracked file changes
-        await "git add -A";
-        // Force-stage modified files that may be untracked/gitignored
-        foreach (var path in modifiedPaths)
-        {
-            await $"git add -f \"{path}\"";
-        }
+        // Only stage explicitly allowed paths. -f is required for generated files that may be ignored.
+        await RunGitAsync(["add", "-f", "--", .. commitPaths], cancellationToken);
 
         GitHubActions.WriteLog($"Checking File change has been happen ...");
         var commited = false;
         var branchName = "";
         var isBranchCreated = "false";
-        try
+        var changedLines = await GetStagedChangesAsync(commitPaths, cancellationToken);
+        if (changedLines.Length == 0)
         {
-            var result = await "git diff --cached HEAD --exit-code"; // 0 = no diff, 1 = diff
             GitHubActions.WriteLog("Diff not found, skipping commit.");
         }
-        catch (ProcessErrorException)
+        else
         {
             GitHubActions.WriteLog("Diff found.");
             if (dryRun)
@@ -153,42 +189,24 @@ public class GitCommand()
                 GitHubActions.WriteLog("Dryrun Mode detected, creating branch and switch.");
                 branchName = $"test-release/{tag}";
                 isBranchCreated = "true";
-                await $"git switch -c {branchName}";
+                await RunGitAsync(["switch", "-c", branchName], cancellationToken);
             }
 
-            var currentBranch = dryRun ? branchName : (await "git branch --show-current").Trim();
+            var currentBranch = dryRun ? branchName : (await RunGitAsync(["branch", "--show-current"], cancellationToken)).Stdout.Trim();
 
             GitHubActions.WriteLog("Committing change via GitHub API (signed commit).");
 
-            var token = GHEnv.Current.GH_TOKEN ?? throw new ActionCommandException("GH_TOKEN is required.");
-            var repoEnv = GHEnv.Current.GH_REPO ?? throw new ActionCommandException("GH_REPO is required.");
-            var separatorIndex = repoEnv.IndexOf('/');
-            if (separatorIndex < 0)
-                throw new ActionCommandException($"Invalid repository format: {repoEnv}");
-            var owner = repoEnv[..separatorIndex];
-            var repoName = repoEnv[(separatorIndex + 1)..];
-
-            var client = new GitHubClient(new ProductHeaderValue("CysharpActions"))
-            {
-                Credentials = new Credentials(token)
-            };
+            var token = credentials.RequireToken();
+            var (owner, repoName) = credentials.ParseRepository();
 
             // For non-dryRun, get the remote branch HEAD via API to guarantee the new commit is a fast-forward.
             // For dryRun (new branch), the remote ref does not yet exist, so use local HEAD.
             var headSha = dryRun
-                ? (await "git rev-parse HEAD").Trim()
-                : (await client.Git.Reference.Get(owner, repoName, $"heads/{currentBranch}")).Object.Sha;
-            var currentCommit = await client.Git.Commit.Get(owner, repoName, headSha);
-            var baseTreeSha = currentCommit.Tree.Sha;
+                ? (await RunGitAsync(["rev-parse", "HEAD"], cancellationToken)).Stdout.Trim()
+                : null;
 
-            // Collect changed files relative to HEAD (staged)
-            var diffOutput = await "git diff --cached HEAD --name-status";
-            var changedLines = diffOutput.ToMultiLine();
-
-            // Create tree with changed files, this is key for signed commit because we don't use GPG or SSH signing key.
-            // Instead, we create a new tree with the changed files and reference it in the commit. GitHub will verify the commit content and sign it if it matches the tree.
             GitHubActions.WriteLog($"Building tree with {changedLines.Length} changed files.");
-            var newTree = new NewTree { BaseTree = baseTreeSha };
+            var treeItems = new List<GitHubTreeItemSpec>(changedLines.Length);
             foreach (var line in changedLines)
             {
                 var parts = line.Split('\t', 2);
@@ -198,62 +216,66 @@ public class GitCommand()
 
                 if (status == "D")
                 {
-                    newTree.Tree.Add(new NewTreeItem
-                    {
-                        Path = filePath,
-                        Mode = "100644",
-                        Type = TreeType.Blob,
-                        Sha = null,
-                    });
+                    treeItems.Add(new GitHubTreeItemSpec(filePath, "100644", null, Delete: true));
                 }
                 else
                 {
-                    var content = await File.ReadAllTextAsync(filePath);
-                    newTree.Tree.Add(new NewTreeItem
-                    {
-                        Path = filePath,
-                        Mode = GetTreeMode(filePath),
-                        Type = TreeType.Blob,
-                        Content = content,
-                    });
+                    var content = await File.ReadAllTextAsync(filePath, cancellationToken);
+                    treeItems.Add(new GitHubTreeItemSpec(filePath, GetTreeMode(filePath), content));
                 }
             }
 
-            var treeResponse = await client.Git.Tree.Create(owner, repoName, newTree);
-
-            // Create signed commit via GitHub API
-            var commitMessage = $"chore(automate): Update package.json to {tag}\n\nCommit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})";
-            var newCommit = new NewCommit(commitMessage, treeResponse.Sha, parents: [headSha]);
-            var createdCommit = await client.Git.Commit.Create(owner, repoName, newCommit);
-
-            // Update or create the remote branch reference
-            try
+            var commitMessage = $"chore(automate): Update package.json to {tag}\n\nCommit by [GitHub Actions]({workflowRun.WorkflowRunUrl})";
+            var commitResult = await runGitHubCommit(new GitHubCommitSpec(
+                token,
+                owner,
+                repoName,
+                currentBranch,
+                headSha,
+                commitMessage,
+                treeItems,
+                AllowForceUpdate: dryRun), cancellationToken);
+            switch (commitResult.ReferenceUpdate)
             {
-                await client.Git.Reference.Update(owner, repoName, $"heads/{currentBranch}", new ReferenceUpdate(createdCommit.Sha));
-                GitHubActions.WriteLog($"Updated branch reference '{currentBranch}' to {createdCommit.Sha}.");
-            }
-            catch (ApiException ex) when (ex.Message.Contains("Reference does not exist"))
-            {
-                await client.Git.Reference.Create(owner, repoName, new NewReference($"refs/heads/{currentBranch}", createdCommit.Sha));
-                GitHubActions.WriteLog($"Created new branch reference '{currentBranch}' at {createdCommit.Sha}.");
-            }
-            catch (ApiException ex) when (ex.Message.Contains("Update is not a fast forward") && dryRun)
-            {
-                // dryRun test branch already exists on remote with different history (e.g. leftover from a previous run); force-push.
-                await client.Git.Reference.Update(owner, repoName, $"heads/{currentBranch}", new ReferenceUpdate(createdCommit.Sha, force: true));
-                GitHubActions.WriteLog($"Force updated branch reference '{currentBranch}' to {createdCommit.Sha}.");
+                case GitHubReferenceUpdate.Updated:
+                    GitHubActions.WriteLog($"Updated branch reference '{currentBranch}' to {commitResult.Sha}.");
+                    break;
+                case GitHubReferenceUpdate.Created:
+                    GitHubActions.WriteLog($"Created new branch reference '{currentBranch}' at {commitResult.Sha}.");
+                    break;
+                case GitHubReferenceUpdate.ForceUpdated:
+                    GitHubActions.WriteLog($"Force updated branch reference '{currentBranch}' to {commitResult.Sha}.");
+                    break;
             }
 
-            // Sync local repo with the remote commit
-            await $"git fetch origin {currentBranch}";
-            await $"git reset --hard origin/{currentBranch}";
+            // Sync HEAD/index with the remote commit without discarding unrelated working-tree changes.
+            await RunGitAsync(["fetch", "origin", currentBranch], cancellationToken);
+            await RunGitAsync(["reset", "--mixed", $"origin/{currentBranch}"], cancellationToken);
 
             GitHubActions.WriteLog("Signed commit created successfully.");
             commited = true;
         }
 
-        var sha = await "git rev-parse HEAD";
+        var sha = (await RunGitAsync(["rev-parse", "HEAD"], cancellationToken)).Stdout;
         return (commited, sha, branchName, isBranchCreated);
+    }
+
+    private static string[] NormalizeCommitPaths(IEnumerable<string> paths)
+    {
+        return paths
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private async Task<string[]> GetStagedChangesAsync(string[] commitPaths, CancellationToken cancellationToken)
+    {
+        return (await RunGitAsync(["diff", "--cached", "HEAD", "--name-status", "--", .. commitPaths], cancellationToken)).OutputLines;
+    }
+
+    private Task<ProcessResult> RunGitAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+    {
+        return runProcess(new CommandSpec("git", arguments), cancellationToken);
     }
 
     private static string GetTreeMode(string filePath)

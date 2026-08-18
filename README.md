@@ -257,6 +257,10 @@ jobs:
       dotnet-run-path: |
         # Optional hook; workflow always passes: -- --version {tag}
         ./tools/VersionOutput/VersionOutput.csproj
+      additional-commit-path: |
+        # Explicit allow-list for files generated outside file-path by dotnet-run-path.
+        # Files outside file-path and this list are never committed.
+        ./tools/VersionOutput/version.txt
 ```
 
 ```yaml

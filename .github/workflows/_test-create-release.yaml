@@ -40,6 +40,7 @@ jobs:
         ./sandbox/Sandbox.Godot/addons/Foo/plugin.cfg
         ./sandbox/Directory.Build.props
       dotnet-run-path: ./sandbox/VersionOutput/VersionOutput.csproj
+      additional-commit-path: ./sandbox/VersionOutput/version.txt
       tag: ${{ needs.set-tag.outputs.tag }}
       dry-run: true # true: commit/push to 'test-release/{tag}' branch, false: commit/push to current branch.
 

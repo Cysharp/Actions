@@ -3,6 +3,8 @@ using CysharpActions.Contexts;
 using CysharpActions.Utils;
 using System.Text.Json;
 
+using CysharpActions.Runtime;
+
 namespace CysharpActions.Commands;
 
 /// <summary>
@@ -10,20 +12,24 @@ namespace CysharpActions.Commands;
 /// </summary>
 public interface IGitHubReleaseExe
 {
-    public Task<GitHubRelease[]> GetGitHubReleaseAsync();
+    public Task<GitHubRelease[]> GetGitHubReleaseAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
 /// ghコマンドでGitHubのリリース情報を取得する実装。
 /// </summary>
-public class GitHubReleaseExeGh : IGitHubReleaseExe
+public class GitHubReleaseExeGh(RunProcess? runProcess = null) : IGitHubReleaseExe
 {
-    public async Task<GitHubRelease[]> GetGitHubReleaseAsync()
+    private readonly RunProcess runProcess = runProcess ?? ProcessRunner.RunAsync;
+
+    public async Task<GitHubRelease[]> GetGitHubReleaseAsync(CancellationToken cancellationToken = default)
     {
         // release_latest=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest | jq -c -r ".[] | select(.isLatest == true) | .tagName")
         // sorted_latest=$(echo - e "${release_latest}\n${{ steps.trim.outputs.normalized_tag }}" | sort - V | tail - n 1)
-        var releaseLatests = await "gh release list --exclude-drafts --exclude-pre-releases --json tagName,isLatest";
-        var githubReleases = JsonSerializer.Deserialize(releaseLatests, JsonSourceGenerationContext.Default.GitHubReleaseArray);
+        var result = await runProcess(
+            new CommandSpec("gh", ["release", "list", "--exclude-drafts", "--exclude-pre-releases", "--json", "tagName,isLatest"]),
+            cancellationToken);
+        var githubReleases = JsonSerializer.Deserialize(result.Stdout, JsonSourceGenerationContext.Default.GitHubReleaseArray);
         return githubReleases ?? Array.Empty<GitHubRelease>();
     }
 }
@@ -42,15 +48,16 @@ public class ValidateTagCommand(IGitHubReleaseExe gitHubRelaeseExe)
     /// </summary>
     /// <param name="tag"></param>
     /// <returns></returns>
-    public async Task ValidateTagAsync(string tag)
+    public async Task ValidateTagAsync(
+        string tag,
+        RepositoryContext repository,
+        CancellationToken cancellationToken = default)
     {
-        Env.useShell = false;
-
         if (string.IsNullOrEmpty(tag))
             throw new ActionCommandException($"Tag is invalid, emptry string is not allowed.");
 
         // tmporary skip validation on MagicOnion. There are no implementation for validation on each Major Version.
-        if (GitHubContext.Current.Repository == "Cysharp/MagicOnion")
+        if (repository.Repository == "Cysharp/MagicOnion")
         {
             GitHubActions.WriteLog("Temporary skip validation on MagicOnion.");
             return;
@@ -58,7 +65,7 @@ public class ValidateTagCommand(IGitHubReleaseExe gitHubRelaeseExe)
 
         try
         {
-            var githubReleases = await gitHubRelaeseExe.GetGitHubReleaseAsync();
+            var githubReleases = await gitHubRelaeseExe.GetGitHubReleaseAsync(cancellationToken);
             var releaseTag = githubReleases?.SingleOrDefault(x => x.IsLatest)?.TagName;
 
             // no release tag

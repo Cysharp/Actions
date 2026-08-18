@@ -1,12 +1,15 @@
 ﻿using CysharpActions.Utils;
 
+using CysharpActions.Runtime;
+
 namespace CysharpActions.Commands;
 
-public class NuGetCommand(string apiKey, bool dryRun)
+public class NuGetCommand(string apiKey, bool dryRun, RunProcess? runProcess = null)
 {
-    public async Task PushAsync(IEnumerable<string> nugetPaths)
+    private readonly RunProcess runProcess = runProcess ?? ProcessRunner.RunAsync;
+
+    public async Task PushAsync(IEnumerable<string> nugetPaths, CancellationToken cancellationToken = default)
     {
-        Env.useShell = false;
         foreach (var path in nugetPaths)
         {
             if (GlobFiles.IsGlobPattern(path))
@@ -14,7 +17,7 @@ public class NuGetCommand(string apiKey, bool dryRun)
                 // Is Wildcard?
                 foreach (var file in GlobFiles.EnumerateFiles(path))
                 {
-                    await PushCoreAsync(file, apiKey, dryRun);
+                    await PushCoreAsync(file, cancellationToken);
                 }
             }
             else
@@ -22,20 +25,24 @@ public class NuGetCommand(string apiKey, bool dryRun)
                 // Is File?
                 if (!File.Exists(path))
                     throw new ActionCommandException($"Asset file not found.", new FileNotFoundException(path));
-                await PushCoreAsync(path, apiKey, dryRun);
+                await PushCoreAsync(path, cancellationToken);
             }
         }
 
-        static async Task PushCoreAsync(string path, string apiKey, bool dryRun)
+        async Task PushCoreAsync(string path, CancellationToken cancellationToken)
         {
             using var _ = GitHubActions.StartGroup($"Uploading nuget. nugetPath: {path}");
+            var command = new CommandSpec(
+                "dotnet",
+                ["nuget", "push", path, "--skip-duplicate", "-s", "https://api.nuget.org/v3/index.json", "-k", apiKey],
+                new HashSet<int> { 7 });
             if (dryRun)
             {
-                GitHubActions.WriteRawLog($"dotnet nuget push \"{path}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k {apiKey}");
+                ProcessRunner.WritePreview(command);
             }
             else
             {
-                await $"dotnet nuget push \"{path}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k {apiKey}";
+                await runProcess(command, cancellationToken);
             }
         }
     }

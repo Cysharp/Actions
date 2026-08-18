@@ -24,6 +24,13 @@ public static class TestHelper
     {
         if (Directory.Exists(dir))
         {
+            if (OperatingSystem.IsWindows())
+            {
+                foreach (var file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+                {
+                    File.SetAttributes(file, FileAttributes.Normal);
+                }
+            }
             Directory.Delete(dir, true);
         }
     }

@@ -3,10 +3,34 @@
 public class UpdateVersionCommandTest
 {
     [Fact]
+    public void TransformFailureDoesNotApplyEarlierFilesTest()
+    {
+        var dir = $".tests/{nameof(UpdateVersionCommandTest)}/{nameof(TransformFailureDoesNotApplyEarlierFilesTest)}";
+        var packagePath = Path.Combine(dir, "package.json");
+        var pluginPath = Path.Combine(dir, "plugin.cfg");
+        const string packageContents = "{\"name\":\"example\",\"version\":\"1.0.0\"}";
+        const string invalidPluginContents = "[plugin]\nname=\"missing-version\"\n";
+        try
+        {
+            CreateFile(packagePath, packageContents);
+            CreateFile(pluginPath, invalidPluginContents);
+            var command = new UpdateVersionCommand("2.0.0");
+
+            Assert.Throws<ActionCommandException>(() => command.Execute([packagePath, pluginPath]));
+
+            Assert.Equal(packageContents, File.ReadAllText(packagePath));
+            Assert.Equal(invalidPluginContents, File.ReadAllText(pluginPath));
+        }
+        finally
+        {
+            SafeDeleteDirectory(dir);
+        }
+    }
+
+    [Fact]
     public void UpdateVersionsTest()
     {
         var version = "1.0.0";
-        var dryRun = false;
         var baseDirectory = $".tests/{nameof(UpdateVersionCommandTest)}/{nameof(UpdateVersionsTest)}";
 
         // upm
@@ -68,12 +92,9 @@ public class UpdateVersionCommandTest
             CreateFile(directoryBuildPropsPath, directoryBuildPropsContents);
 
             var command = new UpdateVersionCommand(version);
-            var results = command.UpdateVersions([unityPath, godotPath, directoryBuildPropsPath], dryRun);
-            foreach (var item in results)
-            {
-                if (item.Path == unityPath)
-                {
-                    Assert.Equal("""
+            command.Execute([unityPath, godotPath, directoryBuildPropsPath]);
+
+            Assert.Equal("""
                         {
                           "name": "com.unity.plugin.example",
                           "version": "1.0.0",
@@ -95,11 +116,8 @@ public class UpdateVersionCommandTest
                             "url": "https://www.unity3d.com"
                           }
                         }
-                        """.NormalizeEol(), item.After);
-                }
-                else if (item.Path == godotPath)
-                {
-                    Assert.Equal("""
+                        """.NormalizeEol(), File.ReadAllText(unityPath));
+            Assert.Equal("""
                         [plugin]
 
                         name="Sandbox.Godot"
@@ -108,19 +126,14 @@ public class UpdateVersionCommandTest
                         version="1.0.0"
                         language="C-sharp"
                         script="GodotPlugin.cs"
-                        """.NormalizeEol(), item.After);
-                }
-                else if (item.Path == directoryBuildPropsPath)
-                {
-                    Assert.Equal("""
+                        """.NormalizeEol(), File.ReadAllText(godotPath));
+            Assert.Equal("""
                         <Project>
                           <PropertyGroup>
                             <VersionPrefix>1.0.0</VersionPrefix>
                           </PropertyGroup>
                         </Project>
-                        """.NormalizeEol(), item.After);
-                }
-            }
+                        """.NormalizeEol(), File.ReadAllText(directoryBuildPropsPath));
         }
         finally
         {
