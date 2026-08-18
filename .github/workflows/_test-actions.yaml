@@ -7,7 +7,7 @@ on:
 jobs:
   dotnet:
     permissions:
-      contents: write # dotnet test runs gh cli
+      contents: read
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -18,10 +18,39 @@ jobs:
       - name: dotnet build
         run: dotnet build -c Release
       - name: dotnet test
-        run: dotnet test -c Release --no-build --logger:"console;verbosity=normal"
+        run: dotnet test -c Release --no-build --filter "Category!=LiveGitHub" --logger:"console;verbosity=normal"
+
+  live-github:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    concurrency:
+      group: cysharp-actions-live-github-tests
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: Cysharp/Actions/.github/actions/checkout@main
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
+      - name: dotnet build
+        run: dotnet build -c Release
+      - name: Run live GitHub tests
+        run: dotnet test -c Release --no-build --filter "Category=LiveGitHub" --logger:"console;verbosity=normal" --logger:"trx;LogFileName=live-github.trx" --results-directory ./TestResults/LiveGitHub
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify live test count
+        shell: pwsh
+        run: |
+          $counters = (Select-Xml -Path ./TestResults/LiveGitHub/live-github.trx -XPath "//*[local-name()='Counters']").Node
+          $executed = [int]$counters.executed
+          $skipped = @(Select-Xml -Path ./TestResults/LiveGitHub/live-github.trx -XPath "//*[local-name()='UnitTestResult' and @outcome='NotExecuted']").Count
+          if ($executed -lt 5 -or $skipped -ne 0) {
+            throw "Expected at least 5 executed LiveGitHub test cases and no skips, but executed=$executed, skipped=$skipped."
+          }
+          Write-Output "Executed $executed LiveGitHub test cases with no skips."
 
   cysharp-actions-cli:
     permissions:

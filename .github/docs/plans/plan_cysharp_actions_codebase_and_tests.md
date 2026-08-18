@@ -109,6 +109,10 @@ PRでは`actions/`を生成・更新せず、publish成果物を一時領域だ�
 
 [CreateReleaseCommandTest.cs](../../../src/CysharpActions.Tests/CreateReleaseCommandTest.cs) と [GitCommandTest.cs](../../../src/CysharpActions.Tests/GitCommandTest.cs) は、CI 以外では test body 冒頭で `return` する。今回のローカル実行でも、外部操作をしていないこれら 5 ケースが `Passed` と報告された。
 
+**対応状況（2026-08-18）:** 対応済み。5ケースを`Category=LiveGitHub`へ分離し、xUnit v3の`SkipUnless`でGitHub Actions、`GH_REPO`、`GH_TOKEN`がない場合は理由付き`Skipped`にする。live classは一つのnon-parallel collectionに置き、同一workflowのlive jobもconcurrency groupで直列化する。ローカル集計は`Passed=72, Skipped=5`、unit filterは`Passed=72, Skipped=0`となる。
+
+PR workflowはread-onlyのunit jobとwrite権限を持つ`live-github` jobに分離した。live jobはsame-repositoryかつnon-DependabotのPRだけで実行し、fork/Dependabotではjob自体がUI上でskipされる。TRXの`Counters.executed >= 5`かつ`UnitTestResult outcome=NotExecuted`が0件であることも検査し、filterミス、0件実行、一部または全件skipを成功にしない。管理下fixtureが無ければreturnしていたbenchmark compatibility testも明示的failureへ変更した。
+
 対応:
 
 - CI 必須のテストは別 test project または `Trait("Category", "LiveGitHub")` に分ける。

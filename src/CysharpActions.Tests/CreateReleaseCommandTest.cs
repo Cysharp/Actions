@@ -4,15 +4,17 @@ using Zx;
 
 namespace CysharpActions.Tests;
 
+[Collection(LiveGitHubTest.Category)]
+[Trait("Category", LiveGitHubTest.Category)]
 public class CreateReleaseCommandTest
 {
-    // Run only on GitHub Actions
-    [Theory]
+    [Theory(
+        Skip = LiveGitHubTest.SkipReason,
+        SkipUnless = nameof(LiveGitHubTest.IsAvailable),
+        SkipType = typeof(LiveGitHubTest))]
     [InlineData("1.2.0-pre", "v1.2.0-pre")]
     public async Task SkipTagAndReleaseTest(string tag, string releaseTitle)
     {
-        if (!GitHubEnv.Current.CI)
-            return;
         GHEnv.Current.Validate();
 
         Zx.Env.useShell = false;
@@ -45,14 +47,15 @@ public class CreateReleaseCommandTest
         }
     }
 
-    [Theory]
+    [Theory(
+        Skip = LiveGitHubTest.SkipReason,
+        SkipUnless = nameof(LiveGitHubTest.IsAvailable),
+        SkipType = typeof(LiveGitHubTest))]
     [InlineData("test.0.1.0", "Ver.test.0.1.0")]
     [InlineData("test.1.0.0", "Ver.test.1.0.0")]
     [InlineData("test.10.1.0", "Ver.test.10.1.0")]
     public async Task CreateTagAndReleaseTest(string tag, string releaseTitle)
     {
-        if (!GitHubEnv.Current.CI)
-            return;
         GHEnv.Current.Validate();
 
         Zx.Env.useShell = false;

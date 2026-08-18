@@ -249,11 +249,7 @@ public class BenchmarkConfig2MatrixCommandTest
     {
         // This test validates compatibility with the existing Bash script using the same template file
         var templatePath = "../../../../../.github/scripts/tests/template_benchmark_config.yaml";
-        if (!File.Exists(templatePath))
-        {
-            // Skip test if template file doesn't exist
-            return;
-        }
+        Assert.True(File.Exists(templatePath), "Template file for compatibility test not found.");
 
         var expectedResultJson = """
         {
