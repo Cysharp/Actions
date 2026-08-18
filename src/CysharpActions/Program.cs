@@ -49,7 +49,7 @@ namespace CysharpActions
         /// </summary>
         /// <param name="version">version string. ex) 1.0.0</param>
         /// <param name="pathString">string (./package.json) and NewLine deliminated strings (./package.json\n./plugin.cfg).</param>
-        /// <param name="dryRun">dryRun mode not changes actual file but shows plan.</param>
+        /// <param name="dryRun">Test mode. Files are updated and committed to a test-release branch.</param>
         /// <param name="additionalCommitPathString">Additional NewLine-delimited paths outside pathString to commit without version transformation.</param>
         /// <remarks>
         /// Because GitHub Actions workflow dispatch passes arguments as string, you need to split path by NewLine. It means use `string[] pathString` is un-natural for GitHub Actions.
@@ -63,7 +63,7 @@ namespace CysharpActions
 
             // update version
             var command = new UpdateVersionCommand(version);
-            command.UpdateVersions(paths, dryRun);
+            command.Execute(paths);
             var commitPaths = paths
                 .Concat(additionalCommitPathString.ToMultiLine())
                 .Distinct(StringComparer.Ordinal)

@@ -80,7 +80,7 @@ workflow YAML
 
 ### P0: `dry-run` の契約を実態に合わせる
 
-[UpdateVersionCommand.cs](../../../src/CysharpActions/Commands/UpdateVersionCommand.cs) は `dryRun` を受け取るが常にファイルを書き換える。git 側でも dry-run は「何もしない」ではなく、`test-release/{tag}` branch を作成して commit/API 更新する意味である。release workflow の dry-run も一時的な release を作成する。一般的な dry-run の意味と違い、誤操作を招く。
+`update-version` CLIの`dryRun`はファイル更新を止めず、git側で`test-release/{tag}` branchを作成してcommit/API更新する意味である。release workflowのdry-runも一時的なreleaseを作成する。一般的なdry-runの意味と違い、誤操作を招く。`UpdateVersionCommand.Execute`からはP1対応で`dryRun`引数を除去済みだが、公開workflow入力の意味は引き続きこのP0で扱う。
 
 対応:
 
@@ -168,25 +168,19 @@ internal delegate ValueTask<ProcessResult> RunProcess(
 - token は通常の context record に混ぜず、必要な executor にだけ渡す。
 - environment parsing は process environment を変更せず、`IReadOnlyDictionary<string,string?>` を入力にして unit test する。
 
-### P1: command を「変換」と「適用」に分ける
+### P1: command 内の変換処理と書き込み順序を整理する
 
-特に version 更新は、ファイル名ごとの変換自体は純粋関数にできる。
+version 更新では、CLI が処理段階を一つずつ指揮する必要はない。公開 API は command の実行だけにし、ファイル名ごとの文字列変換だけを副作用なしでテストできれば十分である。
+
+**対応状況（2026-08-18）:** 対応済み。[Program.cs](../../../src/CysharpActions/Program.cs) は [UpdateVersionCommand.cs](../../../src/CysharpActions/Commands/UpdateVersionCommand.cs) の `Execute(paths)` を一度呼ぶだけにした。command 内部では全 path の存在確認と read・変換を終えてから、各ファイルを順に write する。後続ファイルの形式不正によって先行ファイルだけが更新される問題は防ぐが、実際の複数ファイル write は atomic ではなく、I/O 障害時まで全体 rollback できるとは扱わない。
+
+ファイル内容の置換規則は `internal static UpdateContents(...)` に置き、filesystemを使わない unit test から直接確認する。`Inspect`、`Transform`、`Apply`、`VersionFile`、`FileEdit`、`UpdateVersionPlan` のような中間 API は作らない。既存の `RegrexReplace.Replace(path, ..., writeBack)` もこの変更と無関係なので維持する。通常suiteは`Passed=99, Skipped=0`、全suiteは`Passed=99, Skipped=5`。
 
 ```csharp
-internal readonly record struct VersionFile(string Path, string Contents);
-internal readonly record struct FileEdit(string Path, string Before, string After);
-
-internal static FileEdit TransformVersion(VersionFile file, string version);
-internal static void ApplyEdits(ReadOnlySpan<FileEdit> edits);
+new UpdateVersionCommand(version).Execute(paths);
 ```
 
-CLI command の流れを次の順序に固定する。
-
-```text
-parse input -> validate -> inspect/read -> plan/transform -> apply -> output
-```
-
-各段階の値を record/enum/array で表す。`Plan` が返る前には remote write をしない。これで実行内容の把握、preview、テストが同時に改善する。
+この command では、入力確認、全ファイルの変換、書き込みの順序が一つのメソッドを上から読むだけで分かることを優先する。commit対象はcommandの戻り値から推測せず、従来どおり`file-path`全体と`additional-commit-path`から作る。これにより、version文字列が既に一致している場合でも、hookが`file-path`へ加えた変更はcommit対象に残る。
 
 ### P2: ファイル構造と命名を機能中心に平坦化する
 
@@ -329,14 +323,14 @@ live test は unit test assembly に混ぜない。外部状態を変更する�
 
 完了条件: operation の public/internal method signature から必要入力と副作用結果が分かり、テストが static environment を変更しない。
 
-### Phase 2: pure transform と executor の分離（2～3 PR）
+### Phase 2: command 内部の処理を整理する（2～3 PR）
 
-1. UpdateVersion を `TransformVersion` + `ApplyEdits` に分ける。
-2. version 規則を一か所へ統合する。
-3. GitCommit/CreateRelease/NuGet を plan + execute の順にする。
-4. `Commands/Contexts/Utils` を `Cli/Runtime/Operations` へ段階的に移す。
+1. `Program.cs` は入力を command に渡し、結果を output へ写す範囲に留める。
+2. version 置換規則は command 内の一つの副作用なしメソッドへ統合する。
+3. GitCommit/CreateRelease/NuGet は、処理を追いにくくしている分岐や重複だけを command 内で整理する。
+4. directory 移動は先に目標構造を作らず、実際に複数箇所から使われる責務が見つかった場合だけ行う。
 
-完了条件: 各 operation が `parse -> validate -> inspect -> plan -> apply -> output` の順で読める。
+完了条件: CLI から呼ぶ command API が一つで、主要処理を command の上から順に追え、単体テストが必要な計算部分だけを filesystem や外部 process なしで確認できる。
 
 ### Phase 3: 実配布物を含むテスト（1～2 PR）
 
