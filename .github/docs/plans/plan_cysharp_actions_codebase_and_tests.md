@@ -65,9 +65,15 @@ workflow YAML
 
 [GitCommand.cs](../../../src/CysharpActions/Commands/GitCommand.cs) の両 commit 経路は最初に `git add -A` を実行する。このため `UpdateVersion` が返した `modifiedPaths` 以外の変更・削除も commit 対象になる。さらに signed 経路は最後に `git reset --hard origin/...` を実行する。
 
+**対応状況（2026-08-18）:** path allow-listによる直接対策は対応済み。unsigned / signed の両経路で、stage と差分取得を明示された pathspec のみに限定した。unsigned commit は `git commit --only` を使い、既にstageされていた対象外変更もcommitしない。signed treeも限定後の差分だけから構築し、同期は対象外のworking treeを消さない `git reset --mixed` に変更した。一時git repositoryのテストで、空白を含む対象pathだけがcommitされ、stage済みの別変更と未追跡ファイルがcommitされないことを確認する。
+
+`update-packagejson` の `dotnet-run-path` は従来 `git add -A` に依存して生成物を暗黙にcommitしていた。この互換性を安全に置き換えるため、workflowへ `additional-commit-path`、CLIへ `additional-commit-path-string` を追加した。`file-path` はversion置換結果に関係なく常にcommit allow-listとなり、hookが同じファイルへ加えた変更も対象になる。`additional-commit-path` は `file-path` 外のhook生成物だけに使う。どちらも実差分がなければcommitには含まれず、全対象が無変更ならcommit自体をskipする。既存のworkflow testは `sandbox/VersionOutput/version.txt` を明示し、生成されたversionがcommitに含まれることも検査する。
+
+配布バイナリ更新前との互換性のため、`additional-commit-path` が空なら新CLI optionを渡さない。この変更では通常の配布手順と同じ条件でLinux x64 / ARM64バイナリも再生成し、source、workflow、配布物を同時に更新する。既存利用者が `dotnet-run-path` で生成物をcommitしている場合は、その出力を `additional-commit-path` に列挙する。未指定時はnoticeを出し、対象外ファイルは意図的にcommitしない。
+
 対応:
 
-- stage 対象を `modifiedPaths` のみに限定する。削除を許可する場合も `git add -A -- <path...>` のように pathspec を限定する。
+- stage 対象を明示されたcommit pathのみに限定する。ignoredな生成物も扱うため `git add -f -- <pathspec...>` を使う。
 - 実行前に `GitCommitRequest(Tag, Paths, BranchMode, SigningMode)` をログへ出し、空 path や repository 外 path を拒否する。
 - `reset --hard` は原則なくす。必要なら一時 clone/worktree 内でのみ許可し、その前提を executor の入力データで表す。
 - signed tree 構築は rename、binary、symlink、実行 bit を正しく扱えていないため、対象ファイル形式を version metadata の text file に限定して検証するか、git blob/tree を用いる実装へ変える。

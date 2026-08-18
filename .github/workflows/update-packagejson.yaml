@@ -35,6 +35,11 @@ on:
         required: false
         type: string
         default: ""
+      additional-commit-path:
+        description: "Newline-delimited paths outside file-path produced by dotnet-run-path. They are committed without version transformation."
+        required: false
+        type: string
+        default: ""
     outputs:
       branch-name:
         description: Git branch name created.
@@ -141,10 +146,18 @@ jobs:
           if [[ "${DRY_RUN}" == "true" ]]; then
             dry_run_flag="--dry-run"
           fi
-          ${{ steps.actions-caller.outputs.path }} update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${FILE_PATH}" ${dry_run_flag}
+          additional_commit_path_args=()
+          if [[ -n "${ADDITIONAL_COMMIT_PATH}" ]]; then
+            additional_commit_path_args=(--additional-commit-path-string "${ADDITIONAL_COMMIT_PATH}")
+          elif [[ -n "${DOTNET_RUN_PATH}" ]]; then
+            echo "::notice::dotnet-run-path is set without additional-commit-path. Hook outputs outside file-path will intentionally remain uncommitted."
+          fi
+          ${{ steps.actions-caller.outputs.path }} update-version --version "${{ steps.validate.outputs.normalized-tag }}" --path-string "${FILE_PATH}" ${dry_run_flag} "${additional_commit_path_args[@]}"
         env:
           FILE_PATH: ${{ inputs.file-path }}
           DRY_RUN: ${{ inputs.dry-run }}
+          DOTNET_RUN_PATH: ${{ inputs.dotnet-run-path }}
+          ADDITIONAL_COMMIT_PATH: ${{ inputs.additional-commit-path }}
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ case(inputs.use-bot-token, steps.app-token.outputs.token, secrets.GITHUB_TOKEN) }}
 

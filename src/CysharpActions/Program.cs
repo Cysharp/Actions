@@ -39,13 +39,14 @@ namespace CysharpActions
         /// <param name="version">version string. ex) 1.0.0</param>
         /// <param name="pathString">string (./package.json) and NewLine deliminated strings (./package.json\n./plugin.cfg).</param>
         /// <param name="dryRun">dryRun mode not changes actual file but shows plan.</param>
+        /// <param name="additionalCommitPathString">Additional NewLine-delimited paths outside pathString to commit without version transformation.</param>
         /// <remarks>
         /// Because GitHub Actions workflow dispatch passes arguments as string, you need to split path by NewLine. It means use `string[] pathString` is un-natural for GitHub Actions.
         /// </remarks>
         [ConsoleAppFilter<GitHubContextFilter>]
         [ConsoleAppFilter<GitHubCliFilter>]
         [Command("update-version")]
-        public async Task UpdateVersion(string version, string pathString, bool dryRun, bool sign = true)
+        public async Task UpdateVersion(string version, string pathString, bool dryRun, string additionalCommitPathString = "", bool sign = true)
         {
             var paths = pathString.ToMultiLine();
             if (!paths.Any())
@@ -53,16 +54,19 @@ namespace CysharpActions
 
             // update version
             var command = new UpdateVersionCommand(version);
-            var results = command.UpdateVersions(paths, dryRun);
-            var modifiedPaths = results.Where(r => r.Before != r.After).Select(r => r.Path).ToArray();
+            command.UpdateVersions(paths, dryRun);
+            var commitPaths = paths
+                .Concat(additionalCommitPathString.ToMultiLine())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
 
             // Git Commit
             using (_ = GitHubActions.StartGroup("git commit changes"))
             {
                 var gitCommand = new GitCommand();
                 var (commited, sha, branchName, isBranchCreated) = sign
-                    ? await gitCommand.CommitWithSignAsync(dryRun, version, modifiedPaths)
-                    : await gitCommand.CommitAsync(dryRun, version, modifiedPaths);
+                    ? await gitCommand.CommitWithSignAsync(dryRun, version, commitPaths)
+                    : await gitCommand.CommitAsync(dryRun, version, commitPaths);
 
                 GitHubActions.SetOutput("commited", commited ? "1" : "0");
                 GitHubActions.SetOutput("sha", sha);

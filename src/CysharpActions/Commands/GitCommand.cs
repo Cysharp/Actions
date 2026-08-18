@@ -2,12 +2,15 @@
 using CysharpActions.Contexts;
 using CysharpActions.Utils;
 using Octokit;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace CysharpActions.Commands;
 
-public class GitCommand()
+public class GitCommand(Func<Task>? configureGit = null)
 {
+    private readonly Func<Task> configureGit = configureGit ?? (() => GitHelper.SetGitUserEmailAsync());
+
     public async Task<bool> DeleteBranchAsync(string branch)
     {
         Env.useShell = false;
@@ -73,27 +76,29 @@ public class GitCommand()
     {
         Env.useShell = false;
 
-        GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
-        await GitHelper.SetGitUserEmailAsync();
-
-        // Stage all tracked file changes
-        await "git add -A";
-        // Force-stage modified files that may be untracked/gitignored
-        foreach (var path in modifiedPaths)
+        var commitPaths = NormalizeCommitPaths(modifiedPaths);
+        if (commitPaths.Length == 0)
         {
-            await $"git add -f \"{path}\"";
+            GitHubActions.WriteLog("No commit paths specified, skipping commit.");
+            return (false, await "git rev-parse HEAD", "", "false");
         }
+
+        GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
+        await configureGit();
+
+        // Only stage explicitly allowed paths. -f is required for generated files that may be ignored.
+        await RunGitAsync(["add", "-f", "--", .. commitPaths]);
 
         GitHubActions.WriteLog($"Checking File change has been happen ...");
         var commited = false;
         var branchName = "";
         var isBranchCreated = "false";
-        try
+        var changedLines = await GetStagedChangesAsync(commitPaths);
+        if (changedLines.Length == 0)
         {
-            var result = await "git diff --cached HEAD --exit-code"; // 0 = no diff, 1 = diff
             GitHubActions.WriteLog("Diff not found, skipping commit.");
         }
-        catch (ProcessErrorException)
+        else
         {
             GitHubActions.WriteLog("Diff found.");
             if (dryRun)
@@ -105,7 +110,13 @@ public class GitCommand()
             }
 
             GitHubActions.WriteLog("Committing change. Running following.");
-            await $"git commit -a -m \"{$"chore(automate): Update package.json to {tag}"}\" -m \"{$"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})"}\"";
+            await RunGitAsync([
+                "commit",
+                "--only",
+                "-m", $"chore(automate): Update package.json to {tag}",
+                "-m", $"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})",
+                "--",
+                .. commitPaths]);
 
             commited = true;
         }
@@ -125,27 +136,29 @@ public class GitCommand()
     {
         Env.useShell = false;
 
-        GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
-        await GitHelper.SetGitUserEmailAsync();
-
-        // Stage all tracked file changes
-        await "git add -A";
-        // Force-stage modified files that may be untracked/gitignored
-        foreach (var path in modifiedPaths)
+        var commitPaths = NormalizeCommitPaths(modifiedPaths);
+        if (commitPaths.Length == 0)
         {
-            await $"git add -f \"{path}\"";
+            GitHubActions.WriteLog("No commit paths specified, skipping commit.");
+            return (false, await "git rev-parse HEAD", "", "false");
         }
+
+        GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
+        await configureGit();
+
+        // Only stage explicitly allowed paths. -f is required for generated files that may be ignored.
+        await RunGitAsync(["add", "-f", "--", .. commitPaths]);
 
         GitHubActions.WriteLog($"Checking File change has been happen ...");
         var commited = false;
         var branchName = "";
         var isBranchCreated = "false";
-        try
+        var changedLines = await GetStagedChangesAsync(commitPaths);
+        if (changedLines.Length == 0)
         {
-            var result = await "git diff --cached HEAD --exit-code"; // 0 = no diff, 1 = diff
             GitHubActions.WriteLog("Diff not found, skipping commit.");
         }
-        catch (ProcessErrorException)
+        else
         {
             GitHubActions.WriteLog("Diff found.");
             if (dryRun)
@@ -180,10 +193,6 @@ public class GitCommand()
                 : (await client.Git.Reference.Get(owner, repoName, $"heads/{currentBranch}")).Object.Sha;
             var currentCommit = await client.Git.Commit.Get(owner, repoName, headSha);
             var baseTreeSha = currentCommit.Tree.Sha;
-
-            // Collect changed files relative to HEAD (staged)
-            var diffOutput = await "git diff --cached HEAD --name-status";
-            var changedLines = diffOutput.ToMultiLine();
 
             // Create tree with changed files, this is key for signed commit because we don't use GPG or SSH signing key.
             // Instead, we create a new tree with the changed files and reference it in the commit. GitHub will verify the commit content and sign it if it matches the tree.
@@ -244,9 +253,9 @@ public class GitCommand()
                 GitHubActions.WriteLog($"Force updated branch reference '{currentBranch}' to {createdCommit.Sha}.");
             }
 
-            // Sync local repo with the remote commit
+            // Sync HEAD/index with the remote commit without discarding unrelated working-tree changes.
             await $"git fetch origin {currentBranch}";
-            await $"git reset --hard origin/{currentBranch}";
+            await $"git reset --mixed origin/{currentBranch}";
 
             GitHubActions.WriteLog("Signed commit created successfully.");
             commited = true;
@@ -254,6 +263,37 @@ public class GitCommand()
 
         var sha = await "git rev-parse HEAD";
         return (commited, sha, branchName, isBranchCreated);
+    }
+
+    private static string[] NormalizeCommitPaths(IEnumerable<string> paths)
+    {
+        return paths
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static Task<string[]> GetStagedChangesAsync(string[] commitPaths)
+    {
+        return RunGitAsync(["diff", "--cached", "HEAD", "--name-status", "--", .. commitPaths]);
+    }
+
+    private static async Task<string[]> RunGitAsync(IEnumerable<string> arguments)
+    {
+        var startInfo = new ProcessStartInfo("git")
+        {
+            UseShellExecute = false,
+        };
+        if (!string.IsNullOrWhiteSpace(Env.workingDirectory))
+        {
+            startInfo.WorkingDirectory = Env.workingDirectory;
+        }
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        return await ProcessX.StartAsync(startInfo).ToTask(CancellationToken.None);
     }
 
     private static string GetTreeMode(string filePath)
