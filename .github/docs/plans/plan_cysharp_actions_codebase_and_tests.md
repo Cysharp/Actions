@@ -93,13 +93,17 @@ workflow YAML
 
 通常の C# テストは project reference に対して実行され、workflow 内の開発時経路も `dotnet run` へ fallback する。一方、利用者は `actions/Linux-X64` / `Linux-ARM64` に commit されたバイナリを SHA 経由で実行する。[_update-actions-binaries.yaml](../../workflows/_update-actions-binaries.yaml) は release 後または手動でしか動かず、PR 時点で「ソース、CLI 契約、commit 済みバイナリ」が一致する保証がない。
 
+**対応状況（2026-08-18）:** CLI black-box testと配布workflow testは対応済み。xUnitから別processとしてCLIを起動し、command一覧、`update-version` option、正常/異常exit code、`GITHUB_OUTPUT`を検査する。PR workflowはcommit済みx64バイナリをsmoke testしたうえで、現在のsourceを`RUNNER_TEMP`へLinux x64 / ARM64 publishする。x64は直接実行し、ARM64はELF machine typeを検査する。release用workflowも生成直後・commit前に同じx64実行とarchitecture検査を行う。追加後のローカルsuiteは77件すべて成功した。
+
+PRでは`actions/`を生成・更新せず、publish成果物を一時領域だけに置く。commit済みバイナリの更新責務は従来どおりrelease/manualの`_update-actions-binaries.yaml`に限定し、このworkflow内でsmoke testに成功した生成物だけを`actions/`へcommitする。PR sourceと安定版commit済みbinaryの同一性は要求しない。
+
 対応:
 
 - PR で `dotnet publish` した Linux x64 バイナリを直接起動し、`--help` と副作用のない代表コマンドを smoke test する。
-- `src/CysharpActions/**` または依存 props が変わった PR では、配布バイナリも更新されていることを path filter で検査する。
-- commit 済み x64 バイナリ自体にも `--help` smoke test を行う。ARM64 は ARM64 runner か明示した emulation job で最低限起動確認する。
+- PRのpublish先は`RUNNER_TEMP`とし、commit済みbinaryの更新を要求しない。`git diff -- ./actions`でPR testが配布物を変更していないことも確認する。
+- commit 済み x64 バイナリ自体にも`--help`と代表コマンドのsmoke testを行う。ARM64はまずELF headerを検査し、native ARM64 runnerを採用できる場合にruntime smoke testを追加する。
 - command 名、option 名、必須/任意、GitHub output 名を approval test する。これは workflow と C# の間の公開契約である。
-- 将来的にはバイナリと一緒に source tree hash / version manifest を置き、PR 検査で一致を確認する。commit SHA の自己埋め込みはバイナリ commit により SHA が変わる循環があるため、source tree hash の方が扱いやすい。
+- release用workflowではbinary生成後・commit前にCLIとarchitectureを検証し、commit対象を`actions/`だけに限定する。
 
 ### P1: CI 限定テストの偽陽性をなくす
 
@@ -326,7 +330,7 @@ live test は unit test assembly に混ぜない。外部状態を変更する�
 
 1. CLI black-box test を追加する。
 2. PR publish binary smoke test を追加する。
-3. source change と commit 済み binary/manifest の整合検査を追加する。
+3. release/manual workflowで生成直後・commit前のbinary smoke testを追加する。PRではbinaryを更新しない。
 4. live GitHub tests を独立 job/project にする。
 5. `_test-increment-version.yaml` の PR test を local reusable workflow 参照へ変える。
 
