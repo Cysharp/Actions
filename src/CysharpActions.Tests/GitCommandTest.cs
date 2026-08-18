@@ -8,10 +8,12 @@ namespace CysharpActions.Tests;
 [Collection("Git environment")]
 public class GitCommandTest
 {
-    [Fact]
-    public async Task CommitAsyncCommitsOnlyExplicitPathsTest()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CommitAsyncCommitsOnlyExplicitPathsTest(bool dryRun)
     {
-        var baseDirectory = Path.GetFullPath($".tests/{nameof(GitCommandTest)}/{nameof(CommitAsyncCommitsOnlyExplicitPathsTest)}");
+        var baseDirectory = Path.GetFullPath($".tests/{nameof(GitCommandTest)}/{nameof(CommitAsyncCommitsOnlyExplicitPathsTest)}/{dryRun}");
         const string targetPath = "target file.txt";
         const string unchangedPath = "unchanged.txt";
         const string unrelatedPath = "unrelated.txt";
@@ -39,7 +41,7 @@ public class GitCommandTest
 
             var command = new GitCommand((_, _) => Task.CompletedTask);
             var result = await command.CommitAsync(
-                false,
+                dryRun,
                 "1.0.0",
                 [targetPath, unchangedPath],
                 new WorkflowRunContext("https://github.com", "owner/repository", "1"),
@@ -47,6 +49,8 @@ public class GitCommandTest
                 TestContext.Current.CancellationToken);
 
             Assert.True(result.commited);
+            Assert.Equal(dryRun ? "test-release/1.0.0" : "", result.branchName);
+            Assert.Equal(dryRun ? "true" : "false", result.isBranchCreated);
             Assert.Equal(targetPath, (await "git show --pretty=format: --name-only HEAD").Trim());
             Assert.Equal(unrelatedPath, (await "git diff --cached --name-only").Trim());
             Assert.Contains($"?? {untrackedPath}", await "git status --short", StringComparison.Ordinal);

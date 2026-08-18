@@ -58,6 +58,20 @@ public class ProcessRunnerTest
     }
 
     [Fact]
+    public async Task RunAsyncDoesNotTreatStderrAsFailureTest()
+    {
+        var command = OperatingSystem.IsWindows()
+            ? new CommandSpec("cmd", ["/c", "echo progress 1>&2"])
+            : new CommandSpec("/bin/sh", ["-c", "printf progress >&2"]);
+
+        var result = await ProcessRunner.RunAsync(command, TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(string.Empty, result.Stdout);
+        Assert.Contains("progress", result.Stderr, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task RunAsyncPreservesProcessXNonZeroExitTest()
     {
         await Assert.ThrowsAsync<ProcessErrorException>(() => ProcessRunner.RunAsync(

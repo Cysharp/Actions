@@ -69,8 +69,16 @@ public static class ProcessRunner
             startInfo.ArgumentList.Add(argument);
         }
 
-        var lines = await ProcessX.StartAsync(startInfo).ToTask(cancellationToken);
-        return new ProcessResult(0, string.Join(Environment.NewLine, lines), "");
+        var (_, stdout, stderr) = ProcessX.GetDualAsyncEnumerable(startInfo);
+        var stdoutTask = stdout.ToTask(cancellationToken);
+        var stderrTask = stderr.ToTask(cancellationToken);
+        await Task.WhenAll(stdoutTask, stderrTask);
+
+        // ProcessX throws from the stdout iterator when the exit code is not acceptable.
+        return new ProcessResult(
+            0,
+            string.Join(Environment.NewLine, await stdoutTask),
+            string.Join(Environment.NewLine, await stderrTask));
     }
 
     public static void WritePreview(CommandSpec command) =>
