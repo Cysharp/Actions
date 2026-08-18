@@ -4,7 +4,23 @@ namespace CysharpActions.Utils;
 
 public static class GitHubActions
 {
+    private const string RedactedValue = "***";
+
     public static void WriteRawLog(string value) => Console.WriteLine(value);
+
+    public static void WriteRedactedRawLog(string value, params string?[] secrets)
+    {
+        foreach (var secret in secrets)
+        {
+            if (!string.IsNullOrEmpty(secret))
+            {
+                value = value.Replace(secret, RedactedValue, StringComparison.Ordinal);
+            }
+        }
+
+        WriteRawLog(value);
+    }
+
     public static void WriteLog(string value) => Console.WriteLine($"[{DateTime.Now:s}] {value}");
 
     public static void WriteVerbose(string value)

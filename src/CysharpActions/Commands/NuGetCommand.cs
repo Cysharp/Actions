@@ -31,7 +31,7 @@ public class NuGetCommand(string apiKey, bool dryRun)
             using var _ = GitHubActions.StartGroup($"Uploading nuget. nugetPath: {path}");
             if (dryRun)
             {
-                GitHubActions.WriteRawLog($"dotnet nuget push \"{path}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k {apiKey}");
+                GitHubActions.WriteRedactedRawLog($"dotnet nuget push \"{path}\" --skip-duplicate -s https://api.nuget.org/v3/index.json -k {apiKey}", apiKey);
             }
             else
             {
