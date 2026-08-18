@@ -26,8 +26,8 @@ public class CreateReleaseCommandTest
         {
             CreateFile(path, tag);
             var command = new CreateReleaseCommand(tag, releaseTitle);
-            await command.CreateReleaseAsync();
-            await command.UploadAssetFilesAsync([path]);
+            await command.CreateReleaseAsync(TestContext.Current.CancellationToken);
+            await command.UploadAssetFilesAsync([path], TestContext.Current.CancellationToken);
         }
         finally
         {
@@ -67,8 +67,8 @@ public class CreateReleaseCommandTest
         {
             CreateFile(path, tag);
             var command = new CreateReleaseCommand(tag, releaseTitle);
-            await command.CreateReleaseAsync();
-            await command.UploadAssetFilesAsync([path]);
+            await command.CreateReleaseAsync(TestContext.Current.CancellationToken);
+            await command.UploadAssetFilesAsync([path], TestContext.Current.CancellationToken);
         }
         finally
         {

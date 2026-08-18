@@ -36,7 +36,7 @@ public class GitCommandTest
             await $"git add -- {unrelatedPath}";
 
             var command = new GitCommand(() => Task.CompletedTask);
-            var result = await command.CommitAsync(false, "1.0.0", [targetPath, unchangedPath]);
+            var result = await command.CommitAsync(false, "1.0.0", [targetPath, unchangedPath], TestContext.Current.CancellationToken);
 
             Assert.True(result.commited);
             Assert.Equal(targetPath, (await "git show --pretty=format: --name-only HEAD").Trim());

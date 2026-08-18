@@ -4,6 +4,45 @@
 public class NuGetCommandTest
 {
     [Fact]
+    public async Task PushAsyncPassesStructuredCommandToRunnerTest()
+    {
+        var dir = $".tests/{nameof(NuGetCommandTest)}/{nameof(PushAsyncPassesStructuredCommandToRunnerTest)}";
+        var path = Path.Combine(dir, "package with spaces.nupkg");
+        const string apiKey = "secret-api-key";
+        CysharpActions.Runtime.CommandSpec? actual = null;
+        CancellationToken actualCancellationToken = default;
+        using var cancellation = new CancellationTokenSource();
+
+        Task<CysharpActions.Runtime.ProcessResult> Run(
+            CysharpActions.Runtime.CommandSpec command,
+            CancellationToken cancellationToken)
+        {
+            actual = command;
+            actualCancellationToken = cancellationToken;
+            return Task.FromResult(new CysharpActions.Runtime.ProcessResult(0, "", ""));
+        }
+
+        try
+        {
+            CreateFile(path, "package");
+            await new NuGetCommand(apiKey, false, Run).PushAsync([path], cancellation.Token);
+
+            Assert.NotNull(actual);
+            Assert.Equal("dotnet", actual.Value.FileName);
+            Assert.Equal(
+                ["nuget", "push", path, "--skip-duplicate", "-s", "https://api.nuget.org/v3/index.json", "-k", apiKey],
+                actual.Value.Arguments);
+            Assert.Contains(7, actual.Value.SecretArguments!);
+            Assert.Equal(cancellation.Token, actualCancellationToken);
+            Assert.DoesNotContain(apiKey, actual.Value.ToDisplayString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDeleteDirectory(dir);
+        }
+    }
+
+    [Fact]
     public async Task PushAsyncDryRunRedactsApiKeyTest()
     {
         var dir = $".tests/{nameof(NuGetCommandTest)}/{nameof(PushAsyncDryRunRedactsApiKeyTest)}";
@@ -19,7 +58,7 @@ public class NuGetCommandTest
             Console.SetOut(output);
 
             var command = new NuGetCommand(apiKey, true);
-            await command.PushAsync(files.Select(x => Path.Combine(dir, x)));
+            await command.PushAsync(files.Select(x => Path.Combine(dir, x)), TestContext.Current.CancellationToken);
 
             var log = output.ToString();
             Assert.DoesNotContain(apiKey, log, StringComparison.Ordinal);
@@ -43,7 +82,7 @@ public class NuGetCommandTest
         {
             CreateFiles(dir, files);
             var command = new NuGetCommand("", true);
-            await command.PushAsync(files.Select(x => Path.Combine(dir, "**", x)));
+            await command.PushAsync(files.Select(x => Path.Combine(dir, "**", x)), TestContext.Current.CancellationToken);
         }
         finally
         {

@@ -53,7 +53,7 @@ workflow YAML
 
 [NuGetCommand.cs](../../../src/CysharpActions/Commands/NuGetCommand.cs) は dry-run 時に API key を含むコマンド全文を `WriteRawLog` へ渡している。GitHub 側の masking に依存すべきではなく、ローカルログや値の加工時には漏洩し得る。
 
-**対応状況（2026-08-18）:** 直接の漏洩は対応済み。秘密値を出力直前に置換する `GitHubActions.WriteRedactedRawLog` を追加し、dry-run の表示を `-k ***` に変更した。実際の console 出力に API key が含まれないこと、複数の秘密値と空文字を安全に処理できることを回帰テストで確認する。汎用の `CommandSpec` による構造化された secret redaction は、外部副作用境界を一本化する P1 で引き続き実施する。
+**対応状況（2026-08-18）:** 対応済み。秘密値を出力直前に置換する `GitHubActions.WriteRedactedRawLog` を追加し、dry-run の表示を `-k ***` に変更した。実際の console 出力に API key が含まれないこと、複数の秘密値と空文字を安全に処理できることを回帰テストで確認する。さらに外部副作用境界のP1で、汎用の`CommandSpec.SecretArguments`と常時redactedされる表示へ統合した。
 
 対応:
 
@@ -124,6 +124,10 @@ PR workflowはread-onlyのunit jobとwrite権限を持つ`live-github` jobに分
 ### P1: 外部副作用の境界を一つにする
 
 現在は各 command が ProcessX、`File.*`、Octokit、環境変数、`GitHubActions` static logger を直接呼ぶ。`ValidateTagCommand` だけが専用 interface を持つが、この方式を全 command に広げると過度な OOP になる。
+
+**対応状況（2026-08-18）:** processとGitHub signed-commit APIの実行境界は対応済み。`Runtime/ProcessRunner.cs`へ`CommandSpec`、`ProcessResult`、`RunProcess`を置き、productionのProcessX呼び出しを一か所へ集約した。git、gh、dotnetの引数はshell文字列ではなくargument listとして組み立て、secret位置は`SecretArguments`でデータとして保持する。preview表示はこの情報から生成し、不正なsecret indexは表示前に失敗させる。
+
+Octokit処理も`Runtime/GitHubCommitRunner.cs`へ移し、signed commitの入力treeとref更新結果をrecordで表した。commandごとのinterfaceやDI containerは追加せず、`RunProcess`と`RunGitHubCommit` delegateをconstructorから任意注入できる。CLIから外部実行まで`CancellationToken`を伝播し、ProcessXのnon-zero例外契約、argument list、secret redaction、runnerへ渡るコマンドデータを回帰テストする。最終suiteは`Passed=80, Skipped=5`。filesystem変換とenvironmentのimmutable data化は後続の各P1で扱う。
 
 提案する最小境界:
 

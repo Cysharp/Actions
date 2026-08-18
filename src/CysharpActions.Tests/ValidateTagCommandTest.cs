@@ -23,7 +23,7 @@ public class ValidateTagCommandTest
     public async Task ValidateSuccessTest(string tag)
     {
         var command = new ValidateTagCommand(new GitHubReleaseExeDummy());
-        await command.ValidateTagAsync(tag);
+        await command.ValidateTagAsync(tag, TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -33,7 +33,7 @@ public class ValidateTagCommandTest
     public async Task ValidateFailTest(string tag)
     {
         var command = new ValidateTagCommand(new GitHubReleaseExeDummy());
-        await Assert.ThrowsAsync<ActionCommandException>(() => command.ValidateTagAsync(tag));
+        await Assert.ThrowsAsync<ActionCommandException>(() => command.ValidateTagAsync(tag, TestContext.Current.CancellationToken));
     }
 
     // 1.0.9 と 1.0.10 の数値比較が正しくできるか (辞書順では "10" < "9" になってしまう)
@@ -44,7 +44,7 @@ public class ValidateTagCommandTest
     {
         var command = new ValidateTagCommand(new GitHubReleaseExe109Dummy());
         var normalized = command.Normalize(tag);
-        await command.ValidateTagAsync(normalized);
+        await command.ValidateTagAsync(normalized, TestContext.Current.CancellationToken);
     }
 
     // v1.0.9-beta1 と v1.0.10-beta1、v1.0.9-beta2 の比較が正しくできるか
@@ -56,13 +56,13 @@ public class ValidateTagCommandTest
     {
         var command = new ValidateTagCommand(new GitHubReleaseExeBeta1Dummy());
         var normalized = command.Normalize(tag);
-        await command.ValidateTagAsync(normalized);
+        await command.ValidateTagAsync(normalized, TestContext.Current.CancellationToken);
     }
 }
 
 public class GitHubReleaseExeDummy() : IGitHubReleaseExe
 {
-    public async Task<GitHubRelease[]> GetGitHubReleaseAsync()
+    public async Task<GitHubRelease[]> GetGitHubReleaseAsync(CancellationToken cancellationToken = default)
     {
         // IsLatestは1つだけにしないとだめ
         var versions = new[]
@@ -80,7 +80,7 @@ public class GitHubReleaseExeDummy() : IGitHubReleaseExe
 // 1.0.9 が最新リリースであるダミー (1.0.9 vs 1.0.10 の数値比較テスト用)
 public class GitHubReleaseExe109Dummy() : IGitHubReleaseExe
 {
-    public Task<GitHubRelease[]> GetGitHubReleaseAsync()
+    public Task<GitHubRelease[]> GetGitHubReleaseAsync(CancellationToken cancellationToken = default)
     {
         var versions = new[]
         {
@@ -93,7 +93,7 @@ public class GitHubReleaseExe109Dummy() : IGitHubReleaseExe
 // 1.0.9-beta1 が最新リリースであるダミー (beta バージョン比較テスト用)
 public class GitHubReleaseExeBeta1Dummy() : IGitHubReleaseExe
 {
-    public Task<GitHubRelease[]> GetGitHubReleaseAsync()
+    public Task<GitHubRelease[]> GetGitHubReleaseAsync(CancellationToken cancellationToken = default)
     {
         var versions = new[]
         {

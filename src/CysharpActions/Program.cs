@@ -23,10 +23,10 @@ namespace CysharpActions
         [ConsoleAppFilter<GitHubContextFilter>]
         [ConsoleAppFilter<GitHubCliFilter>]
         [Command("delete-branch")]
-        public async Task DeleteBranch(string branch)
+        public async Task DeleteBranch(string branch, CancellationToken cancellationToken)
         {
             var command = new GitCommand();
-            var result = await command.DeleteBranchAsync(branch);
+            var result = await command.DeleteBranchAsync(branch, cancellationToken);
 
             GitHubActions.SetOutput("deleted", result.ToString().ToLower());
         }
@@ -46,7 +46,7 @@ namespace CysharpActions
         [ConsoleAppFilter<GitHubContextFilter>]
         [ConsoleAppFilter<GitHubCliFilter>]
         [Command("update-version")]
-        public async Task UpdateVersion(string version, string pathString, bool dryRun, string additionalCommitPathString = "", bool sign = true)
+        public async Task UpdateVersion(string version, string pathString, bool dryRun, string additionalCommitPathString = "", bool sign = true, CancellationToken cancellationToken = default)
         {
             var paths = pathString.ToMultiLine();
             if (!paths.Any())
@@ -65,8 +65,8 @@ namespace CysharpActions
             {
                 var gitCommand = new GitCommand();
                 var (commited, sha, branchName, isBranchCreated) = sign
-                    ? await gitCommand.CommitWithSignAsync(dryRun, version, commitPaths)
-                    : await gitCommand.CommitAsync(dryRun, version, commitPaths);
+                    ? await gitCommand.CommitWithSignAsync(dryRun, version, commitPaths, cancellationToken)
+                    : await gitCommand.CommitAsync(dryRun, version, commitPaths, cancellationToken);
 
                 GitHubActions.SetOutput("commited", commited ? "1" : "0");
                 GitHubActions.SetOutput("sha", sha);
@@ -139,13 +139,13 @@ namespace CysharpActions
         /// <returns></returns>
         [ConsoleAppFilter<GitHubCliFilter>]
         [Command("validate-tag")]
-        public async Task ValidateTag(string tag, bool requireValidation)
+        public async Task ValidateTag(string tag, bool requireValidation, CancellationToken cancellationToken)
         {
             var command = new ValidateTagCommand(new GitHubReleaseExeGh());
             var normalizedTag = command.Normalize(tag);
             if (requireValidation)
             {
-                await command.ValidateTagAsync(normalizedTag);
+                await command.ValidateTagAsync(normalizedTag, cancellationToken);
             }
 
             GitHubActions.SetOutput("tag", tag);
@@ -187,17 +187,17 @@ namespace CysharpActions
         [ConsoleAppFilter<GitHubContextFilter>]
         [ConsoleAppFilter<GitHubCliFilter>]
         [Command("create-release")]
-        public async Task CreateRelease(string tag, string releaseTitle, string releaseAssetPathString)
+        public async Task CreateRelease(string tag, string releaseTitle, string releaseAssetPathString, CancellationToken cancellationToken)
         {
             var releaseAssets = releaseAssetPathString.ToMultiLine();
 
             var command = new CreateReleaseCommand(tag, releaseTitle);
 
             GitHubActions.WriteLog($"Creating Release ...");
-            await command.CreateReleaseAsync();
+            await command.CreateReleaseAsync(cancellationToken);
 
             GitHubActions.WriteLog($"Uploading {releaseAssets.Length} assets ...");
-            await command.UploadAssetFilesAsync(releaseAssets);
+            await command.UploadAssetFilesAsync(releaseAssets, cancellationToken);
         }
 
         /// <summary>
@@ -208,13 +208,13 @@ namespace CysharpActions
         /// <param name="dryRun">Dry run or not</param>
         /// <returns></returns>
         [Command("nuget-push")]
-        public async Task NuGetPush(string nugetPathString, string apiKey, bool dryRun)
+        public async Task NuGetPush(string nugetPathString, string apiKey, bool dryRun, CancellationToken cancellationToken)
         {
             var nugetPaths = nugetPathString.ToMultiLine();
 
             GitHubActions.WriteLog($"Uploading {nugetPaths.Length} nuget packages (dryRun: {dryRun})...");
             var command = new NuGetCommand(apiKey, dryRun);
-            await command.PushAsync(nugetPaths);
+            await command.PushAsync(nugetPaths, cancellationToken);
         }
 
         /// <summary>

@@ -26,7 +26,7 @@ public class GitCommandLiveTest
         finally
         {
             var command = new GitCommand();
-            var result = await command.DeleteBranchAsync(branch);
+            var result = await command.DeleteBranchAsync(branch, TestContext.Current.CancellationToken);
 
             await $"gh api -X DELETE /repos/{GitHubContext.Current.Repository}/git/refs/heads/{branch}";
 
