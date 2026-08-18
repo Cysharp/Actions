@@ -48,13 +48,16 @@ public class ValidateTagCommand(IGitHubReleaseExe gitHubRelaeseExe)
     /// </summary>
     /// <param name="tag"></param>
     /// <returns></returns>
-    public async Task ValidateTagAsync(string tag, CancellationToken cancellationToken = default)
+    public async Task ValidateTagAsync(
+        string tag,
+        RepositoryContext repository,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(tag))
             throw new ActionCommandException($"Tag is invalid, emptry string is not allowed.");
 
         // tmporary skip validation on MagicOnion. There are no implementation for validation on each Major Version.
-        if (GitHubContext.Current.Repository == "Cysharp/MagicOnion")
+        if (repository.Repository == "Cysharp/MagicOnion")
         {
             GitHubActions.WriteLog("Temporary skip validation on MagicOnion.");
             return;

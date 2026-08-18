@@ -5,6 +5,14 @@ namespace CysharpActions.Utils;
 public static class GitHubActions
 {
     private const string RedactedValue = "***";
+    private static bool verbose;
+    private static string? outputPath;
+
+    public static void Configure(bool verbose, string? outputPath)
+    {
+        GitHubActions.verbose = verbose;
+        GitHubActions.outputPath = outputPath;
+    }
 
     public static void WriteRawLog(string value) => Console.WriteLine(value);
 
@@ -25,7 +33,7 @@ public static class GitHubActions
 
     public static void WriteVerbose(string value)
     {
-        if (ActionsBatchOptions.Verbose)
+        if (verbose)
         {
             WriteLog(value);
         }
@@ -34,7 +42,7 @@ public static class GitHubActions
     public static void SetOutput(string key, string value, [CallerMemberName] string? callerMemberName = null)
     {
         var input = $"{key}={value}";
-        var output = Environment.GetEnvironmentVariable("GITHUB_OUTPUT", EnvironmentVariableTarget.Process) ?? Path.Combine(Directory.GetCurrentDirectory(), $"GitHubOutputs/{callerMemberName}");
+        var output = outputPath ?? Path.Combine(Directory.GetCurrentDirectory(), $"GitHubOutputs/{callerMemberName}");
         if (!Directory.Exists(Path.GetDirectoryName(output)))
         {
             Directory.CreateDirectory(Path.GetDirectoryName(output)!);

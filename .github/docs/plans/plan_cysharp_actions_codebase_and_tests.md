@@ -42,7 +42,7 @@ workflow YAML
   -> Program.cs / ActionsBatch                 CLI 引数と GitHub output
     -> Commands/*Command.cs                    判断 + I/O + process/API 実行
       -> Utils/*                               glob、置換、ログ、ProcessX 補助
-      -> Contexts/GitHubContext.cs             static な環境変数 snapshot
+      -> Runtime/ActionEnvironment.cs          process environment -> immutable data
 ```
 
 規模が小さい現在は成立している。しかし `*Command` の内部で「入力検証」「純粋な変換」「ファイル操作」「git/gh/API」「ログ」が混在しており、処理全体を理解するには複数の暗黙的な static state と外部状態を同時に読む必要がある。今後コマンドが増えるほど、この混在が把握の主な障害になる。
@@ -154,7 +154,11 @@ internal delegate ValueTask<ProcessResult> RunProcess(
 
 ### P1: 環境変数を明示的な入力データへ変える
 
-[GitHubContext.cs](../../../src/CysharpActions/Contexts/GitHubContext.cs) の `Current` は初回アクセス時の process environment を static に固定する。テストごとの差し替えが難しく、どの command が何を必要とするかも型から分からない。また `GitHubContextFilter` は `Current` を参照するだけで、空文字の必須値を検証していない。
+旧`GitHubContext.cs`の`Current`は初回アクセス時のprocess environmentをstaticに固定していた。テストごとの差し替えが難しく、どのcommandが何を必要とするかも型から分からなかった。また`GitHubContextFilter`は`Current`を参照するだけで、空文字の必須値を検証していなかった。
+
+**対応状況（2026-08-18）:** 対応済み。[ActionEnvironment.cs](../../../src/CysharpActions/Runtime/ActionEnvironment.cs)を追加し、CLIの`ActionsBatch`生成時に一度だけ`ReadFromProcess()`を呼ぶ。巨大なstatic snapshotは削除し、`RepositoryContext`、`WorkflowRunContext`、`GitHubCredentials`を必要なcommand methodへ値で渡す。tokenはcredentialsだけに保持し、既定の文字列表現でも必ずredactする。`GitHubActions`のverbose/output設定も、この入力データから明示的に構成する。
+
+`Parse(IReadOnlyDictionary<string, string?>)`と使用時のvalidateを分離した。CI/debug値の不正形式、必須変数の空値、`GH_REPO`形式には変数名を含む`ActionCommandException`を返す。pure unit testはprocess environmentを書き換えず、dictionaryからのparse、parse後の入力dictionary変更からの独立性、既定値、secret非表示、commandが不足入力をprocess起動前に拒否することを検証する。通常suiteは`Passed=94, Skipped=0`、全suiteは`Passed=94, Skipped=5`。
 
 対応:
 

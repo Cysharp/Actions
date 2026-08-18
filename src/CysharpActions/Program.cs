@@ -1,7 +1,7 @@
 ﻿#pragma warning disable CA1822 // Mark members as static
 using CysharpActions;
 using CysharpActions.Commands;
-using CysharpActions.Contexts;
+using CysharpActions.Runtime;
 using CysharpActions.Utils;
 
 var app = ConsoleApp.Create();
@@ -13,6 +13,18 @@ namespace CysharpActions
 {
     public class ActionsBatch
     {
+        private readonly ActionEnvironment environment;
+
+        public ActionsBatch() : this(ActionEnvironment.ReadFromProcess())
+        {
+        }
+
+        internal ActionsBatch(ActionEnvironment environment)
+        {
+            this.environment = environment;
+            GitHubActions.Configure(environment.Verbose, environment.GitHubOutputPath);
+        }
+
         // Clean package.json branch
 
         /// <summary>
@@ -20,13 +32,12 @@ namespace CysharpActions
         /// </summary>
         /// <param name="branch">branch name to delete</param>
         /// <returns></returns>
-        [ConsoleAppFilter<GitHubContextFilter>]
-        [ConsoleAppFilter<GitHubCliFilter>]
         [Command("delete-branch")]
         public async Task DeleteBranch(string branch, CancellationToken cancellationToken)
         {
+            environment.ValidateGitHubCli();
             var command = new GitCommand();
-            var result = await command.DeleteBranchAsync(branch, cancellationToken);
+            var result = await command.DeleteBranchAsync(branch, environment.Repository, cancellationToken);
 
             GitHubActions.SetOutput("deleted", result.ToString().ToLower());
         }
@@ -43,8 +54,6 @@ namespace CysharpActions
         /// <remarks>
         /// Because GitHub Actions workflow dispatch passes arguments as string, you need to split path by NewLine. It means use `string[] pathString` is un-natural for GitHub Actions.
         /// </remarks>
-        [ConsoleAppFilter<GitHubContextFilter>]
-        [ConsoleAppFilter<GitHubCliFilter>]
         [Command("update-version")]
         public async Task UpdateVersion(string version, string pathString, bool dryRun, string additionalCommitPathString = "", bool sign = true, CancellationToken cancellationToken = default)
         {
@@ -65,8 +74,8 @@ namespace CysharpActions
             {
                 var gitCommand = new GitCommand();
                 var (commited, sha, branchName, isBranchCreated) = sign
-                    ? await gitCommand.CommitWithSignAsync(dryRun, version, commitPaths, cancellationToken)
-                    : await gitCommand.CommitAsync(dryRun, version, commitPaths, cancellationToken);
+                    ? await gitCommand.CommitWithSignAsync(dryRun, version, commitPaths, environment.WorkflowRun, environment.GitHubCredentials, cancellationToken)
+                    : await gitCommand.CommitAsync(dryRun, version, commitPaths, environment.WorkflowRun, environment.GitHubCredentials, cancellationToken);
 
                 GitHubActions.SetOutput("commited", commited ? "1" : "0");
                 GitHubActions.SetOutput("sha", sha);
@@ -85,7 +94,6 @@ namespace CysharpActions
         /// <remarks>
         /// Because GitHub Actions workflow dispatch passes arguments as string, you need to split path by NewLine. It means use `string[] pathString` is un-natural for GitHub Actions.
         /// </remarks>
-        [ConsoleAppFilter<GitHubContextFilter>]
         [Command("increment-version")]
         public void IncrementVersion(string version, VersionIncrement type, string prefix = "", string suffix = "")
         {
@@ -137,15 +145,15 @@ namespace CysharpActions
         /// <param name="tag">version string. ex) 1.0.0 OR v1.0.0</param>
         /// <param name="requireValidation">Set true to exit 1 on fail. Set false to exit 0 even fail.</param>
         /// <returns></returns>
-        [ConsoleAppFilter<GitHubCliFilter>]
         [Command("validate-tag")]
         public async Task ValidateTag(string tag, bool requireValidation, CancellationToken cancellationToken)
         {
+            environment.ValidateGitHubCli();
             var command = new ValidateTagCommand(new GitHubReleaseExeGh());
             var normalizedTag = command.Normalize(tag);
             if (requireValidation)
             {
-                await command.ValidateTagAsync(normalizedTag, cancellationToken);
+                await command.ValidateTagAsync(normalizedTag, environment.Repository, cancellationToken);
             }
 
             GitHubActions.SetOutput("tag", tag);
@@ -184,17 +192,16 @@ namespace CysharpActions
         /// <param name="tag">version string. ex) 1.0.0</param>
         /// <param name="releaseTitle">Release title</param>
         /// <param name="releaseAssetPathString">Release assets to upload</param>
-        [ConsoleAppFilter<GitHubContextFilter>]
-        [ConsoleAppFilter<GitHubCliFilter>]
         [Command("create-release")]
         public async Task CreateRelease(string tag, string releaseTitle, string releaseAssetPathString, CancellationToken cancellationToken)
         {
+            environment.ValidateGitHubCli();
             var releaseAssets = releaseAssetPathString.ToMultiLine();
 
             var command = new CreateReleaseCommand(tag, releaseTitle);
 
             GitHubActions.WriteLog($"Creating Release ...");
-            await command.CreateReleaseAsync(cancellationToken);
+            await command.CreateReleaseAsync(environment.GitHubCredentials, cancellationToken);
 
             GitHubActions.WriteLog($"Uploading {releaseAssets.Length} assets ...");
             await command.UploadAssetFilesAsync(releaseAssets, cancellationToken);
@@ -249,40 +256,5 @@ namespace CysharpActions
         }
     }
 
-    internal class GitHubCliFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
-    {
-        public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
-        {
-            // Ensure GH CLI can access on CI.
-            if (GitHubEnv.Current.CI)
-            {
-                GitHubActions.WriteLog($"Validating gh cli environment variables ...");
-
-                _ = GHEnv.Current.GH_REPO ?? throw new ActionCommandException("Environment Variable 'GH_REPO' is required");
-                _ = GHEnv.Current.GH_TOKEN ?? throw new ActionCommandException("Environment Variable 'GH_TOKEN' is required");
-            }
-            await Next.InvokeAsync(context, cancellationToken);
-        }
-    }
-
-    internal class GitHubContextFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
-    {
-        public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
-        {
-            if (!(context.Arguments.Contains("-h") || context.Arguments.Contains("--help")))
-            {
-                GitHubActions.WriteLog($"Validating GitHub Context ...");
-                // Ensure GitHubContext can be resolved
-                _ = GitHubContext.Current;
-            }
-            await Next.InvokeAsync(context, cancellationToken);
-        }
-    }
-
     public class ActionCommandException(string message, Exception? innterException = null) : Exception(message, innterException);
-
-    internal static class ActionsBatchOptions
-    {
-        public static readonly bool Verbose = GitHubEnv.Current.ACTIONS_STEP_DEBUG || GitHubEnv.Current.RUNNER_DEBUG;
-    }
 }

@@ -1,9 +1,13 @@
 ﻿using CysharpActions.Contexts;
 
+using CysharpActions.Runtime;
+
 namespace CysharpActions.Tests;
 
 public class ValidateTagCommandTest
 {
+    private static readonly RepositoryContext Repository = new("Cysharp/Actions");
+
     [Theory]
     [InlineData("0.1.0", "0.1.0")]
     [InlineData("v0.1.0", "0.1.0")]
@@ -23,7 +27,7 @@ public class ValidateTagCommandTest
     public async Task ValidateSuccessTest(string tag)
     {
         var command = new ValidateTagCommand(new GitHubReleaseExeDummy());
-        await command.ValidateTagAsync(tag, TestContext.Current.CancellationToken);
+        await command.ValidateTagAsync(tag, Repository, TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -33,7 +37,7 @@ public class ValidateTagCommandTest
     public async Task ValidateFailTest(string tag)
     {
         var command = new ValidateTagCommand(new GitHubReleaseExeDummy());
-        await Assert.ThrowsAsync<ActionCommandException>(() => command.ValidateTagAsync(tag, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ActionCommandException>(() => command.ValidateTagAsync(tag, Repository, TestContext.Current.CancellationToken));
     }
 
     // 1.0.9 と 1.0.10 の数値比較が正しくできるか (辞書順では "10" < "9" になってしまう)
@@ -44,7 +48,7 @@ public class ValidateTagCommandTest
     {
         var command = new ValidateTagCommand(new GitHubReleaseExe109Dummy());
         var normalized = command.Normalize(tag);
-        await command.ValidateTagAsync(normalized, TestContext.Current.CancellationToken);
+        await command.ValidateTagAsync(normalized, Repository, TestContext.Current.CancellationToken);
     }
 
     // v1.0.9-beta1 と v1.0.10-beta1、v1.0.9-beta2 の比較が正しくできるか
@@ -56,7 +60,7 @@ public class ValidateTagCommandTest
     {
         var command = new ValidateTagCommand(new GitHubReleaseExeBeta1Dummy());
         var normalized = command.Normalize(tag);
-        await command.ValidateTagAsync(normalized, TestContext.Current.CancellationToken);
+        await command.ValidateTagAsync(normalized, Repository, TestContext.Current.CancellationToken);
     }
 }
 

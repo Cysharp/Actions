@@ -1,6 +1,8 @@
 ﻿using CysharpActions.Contexts;
 using Zx;
 
+using CysharpActions.Runtime;
+
 namespace CysharpActions.Tests;
 
 [Collection("Git environment")]
@@ -35,8 +37,14 @@ public class GitCommandTest
             File.WriteAllText(Path.Combine(baseDirectory, untrackedPath), "untracked");
             await $"git add -- {unrelatedPath}";
 
-            var command = new GitCommand(() => Task.CompletedTask);
-            var result = await command.CommitAsync(false, "1.0.0", [targetPath, unchangedPath], TestContext.Current.CancellationToken);
+            var command = new GitCommand((_, _) => Task.CompletedTask);
+            var result = await command.CommitAsync(
+                false,
+                "1.0.0",
+                [targetPath, unchangedPath],
+                new WorkflowRunContext("https://github.com", "owner/repository", "1"),
+                new GitHubCredentials("owner/repository", "token"),
+                TestContext.Current.CancellationToken);
 
             Assert.True(result.commited);
             Assert.Equal(targetPath, (await "git show --pretty=format: --name-only HEAD").Trim());

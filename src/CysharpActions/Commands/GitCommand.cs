@@ -9,34 +9,39 @@ namespace CysharpActions.Commands;
 
 public class GitCommand
 {
-    private readonly Func<Task> configureGit;
+    private readonly Func<GitHubCredentials, CancellationToken, Task> configureGit;
     private readonly RunProcess runProcess;
     private readonly RunGitHubCommit runGitHubCommit;
 
     public GitCommand(
-        Func<Task>? configureGit = null,
+        Func<GitHubCredentials, CancellationToken, Task>? configureGit = null,
         RunProcess? runProcess = null,
         RunGitHubCommit? runGitHubCommit = null)
     {
         this.runProcess = runProcess ?? ProcessRunner.RunAsync;
         this.runGitHubCommit = runGitHubCommit ?? GitHubCommitRunner.RunAsync;
-        this.configureGit = configureGit ?? (() => GitHelper.SetGitUserEmailAsync(runProcess: this.runProcess));
+        this.configureGit = configureGit ?? ((credentials, cancellationToken) =>
+            GitHelper.SetGitUserEmailAsync(credentials, runProcess: this.runProcess, cancellationToken: cancellationToken));
     }
 
-    public async Task<bool> DeleteBranchAsync(string branch, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteBranchAsync(
+        string branch,
+        RepositoryContext repositoryContext,
+        CancellationToken cancellationToken = default)
     {
+        var repository = repositoryContext.RequireRepository();
         // Search branches to delete
         using (var _ = GitHubActions.StartGroup($"Searching branch for repo. branch: {branch}"))
         {
             // Check if the branch is the default branch
-            var repoResult = await runProcess(new CommandSpec("gh", ["api", $"/repos/{GitHubContext.Current.Repository}"]), cancellationToken);
+            var repoResult = await runProcess(new CommandSpec("gh", ["api", $"/repos/{repository}"]), cancellationToken);
             var repo = JsonSerializer.Deserialize(repoResult.Stdout, JsonSourceGenerationContext.Default.GitHubApiRepo) ?? throw new ActionCommandException("gh api could not get repository info.");
 
             if (repo.DefaultBranch == branch)
                 throw new ActionCommandException($"Branch is default, you cannot delete this branch. branch: {branch}");
 
             // Check if the branch is created by github-actions[bot]
-            var branchesResult = await runProcess(new CommandSpec("gh", ["api", $"/repos/{GitHubContext.Current.Repository}/branches"]), cancellationToken);
+            var branchesResult = await runProcess(new CommandSpec("gh", ["api", $"/repos/{repository}/branches"]), cancellationToken);
             var branches = JsonSerializer.Deserialize(branchesResult.Stdout, JsonSourceGenerationContext.Default.GitHubApiBranchesArray) ?? throw new ActionCommandException("gh api could not get branches info.");
             if (!branches.Any(x => x.Name == branch))
             {
@@ -52,7 +57,7 @@ public class GitCommand
         // check branch detail
         using (var _ = GitHubActions.StartGroup($"Branch detail. branch: {branch}"))
         {
-            var branchResult = await runProcess(new CommandSpec("gh", ["api", $"/repos/{GitHubContext.Current.Repository}/branches/{branch}"]), cancellationToken);
+            var branchResult = await runProcess(new CommandSpec("gh", ["api", $"/repos/{repository}/branches/{branch}"]), cancellationToken);
             var branchDetail = JsonSerializer.Deserialize(branchResult.Stdout, JsonSourceGenerationContext.Default.GitHubApiBranch) ?? throw new ActionCommandException("gh api could not get branch info.");
 
             GitHubActions.WriteLog($"Checking who created the branch.");
@@ -68,7 +73,7 @@ public class GitCommand
         using (var _ = GitHubActions.StartGroup($"Deleteting branch. branch: {branch}"))
         {
             GitHubActions.WriteLog($"Branch is created by github-actions[bot], deleting branch. branch: {branch}");
-            await runProcess(new CommandSpec("gh", ["api", "-X", "DELETE", $"/repos/{GitHubContext.Current.Repository}/git/refs/heads/{branch}"]), cancellationToken);
+            await runProcess(new CommandSpec("gh", ["api", "-X", "DELETE", $"/repos/{repository}/git/refs/heads/{branch}"]), cancellationToken);
 
             GitHubActions.WriteLog($"Branch deleted.");
         }
@@ -86,6 +91,8 @@ public class GitCommand
         bool dryRun,
         string tag,
         string[] modifiedPaths,
+        WorkflowRunContext workflowRun,
+        GitHubCredentials credentials,
         CancellationToken cancellationToken = default)
     {
         var commitPaths = NormalizeCommitPaths(modifiedPaths);
@@ -96,7 +103,7 @@ public class GitCommand
         }
 
         GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
-        await configureGit();
+        await configureGit(credentials, cancellationToken);
 
         // Only stage explicitly allowed paths. -f is required for generated files that may be ignored.
         await RunGitAsync(["add", "-f", "--", .. commitPaths], cancellationToken);
@@ -126,7 +133,7 @@ public class GitCommand
                 "commit",
                 "--only",
                 "-m", $"chore(automate): Update package.json to {tag}",
-                "-m", $"Commit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})",
+                "-m", $"Commit by [GitHub Actions]({workflowRun.WorkflowRunUrl})",
                 "--",
                 .. commitPaths], cancellationToken);
 
@@ -148,6 +155,8 @@ public class GitCommand
         bool dryRun,
         string tag,
         string[] modifiedPaths,
+        WorkflowRunContext workflowRun,
+        GitHubCredentials credentials,
         CancellationToken cancellationToken = default)
     {
         var commitPaths = NormalizeCommitPaths(modifiedPaths);
@@ -158,7 +167,7 @@ public class GitCommand
         }
 
         GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
-        await configureGit();
+        await configureGit(credentials, cancellationToken);
 
         // Only stage explicitly allowed paths. -f is required for generated files that may be ignored.
         await RunGitAsync(["add", "-f", "--", .. commitPaths], cancellationToken);
@@ -187,13 +196,8 @@ public class GitCommand
 
             GitHubActions.WriteLog("Committing change via GitHub API (signed commit).");
 
-            var token = GHEnv.Current.GH_TOKEN ?? throw new ActionCommandException("GH_TOKEN is required.");
-            var repoEnv = GHEnv.Current.GH_REPO ?? throw new ActionCommandException("GH_REPO is required.");
-            var separatorIndex = repoEnv.IndexOf('/');
-            if (separatorIndex < 0)
-                throw new ActionCommandException($"Invalid repository format: {repoEnv}");
-            var owner = repoEnv[..separatorIndex];
-            var repoName = repoEnv[(separatorIndex + 1)..];
+            var token = credentials.RequireToken();
+            var (owner, repoName) = credentials.ParseRepository();
 
             // For non-dryRun, get the remote branch HEAD via API to guarantee the new commit is a fast-forward.
             // For dryRun (new branch), the remote ref does not yet exist, so use local HEAD.
@@ -221,7 +225,7 @@ public class GitCommand
                 }
             }
 
-            var commitMessage = $"chore(automate): Update package.json to {tag}\n\nCommit by [GitHub Actions]({GitHubContext.Current.WorkflowRunUrl})";
+            var commitMessage = $"chore(automate): Update package.json to {tag}\n\nCommit by [GitHub Actions]({workflowRun.WorkflowRunUrl})";
             var commitResult = await runGitHubCommit(new GitHubCommitSpec(
                 token,
                 owner,

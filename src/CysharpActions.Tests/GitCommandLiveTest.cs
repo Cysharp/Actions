@@ -1,6 +1,8 @@
 using CysharpActions.Contexts;
 using Zx;
 
+using CysharpActions.Runtime;
+
 namespace CysharpActions.Tests;
 
 [Collection(LiveGitHubTest.Category)]
@@ -13,7 +15,9 @@ public class GitCommandLiveTest
         SkipType = typeof(LiveGitHubTest))]
     public async Task DeleteBranchFalse_NotGitHubActionsLoginTest()
     {
-        GHEnv.Current.Validate();
+        var environment = ActionEnvironment.ReadFromProcess();
+        environment.GitHubCredentials.Validate();
+        var repository = environment.Repository.RequireRepository();
 
         Zx.Env.useShell = false;
         var branch = "it/should/not/exists/at/all";
@@ -21,14 +25,14 @@ public class GitCommandLiveTest
         try
         {
             var sha = await "git rev-parse HEAD";
-            await $"gh api --method POST -H \"Accept: application/vnd.github.v3+json\" /repos/{GitHubContext.Current.Repository}/git/refs -f ref=\"refs/heads/{branch}\" -f sha=\"{sha}\"";
+            await $"gh api --method POST -H \"Accept: application/vnd.github.v3+json\" /repos/{repository}/git/refs -f ref=\"refs/heads/{branch}\" -f sha=\"{sha}\"";
         }
         finally
         {
             var command = new GitCommand();
-            var result = await command.DeleteBranchAsync(branch, TestContext.Current.CancellationToken);
+            var result = await command.DeleteBranchAsync(branch, environment.Repository, TestContext.Current.CancellationToken);
 
-            await $"gh api -X DELETE /repos/{GitHubContext.Current.Repository}/git/refs/heads/{branch}";
+            await $"gh api -X DELETE /repos/{repository}/git/refs/heads/{branch}";
 
             Assert.False(result); // because creator is not github-actions[bot]
         }

@@ -14,10 +14,10 @@ public class CreateReleaseCommand(string tag, string releaseTitle, RunProcess? r
     /// </summary>
     /// <returns></returns>
     /// <exception cref="ActionCommandException"></exception>
-    public async Task CreateReleaseAsync(CancellationToken cancellationToken = default)
+    public async Task CreateReleaseAsync(GitHubCredentials credentials, CancellationToken cancellationToken = default)
     {
         GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
-        await GitHelper.SetGitUserEmailAsync(runProcess: runProcess, cancellationToken: cancellationToken);
+        await GitHelper.SetGitUserEmailAsync(credentials, runProcess: runProcess, cancellationToken: cancellationToken);
         await runProcess(new CommandSpec("git", ["config", "-l"]), cancellationToken);
 
         // git tag

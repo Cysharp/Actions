@@ -2,6 +2,8 @@
 using CysharpActions.Utils;
 using Zx;
 
+using CysharpActions.Runtime;
+
 namespace CysharpActions.Tests;
 
 [Collection(LiveGitHubTest.Category)]
@@ -15,7 +17,8 @@ public class CreateReleaseCommandTest
     [InlineData("1.2.0-pre", "v1.2.0-pre")]
     public async Task SkipTagAndReleaseTest(string tag, string releaseTitle)
     {
-        GHEnv.Current.Validate();
+        var environment = ActionEnvironment.ReadFromProcess();
+        environment.GitHubCredentials.Validate();
 
         Zx.Env.useShell = false;
 
@@ -26,7 +29,7 @@ public class CreateReleaseCommandTest
         {
             CreateFile(path, tag);
             var command = new CreateReleaseCommand(tag, releaseTitle);
-            await command.CreateReleaseAsync(TestContext.Current.CancellationToken);
+            await command.CreateReleaseAsync(environment.GitHubCredentials, TestContext.Current.CancellationToken);
             await command.UploadAssetFilesAsync([path], TestContext.Current.CancellationToken);
         }
         finally
@@ -56,7 +59,8 @@ public class CreateReleaseCommandTest
     [InlineData("test.10.1.0", "Ver.test.10.1.0")]
     public async Task CreateTagAndReleaseTest(string tag, string releaseTitle)
     {
-        GHEnv.Current.Validate();
+        var environment = ActionEnvironment.ReadFromProcess();
+        environment.GitHubCredentials.Validate();
 
         Zx.Env.useShell = false;
 
@@ -67,7 +71,7 @@ public class CreateReleaseCommandTest
         {
             CreateFile(path, tag);
             var command = new CreateReleaseCommand(tag, releaseTitle);
-            await command.CreateReleaseAsync(TestContext.Current.CancellationToken);
+            await command.CreateReleaseAsync(environment.GitHubCredentials, TestContext.Current.CancellationToken);
             await command.UploadAssetFilesAsync([path], TestContext.Current.CancellationToken);
         }
         finally
