@@ -4,6 +4,42 @@ on:
   pull_request:
     branches: [main]
   workflow_call:
+    inputs:
+      license-check:
+        description: "Run ol license policy check with a Syft SBOM and resolved package-manager inputs."
+        required: false
+        default: false
+        type: boolean
+      license-allow-licenses:
+        description: "Comma-separated SPDX License Identifiers allowed by ol. Required when license-check is true."
+        required: false
+        default: ""
+        type: string
+      license-allow-dev-licenses:
+        description: "Comma-separated SPDX License Identifiers additionally allowed for proven development-only dependencies."
+        required: false
+        default: ""
+        type: string
+      license-baseline-path:
+        description: "Path to the committed ol baseline."
+        required: false
+        default: "ol-baseline.json"
+        type: string
+      license-scan-path:
+        description: "Repository subtree scanned by Syft and ol."
+        required: false
+        default: "."
+        type: string
+      license-dotnet-path:
+        description: "Solution or project restored before scanning. Empty disables .NET restore."
+        required: false
+        default: ""
+        type: string
+      license-cargo-manifest-path:
+        description: "Cargo.toml used to generate locked Cargo metadata. Empty disables Cargo metadata generation."
+        required: false
+        default: ""
+        type: string
 
 jobs:
   prevent-githubactions-changes:
@@ -65,7 +101,7 @@ jobs:
         if: ${{ github.repository_visibility == 'public' }}
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # 5.0.0
         with:
-          allow-licenses: Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MIT, MPL-2.0
+          allow-licenses: ${{ inputs.license-allow-licenses || 'Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MIT, MPL-2.0' }}
           license-check: true
           vulnerability-check: true
 
@@ -107,6 +143,104 @@ jobs:
         shell: bash
         run: |
           ${{ steps.actions-caller.outputs.path }} scan-pr-unicode --event-path "${GITHUB_EVENT_PATH}" --repository-path "${GITHUB_WORKSPACE}"
+
+  license-check:
+    if: ${{ inputs.license-check }}
+    needs: [prevent-githubactions-changes]
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: cysharp/actions/.github/actions/checkout@main
+        with:
+          persist-credentials: false
+      - name: "Initialize license check paths"
+        run: |
+          ol_work_dir="$RUNNER_TEMP/ol-license-check"
+          mkdir -p "$ol_work_dir"
+          {
+            echo "OL_WORK_DIR=$ol_work_dir"
+            echo "OL_SBOM_PATH=$ol_work_dir/sbom.cdx.json"
+            echo "OL_REPORT_PATH=$ol_work_dir/ol-report.json"
+            echo "OL_CARGO_METADATA_PATH=$ol_work_dir/cargo-metadata.json"
+          } >> "$GITHUB_ENV"
+      - name: "Validate license check inputs"
+        env:
+          ALLOW_LICENSES: ${{ inputs.license-allow-licenses }}
+          BASELINE_PATH: ${{ inputs.license-baseline-path }}
+        run: |
+          if [[ -z "$ALLOW_LICENSES" ]]; then
+            echo "::error::license-allow-licenses is required when license-check is true."
+            exit 1
+          fi
+          if [[ ! -f "$BASELINE_PATH" ]]; then
+            echo "::error::ol baseline was not found: $BASELINE_PATH"
+            exit 1
+          fi
+      - uses: cysharp/actions/.github/actions/setup-dotnet@main
+        if: ${{ inputs.license-dotnet-path != '' }}
+      - name: "Restore .NET dependencies"
+        if: ${{ inputs.license-dotnet-path != '' }}
+        env:
+          DOTNET_PATH: ${{ inputs.license-dotnet-path }}
+        run: dotnet restore "$DOTNET_PATH"
+      - name: "Generate Cargo metadata"
+        if: ${{ inputs.license-cargo-manifest-path != '' }}
+        env:
+          CARGO_MANIFEST_PATH: ${{ inputs.license-cargo-manifest-path }}
+        run: cargo metadata --format-version 1 --locked --manifest-path "$CARGO_MANIFEST_PATH" > "$OL_CARGO_METADATA_PATH"
+      - name: "Set up Syft"
+        id: syft
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          syft-version: v1.50.0
+      - name: "Generate Syft SBOM"
+        env:
+          SCAN_PATH: ${{ inputs.license-scan-path }}
+          SOURCE_NAME: ${{ github.event.repository.name }}
+          SOURCE_VERSION: ${{ github.event.pull_request.head.sha || github.sha }}
+          SYFT_JAVASCRIPT_INCLUDE_DEV_DEPENDENCIES: true
+        run: |
+          "${{ steps.syft.outputs.cmd }}" "dir:$SCAN_PATH" \
+            --exclude './.vs/**' \
+            --exclude './**/bin/**' \
+            --exclude './**/obj/**' \
+            --select-catalogers '-github-action-workflow-usage-cataloger,-github-actions-usage-cataloger' \
+            --source-name "$SOURCE_NAME" \
+            --source-version "$SOURCE_VERSION" \
+            --output "cyclonedx-json=$OL_SBOM_PATH"
+      - uses: guitarrapc/setup-ol@3128c4908a32378c0775f12c4a9dfe6c8c8c3f07 # v1.0.0
+      - name: "Scan license evidence"
+        env:
+          CARGO_MANIFEST_PATH: ${{ inputs.license-cargo-manifest-path }}
+          SCAN_PATH: ${{ inputs.license-scan-path }}
+          OL_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          scan_args=(--input "$OL_SBOM_PATH" --input "$SCAN_PATH")
+          if [[ -n "$CARGO_MANIFEST_PATH" ]]; then
+            scan_args+=(--input "$OL_CARGO_METADATA_PATH")
+          fi
+          ol scan "${scan_args[@]}" --format json > "$OL_REPORT_PATH"
+      - name: "Upload license evidence"
+        uses: cysharp/actions/.github/actions/upload-artifact@main
+        with:
+          name: ol-license-check-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/ol-license-check/sbom.cdx.json
+            ${{ runner.temp }}/ol-license-check/ol-report.json
+          retention-days: 7
+      - name: "Check license policy"
+        env:
+          ALLOW_DEV_LICENSES: ${{ inputs.license-allow-dev-licenses }}
+          ALLOW_LICENSES: ${{ inputs.license-allow-licenses }}
+          BASELINE_PATH: ${{ inputs.license-baseline-path }}
+        run: |
+          check_args=(--report "$OL_REPORT_PATH" --allow-licenses "$ALLOW_LICENSES" --baseline "$BASELINE_PATH")
+          if [[ -n "$ALLOW_DEV_LICENSES" ]]; then
+            check_args+=(--allow-dev-licenses "$ALLOW_DEV_LICENSES")
+          fi
+          ol check "${check_args[@]}"
 
   pr-harness-check:
     needs: [prevent-githubactions-changes, dependency-review, unicode-security]
