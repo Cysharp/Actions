@@ -1,6 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers;
+using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using CysharpActions.Utils;
@@ -24,17 +24,12 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         var state = new ScanState(MaxAnnotations);
         ScanMetadata(input, state);
 
-        var fileCount = 0;
-        await foreach (var file in changeSource.ReadChangedFilesAsync(
+        var fileCount = await changeSource.VisitChangedFilesAsync(
             repositoryPath,
             input.BaseSha,
             input.HeadSha,
-            cancellationToken))
-        {
-            fileCount++;
-            if (!ScanFile(file, state))
-                break;
-        }
+            (file, content, token) => ScanFileAsync(file, content, state, token),
+            cancellationToken);
 
         foreach (var violation in state.Violations)
         {
@@ -65,8 +60,11 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
 
         foreach (var file in files)
         {
-            if (!ScanFile(file, state))
+            var disposition = PrepareFile(file, state);
+            if (disposition == FileScanDisposition.Stop)
                 break;
+            if (disposition == FileScanDisposition.ScanContent)
+                ScanCSharpBytes(file.Path, file.Content, state);
         }
 
         return state.Violations;
@@ -78,7 +76,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         ScanText("PR body", input.Body, UnicodeScanOptions.Metadata, state);
     }
 
-    private static bool ScanFile(PrChangedFile file, ScanState state)
+    private static FileScanDisposition PrepareFile(PrChangedFile file, ScanState state)
     {
         ScanText(file.Path, file.Path, UnicodeScanOptions.FileName, state);
         if (file.OldPath is not null)
@@ -89,7 +87,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         if (file.PreScanError is not null)
         {
             state.Add(UnicodeViolation.FileError(file.Path, file.PreScanError));
-            return false;
+            return FileScanDisposition.Stop;
         }
 
         if (file.IsSymbolicLink)
@@ -100,11 +98,11 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
                     file.Path,
                     "C# source file must not be a symbolic link."));
             }
-            return true;
+            return FileScanDisposition.Skip;
         }
 
         if (file.IsGitLink || !IsCSharpSource(file.Path))
-            return true;
+            return FileScanDisposition.Skip;
 
         var contentLength = file.DeclaredSize ?? file.Content.LongLength;
         if (contentLength > MaxFileBytes)
@@ -112,7 +110,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
             state.Add(UnicodeViolation.FileError(
                 file.Path,
                 $"C# source file exceeds the {MaxFileBytes / 1024 / 1024} MiB scan limit."));
-            return true;
+            return FileScanDisposition.Skip;
         }
 
         // GitPrChangeSource checks this from tree metadata before loading a blob. Keep the same
@@ -122,37 +120,305 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
             state.Add(UnicodeViolation.FileError(
                 file.Path,
                 $"Changed C# source exceeds the {MaxTotalTextBytes / 1024 / 1024} MiB total scan limit."));
-            return false;
+            return FileScanDisposition.Stop;
         }
         state.TotalTextBytes += contentLength;
+        return FileScanDisposition.ScanContent;
+    }
 
-        if (file.Content.Contains((byte)0))
-        {
-            state.Add(UnicodeViolation.FileError(file.Path, "C# source file contains a NUL byte."));
-            return true;
-        }
+    private static async Task<bool> ScanFileAsync(
+        PrChangedFile file,
+        Stream? content,
+        ScanState state,
+        CancellationToken cancellationToken)
+    {
+        var disposition = PrepareFile(file, state);
+        if (disposition != FileScanDisposition.ScanContent)
+            return disposition != FileScanDisposition.Stop;
+        if (content is null)
+            throw new ActionCommandException($"Changed C# source '{file.Path}' has no blob stream.");
 
-        string text;
+        const int bufferSize = 64 * 1024;
+        var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
         try
         {
-            text = StrictUtf8.GetString(file.Content);
+            var scanner = new Utf8ContentScanner(file.Path, state);
+            var valid = true;
+            while (true)
+            {
+                var read = await content.ReadAsync(buffer.AsMemory(0, bufferSize), cancellationToken);
+                if (read == 0)
+                    break;
+                if (!valid)
+                    continue; // Drain git stdout so cat-file cannot block while exiting.
+                if (buffer.AsSpan(0, read).Contains((byte)0))
+                {
+                    state.Add(UnicodeViolation.FileError(file.Path, "C# source file contains a NUL byte."));
+                    valid = false;
+                    continue;
+                }
+                try
+                {
+                    scanner.Append(buffer.AsSpan(0, read));
+                }
+                catch (DecoderFallbackException)
+                {
+                    state.Add(UnicodeViolation.FileError(file.Path, "C# source file is not valid UTF-8."));
+                    valid = false;
+                }
+            }
+            if (valid)
+            {
+                try
+                {
+                    scanner.Complete();
+                }
+                catch (DecoderFallbackException)
+                {
+                    state.Add(UnicodeViolation.FileError(file.Path, "C# source file is not valid UTF-8."));
+                }
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+        return true;
+    }
+
+    private static void ScanCSharpBytes(string source, ReadOnlySpan<byte> content, ScanState state)
+    {
+        if (content.Contains((byte)0))
+        {
+            state.Add(UnicodeViolation.FileError(source, "C# source file contains a NUL byte."));
+            return;
+        }
+        try
+        {
+            var scanner = new Utf8ContentScanner(source, state);
+            scanner.Append(content);
+            scanner.Complete();
         }
         catch (DecoderFallbackException)
         {
-            state.Add(UnicodeViolation.FileError(file.Path, "C# source file is not valid UTF-8."));
-            return true;
+            state.Add(UnicodeViolation.FileError(source, "C# source file is not valid UTF-8."));
+        }
+    }
+
+    internal static IReadOnlyList<UnicodeViolation> ScanCSharpChunksForTest(
+        params ReadOnlyMemory<byte>[] chunks)
+    {
+        var state = new ScanState(int.MaxValue);
+        var scanner = new Utf8ContentScanner("Test.cs", state);
+        foreach (var chunk in chunks)
+            scanner.Append(chunk.Span);
+        scanner.Complete();
+        return state.Violations;
+    }
+
+    private enum FileScanDisposition
+    {
+        Skip,
+        ScanContent,
+        Stop,
+    }
+
+    private sealed class Utf8ContentScanner
+    {
+        private readonly Decoder decoder = StrictUtf8.GetDecoder();
+        private readonly char[] characters = new char[4096];
+        private readonly CSharpTextScanner scanner;
+
+        public Utf8ContentScanner(string source, ScanState state) => scanner = new(source, state);
+
+        public void Append(ReadOnlySpan<byte> bytes) => Convert(bytes, flush: false);
+
+        public void Complete()
+        {
+            Convert([], flush: true);
+            scanner.Complete();
         }
 
-        ScanText(
-            file.Path,
-            text,
-            new UnicodeScanOptions(
-                AllowLeadingBom: true,
-                ScanCSharpEscapes: true,
-                RejectNonAsciiSpace: true),
-            state);
+        private void Convert(ReadOnlySpan<byte> bytes, bool flush)
+        {
+            do
+            {
+                decoder.Convert(
+                    bytes,
+                    characters,
+                    flush,
+                    out var bytesUsed,
+                    out var charactersUsed,
+                    out var completed);
+                scanner.Append(characters.AsSpan(0, charactersUsed));
+                bytes = bytes[bytesUsed..];
+                if (completed)
+                    break;
+            }
+            while (!bytes.IsEmpty || flush);
+        }
+    }
 
-        return true;
+    private sealed class CSharpTextScanner(string source, ScanState state)
+    {
+        private const int EscapeWindowSize = 10; // backslash + U + eight hexadecimal digits
+        private readonly char[] escapeCharacters = new char[EscapeWindowSize];
+        private readonly int[] escapeLines = new int[EscapeWindowSize];
+        private readonly int[] escapeColumns = new int[EscapeWindowSize];
+        private int escapeCount;
+        private int escapeStart;
+        private int line = 1;
+        private int column = 1;
+        private bool previousWasCarriageReturn;
+        private bool isFirstScalar = true;
+        private char? pendingHighSurrogate;
+        private int pendingHighLine;
+        private int pendingHighColumn;
+
+        public void Append(ReadOnlySpan<char> characters)
+        {
+            foreach (var character in characters)
+            {
+                AddEscapeCharacter(character, line, column);
+                ScanRawCharacter(character, line, column);
+                AdvancePosition(character);
+            }
+        }
+
+        public void Complete()
+        {
+            if (pendingHighSurrogate is not null)
+                throw new DecoderFallbackException("UTF-8 decoder produced an incomplete surrogate pair.");
+        }
+
+        private void ScanRawCharacter(char character, int characterLine, int characterColumn)
+        {
+            if (pendingHighSurrogate is char high)
+            {
+                if (!char.IsLowSurrogate(character))
+                    throw new DecoderFallbackException("UTF-8 decoder produced an invalid surrogate pair.");
+                ScanRawRune(new Rune(high, character), pendingHighLine, pendingHighColumn);
+                pendingHighSurrogate = null;
+                return;
+            }
+
+            if (char.IsHighSurrogate(character))
+            {
+                pendingHighSurrogate = character;
+                pendingHighLine = characterLine;
+                pendingHighColumn = characterColumn;
+                return;
+            }
+            if (char.IsLowSurrogate(character))
+                throw new DecoderFallbackException("UTF-8 decoder produced an unexpected low surrogate.");
+
+            ScanRawRune(new Rune(character), characterLine, characterColumn);
+        }
+
+        private void ScanRawRune(Rune rune, int runeLine, int runeColumn)
+        {
+            var value = rune.Value;
+            string? reason = null;
+            if (!(isFirstScalar && value == 0xFEFF))
+            {
+                if (IsFormat(value))
+                    reason = "Unicode format character (Cf)";
+                else if (IsDefaultIgnorable(value))
+                    reason = "Unicode Default_Ignorable_Code_Point";
+                else if (IsForbiddenControl(value))
+                    reason = "forbidden control or line-separator character";
+                else if (IsNonAsciiSpace(rune))
+                    reason = "non-ASCII space in a C# source file";
+            }
+            isFirstScalar = false;
+
+            if (reason is not null)
+                state.Add(new UnicodeViolation(source, runeLine, runeColumn, value, "raw", reason));
+        }
+
+        private void AddEscapeCharacter(char character, int characterLine, int characterColumn)
+        {
+            if (escapeCount == EscapeWindowSize)
+            {
+                escapeStart = (escapeStart + 1) % EscapeWindowSize;
+                escapeCount--;
+            }
+            var index = (escapeStart + escapeCount) % EscapeWindowSize;
+            escapeCharacters[index] = character;
+            escapeLines[index] = characterLine;
+            escapeColumns[index] = characterColumn;
+            escapeCount++;
+
+            CheckEscape(4, 'u');
+            CheckEscape(8, 'U');
+        }
+
+        // C# language specification section 6.4.3 permits Unicode_Escape_Sequence in identifiers.
+        // Rejecting only decoded scalar values would therefore miss an identifier containing, for example,
+        // backslash-u-200B. Keep the ten-character suffix across chunks and inspect escapes everywhere in
+        // .cs/.csx source; this intentionally does not depend on whether the escape is in code, a string, or a
+        // comment, because deceptive invisible text is forbidden throughout source files.
+        // https://learn.microsoft.com/dotnet/csharp/language-reference/language-specification/lexical-structure#643-identifiers
+        private void CheckEscape(int digitCount, char marker)
+        {
+            var length = digitCount + 2;
+            if (escapeCount < length || EscapeAt(escapeCount - length) != '\\' ||
+                EscapeAt(escapeCount - length + 1) != marker)
+            {
+                return;
+            }
+
+            var value = 0;
+            for (var i = 0; i < digitCount; i++)
+            {
+                var digit = HexValue(EscapeAt(escapeCount - digitCount + i));
+                if (digit < 0)
+                    return;
+                value = checked(value * 16 + digit);
+            }
+            if (!Rune.IsValid(value) || !(IsFormat(value) || IsDefaultIgnorable(value)))
+                return;
+
+            var start = (escapeStart + escapeCount - length) % EscapeWindowSize;
+            state.Add(new UnicodeViolation(
+                source,
+                escapeLines[start],
+                escapeColumns[start],
+                value,
+                "C# Unicode escape",
+                "escape resolves to a forbidden identifier character"));
+        }
+
+        private char EscapeAt(int relativeIndex) =>
+            escapeCharacters[(escapeStart + relativeIndex) % EscapeWindowSize];
+
+        private void AdvancePosition(char character)
+        {
+            if (character == '\r')
+            {
+                line++;
+                column = 1;
+                previousWasCarriageReturn = true;
+            }
+            else if (character == '\n')
+            {
+                if (!previousWasCarriageReturn)
+                    line++;
+                column = 1;
+                previousWasCarriageReturn = false;
+            }
+            else if (character is '\u0085' or '\u2028' or '\u2029')
+            {
+                line++;
+                column = 1;
+                previousWasCarriageReturn = false;
+            }
+            else
+            {
+                column++;
+                previousWasCarriageReturn = false;
+            }
+        }
     }
 
     private static async Task<PullRequestScanInput> ReadPullRequestAsync(
@@ -211,17 +477,14 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         {
             var value = rune.Value;
             string? reason = null;
-            if (!(options.AllowLeadingBom && offset == 0 && value == 0xFEFF))
-            {
-                if (IsFormat(value))
-                    reason = "Unicode format character (Cf)";
-                else if (IsDefaultIgnorable(value))
-                    reason = "Unicode Default_Ignorable_Code_Point";
-                else if (IsForbiddenControl(value))
-                    reason = "forbidden control or line-separator character";
-                else if (options.RejectNonAsciiSpace && IsNonAsciiSpace(rune))
-                    reason = "non-ASCII space in a C# source file";
-            }
+            if (IsFormat(value))
+                reason = "Unicode format character (Cf)";
+            else if (IsDefaultIgnorable(value))
+                reason = "Unicode Default_Ignorable_Code_Point";
+            else if (IsForbiddenControl(value))
+                reason = "forbidden control or line-separator character";
+            else if (options.RejectNonAsciiSpace && IsNonAsciiSpace(rune))
+                reason = "non-ASCII space in a C# source file";
 
             if (reason is not null)
             {
@@ -231,54 +494,6 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
             offset += rune.Utf16SequenceLength;
         }
 
-        if (!options.ScanCSharpEscapes)
-            return;
-
-        // C# language specification section 6.4.3 permits Unicode_Escape_Sequence in identifiers.
-        // Consequently, rejecting only raw Unicode scalar values would still allow an identifier such as
-        // "user" + backslash-u-200B + "Name". This scanner deliberately checks escapes everywhere in a
-        // .cs/.csx file rather than implementing a C# lexer. Tests that need these values must construct them
-        // numerically, for example with char.ConvertFromUtf32(0x200B).
-        // https://learn.microsoft.com/dotnet/csharp/language-reference/language-specification/lexical-structure#643-identifiers
-        for (var i = 0; i < text.Length - 1; i++)
-        {
-            if (text[i] != '\\')
-                continue;
-
-            var digitCount = text[i + 1] switch
-            {
-                'u' => 4,
-                'U' => 8,
-                _ => 0,
-            };
-            if (digitCount == 0 || i + 2 + digitCount > text.Length)
-                continue;
-
-            var value = 0;
-            var valid = true;
-            for (var j = 0; j < digitCount; j++)
-            {
-                var digit = HexValue(text[i + 2 + j]);
-                if (digit < 0)
-                {
-                    valid = false;
-                    break;
-                }
-                value = checked(value * 16 + digit);
-            }
-            if (!valid || !Rune.IsValid(value) || !(IsFormat(value) || IsDefaultIgnorable(value)))
-                continue;
-
-            var (line, column) = GetLineColumn(lineStarts, i);
-            state.Add(new UnicodeViolation(
-                source,
-                line,
-                column,
-                value,
-                "C# Unicode escape",
-                "escape resolves to a forbidden identifier character"));
-            i += 1 + digitCount;
-        }
     }
 
     private static int HexValue(char value) => value switch
@@ -434,13 +649,10 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         }
     }
 
-    private readonly record struct UnicodeScanOptions(
-        bool AllowLeadingBom,
-        bool ScanCSharpEscapes,
-        bool RejectNonAsciiSpace)
+    private readonly record struct UnicodeScanOptions(bool RejectNonAsciiSpace)
     {
-        public static UnicodeScanOptions Metadata => new(false, false, false);
-        public static UnicodeScanOptions FileName => new(false, false, true);
+        public static UnicodeScanOptions Metadata => new(false);
+        public static UnicodeScanOptions FileName => new(true);
     }
 }
 
@@ -468,10 +680,11 @@ public readonly record struct UnicodeViolation(
 
 public interface IPrChangeSource
 {
-    IAsyncEnumerable<PrChangedFile> ReadChangedFilesAsync(
+    Task<int> VisitChangedFilesAsync(
         string repositoryPath,
         string baseSha,
         string headSha,
+        Func<PrChangedFile, Stream?, CancellationToken, Task<bool>> visitor,
         CancellationToken cancellationToken = default);
 }
 
@@ -480,12 +693,14 @@ internal sealed class GitPrChangeSource(
 {
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
-    public async IAsyncEnumerable<PrChangedFile> ReadChangedFilesAsync(
+    public async Task<int> VisitChangedFilesAsync(
         string repositoryPath,
         string baseSha,
         string headSha,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        Func<PrChangedFile, Stream?, CancellationToken, Task<bool>> visitor,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(visitor);
         ValidateSha(baseSha);
         ValidateSha(headSha);
         await RunGitAsync(repositoryPath, ["cat-file", "-e", $"{baseSha}^{{commit}}"], cancellationToken);
@@ -497,6 +712,7 @@ internal sealed class GitPrChangeSource(
             cancellationToken);
         var fields = SplitNullTerminated(diff);
         long totalTextBytes = 0;
+        var fileCount = 0;
         for (var i = 0; i < fields.Count;)
         {
             var status = DecodeUtf8(fields[i++], "git diff status");
@@ -518,53 +734,86 @@ internal sealed class GitPrChangeSource(
             if (status[0] == 'D')
                 continue;
 
+            fileCount++;
+
+            // Non-C# contents are outside policy. Report the names without spawning ls-tree/cat-file.
+            if (!ScanPrUnicodeCommand.IsCSharpSource(path))
+            {
+                if (!await visitor(new PrChangedFile(path, oldPath, []), null, cancellationToken))
+                    return fileCount;
+                continue;
+            }
+
             var tree = await ReadTreeEntryAsync(repositoryPath, headSha, path, cancellationToken);
             if (tree.Mode == "120000")
             {
                 // A Git symbolic link is stored as a blob whose content is only the target path. Scanning
                 // that blob would inspect "payload.txt", while a Linux build opening Link.cs would read the
-                // target file. Never follow an untrusted link; reject C# links in Scan() instead.
-                yield return new PrChangedFile(path, oldPath, [], IsSymbolicLink: true);
+                // target file. Never follow an untrusted link.
+                if (!await visitor(
+                    new PrChangedFile(path, oldPath, [], IsSymbolicLink: true),
+                    null,
+                    cancellationToken))
+                {
+                    return fileCount;
+                }
                 continue;
             }
             if (tree.Type == "commit")
             {
-                yield return new PrChangedFile(path, oldPath, [], IsGitLink: true);
+                if (!await visitor(
+                    new PrChangedFile(path, oldPath, [], IsGitLink: true),
+                    null,
+                    cancellationToken))
+                {
+                    return fileCount;
+                }
                 continue;
             }
             if (tree.Type != "blob")
                 throw new ActionCommandException($"Changed path '{path}' is not a Git blob or gitlink.");
 
-            // Filenames are scanned separately, but only C# source contents are in policy scope.
-            // Do not load unrelated blobs merely to discover that Scan() will skip them.
-            if (!ScanPrUnicodeCommand.IsCSharpSource(path))
-            {
-                yield return new PrChangedFile(path, oldPath, []);
-                continue;
-            }
-
             if (tree.Size > ScanPrUnicodeCommand.MaxFileBytes)
             {
-                yield return new PrChangedFile(path, oldPath, [], DeclaredSize: tree.Size);
+                if (!await visitor(
+                    new PrChangedFile(path, oldPath, [], DeclaredSize: tree.Size),
+                    null,
+                    cancellationToken))
+                {
+                    return fileCount;
+                }
                 continue;
             }
 
             if (totalTextBytes > maxTotalTextBytes - tree.Size)
             {
-                yield return new PrChangedFile(
-                    path,
-                    oldPath,
-                    [],
-                    DeclaredSize: tree.Size,
-                    PreScanError:
-                        $"Changed C# source exceeds the {maxTotalTextBytes / 1024 / 1024} MiB total scan limit.");
-                yield break;
+                await visitor(
+                    new PrChangedFile(
+                        path,
+                        oldPath,
+                        [],
+                        DeclaredSize: tree.Size,
+                        PreScanError:
+                            $"Changed C# source exceeds the {maxTotalTextBytes / 1024 / 1024} MiB total scan limit."),
+                    null,
+                    cancellationToken);
+                return fileCount;
             }
             totalTextBytes += tree.Size;
 
-            var content = await RunGitAsync(repositoryPath, ["cat-file", "blob", tree.ObjectId], cancellationToken);
-            yield return new PrChangedFile(path, oldPath, content, DeclaredSize: tree.Size);
+            var file = new PrChangedFile(path, oldPath, [], DeclaredSize: tree.Size);
+            if (!await VisitGitBlobAsync(
+                repositoryPath,
+                tree.ObjectId,
+                file,
+                visitor,
+                cancellationToken))
+            {
+                return fileCount;
+            }
         }
+
+        return fileCount;
     }
 
     private static async Task<GitTreeEntry> ReadTreeEntryAsync(
@@ -635,6 +884,54 @@ internal sealed class GitPrChangeSource(
     {
         if (sha.Length != 40 || sha.Any(x => !Uri.IsHexDigit(x)))
             throw new ActionCommandException("Pull request base/head SHA must be a 40-character hexadecimal Git object ID.");
+    }
+
+    private static async Task<bool> VisitGitBlobAsync(
+        string repositoryPath,
+        string objectId,
+        PrChangedFile file,
+        Func<PrChangedFile, Stream?, CancellationToken, Task<bool>> visitor,
+        CancellationToken cancellationToken)
+    {
+        var startInfo = new ProcessStartInfo("git")
+        {
+            WorkingDirectory = Path.GetFullPath(repositoryPath),
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        startInfo.ArgumentList.Add("cat-file");
+        startInfo.ArgumentList.Add("blob");
+        startInfo.ArgumentList.Add(objectId);
+
+        using var process = Process.Start(startInfo) ?? throw new ActionCommandException("Failed to start git.");
+        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        try
+        {
+            var shouldContinue = await visitor(
+                file,
+                process.StandardOutput.BaseStream,
+                cancellationToken);
+            // A visitor is expected to consume the stream, but draining here also makes the process lifecycle
+            // safe for alternative IPrChangeSource consumers which intentionally stop inspecting early.
+            await process.StandardOutput.BaseStream.CopyToAsync(Stream.Null, cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+            if (process.ExitCode != 0)
+            {
+                throw new ActionCommandException(
+                    $"git cat-file failed with exit code {process.ExitCode}: {(await errorTask).Trim()}");
+            }
+            return shouldContinue;
+        }
+        catch
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync(CancellationToken.None);
+            }
+            throw;
+        }
     }
 
     private static async Task<byte[]> RunGitAsync(

@@ -1,6 +1,4 @@
-﻿using CysharpActions;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -108,6 +106,59 @@ public class ScanPrUnicodeCommandTest
         Assert.Contains("not valid UTF-8", violation.Reason, StringComparison.Ordinal);
         Assert.Empty(Scan(new PrChangedFile("image.bin", null, invalidUtf8)));
     }
+
+    [Fact]
+    public void ChunkBoundariesDoNotChangeUnicodeResultsTest()
+    {
+        var text = char.ConvertFromUtf32(0xFEFF) +
+            "first\r\n" +
+            char.ConvertFromUtf32(0x00A0) +
+            char.ConvertFromUtf32(0x200B) +
+            char.ConvertFromUtf32(0x1D173) +
+            "\\" + "u200B" +
+            "\\" + "U00003164" +
+            "\nend";
+        var bytes = Utf8(text);
+        var expected = ScanPrUnicodeCommand.ScanCSharpChunksForTest(bytes);
+
+        for (var split = 0; split <= bytes.Length; split++)
+        {
+            var actual = ScanPrUnicodeCommand.ScanCSharpChunksForTest(
+                bytes.AsMemory(0, split),
+                bytes.AsMemory(split));
+            Assert.Equal(expected, actual);
+        }
+
+        var oneByteChunks = bytes.Select(value => new ReadOnlyMemory<byte>([value])).ToArray();
+        Assert.Equal(expected, ScanPrUnicodeCommand.ScanCSharpChunksForTest(oneByteChunks));
+        Assert.Collection(
+            expected,
+            violation => Assert.Equal((2, 1, 0x00A0), (violation.Line, violation.Column, violation.CodePoint)),
+            violation => Assert.Equal((2, 2, 0x200B), (violation.Line, violation.Column, violation.CodePoint)),
+            violation => Assert.Equal((2, 3, 0x1D173), (violation.Line, violation.Column, violation.CodePoint)),
+            violation => Assert.Equal((2, 5, 0x200B), (violation.Line, violation.Column, violation.CodePoint)),
+            violation => Assert.Equal((2, 11, 0x3164), (violation.Line, violation.Column, violation.CodePoint)));
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidUtf8Chunks))]
+    public void InvalidUtf8IsRejectedAcrossChunkBoundariesTest(byte[] bytes)
+    {
+        for (var split = 0; split <= bytes.Length; split++)
+        {
+            Assert.Throws<DecoderFallbackException>(() =>
+                ScanPrUnicodeCommand.ScanCSharpChunksForTest(
+                    bytes.AsMemory(0, split),
+                    bytes.AsMemory(split)));
+        }
+    }
+
+    public static TheoryData<byte[]> InvalidUtf8Chunks => new()
+    {
+        new byte[] { (byte)'a', 0xE2, 0x82 },       // Truncated three-byte sequence.
+        new byte[] { (byte)'a', 0xE2, 0x28, 0xA1 }, // Invalid continuation byte.
+        new byte[] { (byte)'a', 0xF0, 0x80, 0x80, 0x80 }, // Overlong encoding.
+    };
 
     [Fact]
     public void OversizedCSharpFailsWithoutLoadingBlobTest()
@@ -327,14 +378,25 @@ public class ScanPrUnicodeCommandTest
 
             var files = new List<PrChangedFile>();
             var source = new GitPrChangeSource(maxTotalTextBytes: 10);
-            await foreach (var file in source.ReadChangedFilesAsync(
+            await source.VisitChangedFilesAsync(
                 directory,
                 baseSha,
                 headSha,
-                TestContext.Current.CancellationToken))
-            {
-                files.Add(file);
-            }
+                async (file, content, cancellationToken) =>
+                {
+                    if (content is null)
+                    {
+                        files.Add(file);
+                    }
+                    else
+                    {
+                        await using var copy = new MemoryStream();
+                        await content.CopyToAsync(copy, cancellationToken);
+                        files.Add(file with { Content = copy.ToArray() });
+                    }
+                    return true;
+                },
+                TestContext.Current.CancellationToken);
 
             Assert.Equal(2, files.Count);
             Assert.Equal("A.cs", files[0].Path);
@@ -381,18 +443,28 @@ public class ScanPrUnicodeCommandTest
 
     private sealed class TestPrChangeSource(params PrChangedFile[] files) : IPrChangeSource
     {
-        public async IAsyncEnumerable<PrChangedFile> ReadChangedFilesAsync(
+        public async Task<int> VisitChangedFilesAsync(
             string repositoryPath,
             string baseSha,
             string headSha,
-            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+            Func<PrChangedFile, Stream?, CancellationToken, Task<bool>> visitor,
+            CancellationToken cancellationToken = default)
         {
-            await Task.CompletedTask;
+            var count = 0;
             foreach (var file in files)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                yield return file;
+                count++;
+                await using var content = new MemoryStream(file.Content, writable: false);
+                if (!await visitor(
+                    file,
+                    ScanPrUnicodeCommand.IsCSharpSource(file.Path) ? content : null,
+                    cancellationToken))
+                {
+                    break;
+                }
             }
+            return count;
         }
     }
 }
