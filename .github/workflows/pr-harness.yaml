@@ -21,7 +21,7 @@ on:
         default: ""
         type: string
       license-baseline-path:
-        description: "Path to the committed ol baseline."
+        description: "Path to a committed ol baseline. Used only when the file exists, so a repository with no unresolved evidence needs no baseline file."
         required: false
         default: "ol-baseline.json"
         type: string
@@ -31,14 +31,24 @@ on:
         default: "."
         type: string
       license-dotnet-path:
-        description: "Solution or project restored before scanning. Empty disables .NET restore."
+        description: "Newline-separated solutions or projects restored before scanning. Empty disables .NET restore."
         required: false
         default: ""
         type: string
       license-cargo-manifest-path:
-        description: "Cargo.toml used to generate locked Cargo metadata. Empty disables Cargo metadata generation."
+        description: "Cargo.toml used to generate Cargo metadata. --locked is applied only when Cargo.lock is committed. Empty disables Cargo metadata generation."
         required: false
         default: ""
+        type: string
+      license-ol-version:
+        description: "ol version to install. Pin it: ol bundles its SPDX data, so a floating version changes classification and baseline fingerprints."
+        required: false
+        default: "0.9.3"
+        type: string
+      license-syft-version:
+        description: "Syft version to install."
+        required: false
+        default: "v1.50.0"
         type: string
 
 jobs:
@@ -163,38 +173,62 @@ jobs:
             echo "OL_WORK_DIR=$ol_work_dir"
             echo "OL_SBOM_PATH=$ol_work_dir/sbom.cdx.json"
             echo "OL_REPORT_PATH=$ol_work_dir/ol-report.json"
+            echo "OL_SARIF_PATH=$ol_work_dir/ol.sarif"
             echo "OL_CARGO_METADATA_PATH=$ol_work_dir/cargo-metadata.json"
+            echo "OL_EVIDENCE_CACHE_DIR=$ol_work_dir/cache"
           } >> "$GITHUB_ENV"
       - name: "Validate license check inputs"
         env:
           ALLOW_LICENSES: ${{ inputs.license-allow-licenses }}
-          BASELINE_PATH: ${{ inputs.license-baseline-path }}
         run: |
           if [[ -z "$ALLOW_LICENSES" ]]; then
             echo "::error::license-allow-licenses is required when license-check is true."
             exit 1
           fi
-          if [[ ! -f "$BASELINE_PATH" ]]; then
-            echo "::error::ol baseline was not found: $BASELINE_PATH"
-            exit 1
-          fi
+      # ol resolves most NuGet licenses from registries and the GitHub License API. A cold cache on
+      # a large repository costs hundreds of GitHub requests, and GITHUB_TOKEN allows only 1000 per
+      # hour per repository, so restoring the cache is a correctness requirement rather than a speedup.
+      - name: "Restore ol evidence cache"
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ol-license-check/cache
+          key: ol-evidence-${{ runner.os }}-${{ inputs.license-ol-version }}-${{ github.run_id }}
+          restore-keys: |
+            ol-evidence-${{ runner.os }}-${{ inputs.license-ol-version }}-
       - uses: cysharp/actions/.github/actions/setup-dotnet@main
         if: ${{ inputs.license-dotnet-path != '' }}
       - name: "Restore .NET dependencies"
         if: ${{ inputs.license-dotnet-path != '' }}
         env:
-          DOTNET_PATH: ${{ inputs.license-dotnet-path }}
-        run: dotnet restore "$DOTNET_PATH"
+          DOTNET_PATHS: ${{ inputs.license-dotnet-path }}
+        run: |
+          # A repository can ship more than one solution. Restoring only the first one leaves the
+          # other project.assets.json files absent, and ol reports the missing ecosystem as nothing.
+          while IFS= read -r dotnet_path; do
+            [[ -z "$dotnet_path" ]] && continue
+            echo "::group::dotnet restore $dotnet_path"
+            dotnet restore "$dotnet_path"
+            echo "::endgroup::"
+          done <<< "$DOTNET_PATHS"
       - name: "Generate Cargo metadata"
         if: ${{ inputs.license-cargo-manifest-path != '' }}
         env:
           CARGO_MANIFEST_PATH: ${{ inputs.license-cargo-manifest-path }}
-        run: cargo metadata --format-version 1 --locked --manifest-path "$CARGO_MANIFEST_PATH" > "$OL_CARGO_METADATA_PATH"
+        run: |
+          # --locked is only meaningful when the repository commits Cargo.lock. A library that does
+          # not commit one fails the whole step under --locked.
+          cargo_args=(metadata --format-version 1 --manifest-path "$CARGO_MANIFEST_PATH")
+          if [[ -f "$(dirname "$CARGO_MANIFEST_PATH")/Cargo.lock" ]]; then
+            cargo_args+=(--locked)
+          else
+            echo "::warning::Cargo.lock is not committed next to $CARGO_MANIFEST_PATH; resolving without --locked."
+          fi
+          cargo "${cargo_args[@]}" > "$OL_CARGO_METADATA_PATH"
       - name: "Set up Syft"
         id: syft
         uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
-          syft-version: v1.50.0
+          syft-version: ${{ inputs.license-syft-version }}
       - name: "Generate Syft SBOM"
         env:
           SCAN_PATH: ${{ inputs.license-scan-path }}
@@ -202,15 +236,23 @@ jobs:
           SOURCE_VERSION: ${{ github.event.pull_request.head.sha || github.sha }}
           SYFT_JAVASCRIPT_INCLUDE_DEV_DEPENDENCIES: true
         run: |
+          # This scans source, not build output. Binary catalogers read committed DLLs and executables
+          # (Unity Assets/Plugins, vendored tools) and emit assembly versions and file paths as if they
+          # were packages; those components carry no purl, so no ol policy option can filter them out.
+          # Excluding bin/obj is not enough because the binaries are committed. Measured across eight
+          # Cysharp repositories this selection removed 125 phantom components and 105 false violations.
           "${{ steps.syft.outputs.cmd }}" "dir:$SCAN_PATH" \
             --exclude './.vs/**' \
             --exclude './**/bin/**' \
             --exclude './**/obj/**' \
-            --select-catalogers '-github-action-workflow-usage-cataloger,-github-actions-usage-cataloger' \
+            --override-default-catalogers 'declared' \
+            --select-catalogers '-github-actions,-binary' \
             --source-name "$SOURCE_NAME" \
             --source-version "$SOURCE_VERSION" \
             --output "cyclonedx-json=$OL_SBOM_PATH"
       - uses: guitarrapc/setup-ol@3128c4908a32378c0775f12c4a9dfe6c8c8c3f07 # v1.0.0
+        with:
+          ol-version: ${{ inputs.license-ol-version }}
       - name: "Scan license evidence"
         env:
           CARGO_MANIFEST_PATH: ${{ inputs.license-cargo-manifest-path }}
@@ -221,26 +263,64 @@ jobs:
           if [[ -n "$CARGO_MANIFEST_PATH" ]]; then
             scan_args+=(--input "$OL_CARGO_METADATA_PATH")
           fi
-          ol scan "${scan_args[@]}" --format json > "$OL_REPORT_PATH"
-      - name: "Upload license evidence"
-        uses: cysharp/actions/.github/actions/upload-artifact@main
-        with:
-          name: ol-license-check-${{ github.run_id }}
-          path: |
-            ${{ runner.temp }}/ol-license-check/sbom.cdx.json
-            ${{ runner.temp }}/ol-license-check/ol-report.json
-          retention-days: 7
+          ol scan "${scan_args[@]}" --cache-dir "$OL_EVIDENCE_CACHE_DIR" --format json > "$OL_REPORT_PATH"
+      - name: "Summarize license evidence"
+        if: ${{ !cancelled() }}
+        run: |
+          [[ -s "$OL_REPORT_PATH" ]] || exit 0
+          {
+            echo "### ol license scan"
+            echo
+            jq -r '"- components: \(.components|length)"' "$OL_REPORT_PATH"
+            jq -r '.summary|to_entries|map("\(.key) \(.value)")|"- status: " + join(", ")' "$OL_REPORT_PATH"
+            jq -r '[.components[]|.ecosystem]|group_by(.)|sort_by(-length)|map("\(.[0]) \(length)")|"- ecosystems: " + join(", ")' "$OL_REPORT_PATH"
+            # Which input supplied what. A large sbom-only population usually means the generator
+            # catalogued something that is not a dependency; a large package-manager-only population
+            # means the SBOM did not cover the ecosystem.
+            jq -r '[.components[]|select(.dependency!="root")] as $c
+                   | "- supplied by: sbom-only \([$c[]|select(.suppliedBy==["sbom"])]|length), package-manager-only \([$c[]|select(.suppliedBy==["package-manager"])]|length), both \([$c[]|select((.suppliedBy|length)==2)]|length)"' "$OL_REPORT_PATH"
+            jq -r '(.metadata.sourceRepository // {})|"- github license api: \(.githubLicenseRequestCount // 0) requests, \(.cacheHitCount // 0) cache hits, \(.fetchErrorCount // 0) errors"' "$OL_REPORT_PATH"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: "Check license policy"
         env:
           ALLOW_DEV_LICENSES: ${{ inputs.license-allow-dev-licenses }}
           ALLOW_LICENSES: ${{ inputs.license-allow-licenses }}
           BASELINE_PATH: ${{ inputs.license-baseline-path }}
         run: |
-          check_args=(--report "$OL_REPORT_PATH" --allow-licenses "$ALLOW_LICENSES" --baseline "$BASELINE_PATH")
+          check_args=(--report "$OL_REPORT_PATH" --allow-licenses "$ALLOW_LICENSES" --sarif "$OL_SARIF_PATH")
+          # A baseline acknowledges unresolved evidence a reviewer has already accepted. Without one,
+          # unresolved components still fail, so requiring the file adds no safety - only an empty file
+          # that nobody reviews. Repositories that need no acknowledgement commit nothing.
+          if [[ -f "$BASELINE_PATH" ]]; then
+            check_args+=(--baseline "$BASELINE_PATH")
+          else
+            echo "No ol baseline at $BASELINE_PATH; every unresolved component must satisfy the allow-list."
+          fi
           if [[ -n "$ALLOW_DEV_LICENSES" ]]; then
             check_args+=(--allow-dev-licenses "$ALLOW_DEV_LICENSES")
           fi
+          set +e
           ol check "${check_args[@]}"
+          check_exit=$?
+          set -e
+          case "$check_exit" in
+            0) ;;
+            2) echo "::error::ol found license policy violations." ;;
+            3) echo "::error::ol could not collect evidence for every finding, so the result is inconclusive rather than a policy failure. This is usually a registry outage or a GitHub rate limit; re-run the job." ;;
+            *) echo "::error::ol check failed to run (exit $check_exit)." ;;
+          esac
+          exit "$check_exit"
+      # Runs even when the check failed, because a failing gate is exactly when the evidence is needed.
+      - name: "Upload license evidence"
+        if: ${{ !cancelled() }}
+        uses: cysharp/actions/.github/actions/upload-artifact@main
+        with:
+          name: ol-license-check-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/ol-license-check/sbom.cdx.json
+            ${{ runner.temp }}/ol-license-check/ol-report.json
+            ${{ runner.temp }}/ol-license-check/ol.sarif
+          retention-days: 7
 
   pr-harness-check:
     needs: [prevent-githubactions-changes, dependency-review, unicode-security]
@@ -248,5 +328,20 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
-      - name: "Pass"
-        run: echo "PR Harness checks passed."
+      - name: "Verify required jobs"
+        env:
+          RESULTS: |
+            prevent-githubactions-changes=${{ needs.prevent-githubactions-changes.result }}
+            dependency-review=${{ needs.dependency-review.result }}
+            license-check=${{ needs.license-check.result }}
+        run: |
+          failed=0
+          while IFS='=' read -r job result; do
+            [[ -z "$job" ]] && continue
+            case "$result" in
+              success|skipped) echo "$job: $result" ;;
+              *) echo "::error::$job: $result"; failed=1 ;;
+            esac
+          done <<< "$RESULTS"
+          [[ "$failed" -eq 0 ]] || exit 1
+          echo "PR Harness checks passed."
