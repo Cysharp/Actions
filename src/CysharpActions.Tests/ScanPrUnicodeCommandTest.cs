@@ -258,9 +258,9 @@ public class ScanPrUnicodeCommandTest
     }
 
     [Fact]
-    public async Task ValidateReadsChangedHeadBlobFromGitTest()
+    public async Task ValidateReadsChangedFileFromCheckedOutWorkingTreeTest()
     {
-        var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(ValidateReadsChangedHeadBlobFromGitTest)}");
+        var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(ValidateReadsChangedFileFromCheckedOutWorkingTreeTest)}");
         try
         {
             Directory.CreateDirectory(directory);
@@ -274,11 +274,14 @@ public class ScanPrUnicodeCommandTest
             await RunGitAsync(directory, "commit", "-m", "base");
             var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
 
-            var zeroWidthSpace = char.ConvertFromUtf32(0x200B);
-            CreateFile(Path.Combine(directory, "Test.cs"), "class" + zeroWidthSpace + " C {}");
+            CreateFile(Path.Combine(directory, "Test.cs"), "class Changed {}");
             await RunGitAsync(directory, "add", "--", "Test.cs");
             await RunGitAsync(directory, "commit", "-m", "head");
             var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            // The changed-file list comes from base..head, but content must come from the checked-out tree.
+            var zeroWidthSpace = char.ConvertFromUtf32(0x200B);
+            CreateFile(Path.Combine(directory, "Test.cs"), "class" + zeroWidthSpace + " CheckedOut {}");
 
             var eventPath = Path.Combine(directory, "event.json");
             CreateFile(eventPath, JsonSerializer.Serialize(new

@@ -149,13 +149,11 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
                 var read = await content.ReadAsync(buffer.AsMemory(0, bufferSize), cancellationToken);
                 if (read == 0)
                     break;
-                if (!valid)
-                    continue; // Drain git stdout so cat-file cannot block while exiting.
                 if (buffer.AsSpan(0, read).Contains((byte)0))
                 {
                     state.Add(UnicodeViolation.FileError(file.Path, "C# source file contains a NUL byte."));
                     valid = false;
-                    continue;
+                    break;
                 }
                 try
                 {
@@ -165,6 +163,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
                 {
                     state.Add(UnicodeViolation.FileError(file.Path, "C# source file is not valid UTF-8."));
                     valid = false;
+                    break;
                 }
             }
             if (valid)
@@ -703,40 +702,37 @@ internal sealed class GitPrChangeSource(
         ArgumentNullException.ThrowIfNull(visitor);
         ValidateSha(baseSha);
         ValidateSha(headSha);
-        await RunGitAsync(repositoryPath, ["cat-file", "-e", $"{baseSha}^{{commit}}"], cancellationToken);
-        await RunGitAsync(repositoryPath, ["cat-file", "-e", $"{headSha}^{{commit}}"], cancellationToken);
 
         var diff = await RunGitAsync(
             repositoryPath,
-            ["diff", "--name-status", "-z", "--find-renames", baseSha, headSha, "--"],
+            ["diff", "--raw", "-z", "--find-renames", baseSha, headSha, "--"],
             cancellationToken);
         var fields = SplitNullTerminated(diff);
+        var repositoryRoot = Path.GetFullPath(repositoryPath);
         long totalTextBytes = 0;
         var fileCount = 0;
         for (var i = 0; i < fields.Count;)
         {
-            var status = DecodeUtf8(fields[i++], "git diff status");
-            if (status.Length == 0)
-                continue;
+            var header = ParseRawDiffHeader(DecodeUtf8(fields[i++], "git diff raw header"));
 
             string? oldPath = null;
             string path;
-            if (status[0] is 'R' or 'C')
+            if (header.Status is 'R' or 'C')
             {
-                oldPath = DecodeUtf8(RequiredField(fields, ref i, status), "old Git path");
-                path = DecodeUtf8(RequiredField(fields, ref i, status), "new Git path");
+                oldPath = DecodeUtf8(RequiredField(fields, ref i, header.Status), "old Git path");
+                path = DecodeUtf8(RequiredField(fields, ref i, header.Status), "new Git path");
             }
             else
             {
-                path = DecodeUtf8(RequiredField(fields, ref i, status), "Git path");
+                path = DecodeUtf8(RequiredField(fields, ref i, header.Status), "Git path");
             }
 
-            if (status[0] == 'D')
+            if (header.Status == 'D')
                 continue;
 
             fileCount++;
 
-            // Non-C# contents are outside policy. Report the names without spawning ls-tree/cat-file.
+            // Non-C# contents are outside policy. Report their names without touching the working-tree file.
             if (!ScanPrUnicodeCommand.IsCSharpSource(path))
             {
                 if (!await visitor(new PrChangedFile(path, oldPath, []), null, cancellationToken))
@@ -744,12 +740,10 @@ internal sealed class GitPrChangeSource(
                 continue;
             }
 
-            var tree = await ReadTreeEntryAsync(repositoryPath, headSha, path, cancellationToken);
-            if (tree.Mode == "120000")
+            // Read mode from the single raw diff rather than following an untrusted working-tree link.
+            // This also works on checkout configurations which materialize a Git symlink as a regular file.
+            if (header.NewMode == "120000")
             {
-                // A Git symbolic link is stored as a blob whose content is only the target path. Scanning
-                // that blob would inspect "payload.txt", while a Linux build opening Link.cs would read the
-                // target file. Never follow an untrusted link.
                 if (!await visitor(
                     new PrChangedFile(path, oldPath, [], IsSymbolicLink: true),
                     null,
@@ -759,7 +753,7 @@ internal sealed class GitPrChangeSource(
                 }
                 continue;
             }
-            if (tree.Type == "commit")
+            if (header.NewMode == "160000")
             {
                 if (!await visitor(
                     new PrChangedFile(path, oldPath, [], IsGitLink: true),
@@ -770,13 +764,12 @@ internal sealed class GitPrChangeSource(
                 }
                 continue;
             }
-            if (tree.Type != "blob")
-                throw new ActionCommandException($"Changed path '{path}' is not a Git blob or gitlink.");
 
-            if (tree.Size > ScanPrUnicodeCommand.MaxFileBytes)
+            var fullPath = ResolveWorkingTreePath(repositoryRoot, path);
+            if (ContainsSymbolicLink(repositoryRoot, fullPath))
             {
                 if (!await visitor(
-                    new PrChangedFile(path, oldPath, [], DeclaredSize: tree.Size),
+                    new PrChangedFile(path, oldPath, [], IsSymbolicLink: true),
                     null,
                     cancellationToken))
                 {
@@ -785,29 +778,61 @@ internal sealed class GitPrChangeSource(
                 continue;
             }
 
-            if (totalTextBytes > maxTotalTextBytes - tree.Size)
+            var fileInfo = new FileInfo(fullPath);
+            if (!fileInfo.Exists)
             {
                 await visitor(
                     new PrChangedFile(
                         path,
                         oldPath,
                         [],
-                        DeclaredSize: tree.Size,
+                        PreScanError: "Changed C# source is missing from the checked-out working tree."),
+                    null,
+                    cancellationToken);
+                return fileCount;
+            }
+
+            var fileSize = fileInfo.Length;
+            if (fileSize > ScanPrUnicodeCommand.MaxFileBytes)
+            {
+                if (!await visitor(
+                    new PrChangedFile(path, oldPath, [], DeclaredSize: fileSize),
+                    null,
+                    cancellationToken))
+                {
+                    return fileCount;
+                }
+                continue;
+            }
+
+            if (totalTextBytes > maxTotalTextBytes - fileSize)
+            {
+                await visitor(
+                    new PrChangedFile(
+                        path,
+                        oldPath,
+                        [],
+                        DeclaredSize: fileSize,
                         PreScanError:
                             $"Changed C# source exceeds the {maxTotalTextBytes / 1024 / 1024} MiB total scan limit."),
                     null,
                     cancellationToken);
                 return fileCount;
             }
-            totalTextBytes += tree.Size;
+            totalTextBytes += fileSize;
 
-            var file = new PrChangedFile(path, oldPath, [], DeclaredSize: tree.Size);
-            if (!await VisitGitBlobAsync(
-                repositoryPath,
-                tree.ObjectId,
-                file,
-                visitor,
-                cancellationToken))
+            var file = new PrChangedFile(path, oldPath, [], DeclaredSize: fileSize);
+            await using var content = new FileStream(
+                fullPath,
+                new FileStreamOptions
+                {
+                    Mode = FileMode.Open,
+                    Access = FileAccess.Read,
+                    Share = FileShare.Read,
+                    Options = FileOptions.Asynchronous | FileOptions.SequentialScan,
+                    BufferSize = 1,
+                });
+            if (!await visitor(file, content, cancellationToken))
             {
                 return fileCount;
             }
@@ -816,39 +841,51 @@ internal sealed class GitPrChangeSource(
         return fileCount;
     }
 
-    private static async Task<GitTreeEntry> ReadTreeEntryAsync(
-        string repositoryPath,
-        string headSha,
-        string path,
-        CancellationToken cancellationToken)
+    private static RawDiffHeader ParseRawDiffHeader(string value)
     {
-        var output = await RunGitAsync(
-            repositoryPath,
-            ["ls-tree", "-lz", headSha, "--", $":(literal){path}"],
-            cancellationToken);
-        var entries = SplitNullTerminated(output);
-        if (entries.Count != 1)
-            throw new ActionCommandException($"Could not resolve changed path '{path}' in head commit.");
-
-        var headerAndPath = entries[0];
-        var tab = Array.IndexOf(headerAndPath, (byte)'\t');
-        if (tab < 0)
-            throw new ActionCommandException($"Invalid git ls-tree output for '{path}'.");
-        var header = StrictUtf8.GetString(headerAndPath, 0, tab).Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (header.Length != 4)
-            throw new ActionCommandException($"Invalid git ls-tree header for '{path}'.");
-        var size = header[3] == "-"
-            ? 0
-            : long.TryParse(header[3], NumberStyles.None, CultureInfo.InvariantCulture, out var parsedSize)
-                ? parsedSize
-                : throw new ActionCommandException($"Invalid git blob size for '{path}'.");
-        return new GitTreeEntry(header[0], header[1], header[2], size);
+        var fields = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (fields.Length != 5 || fields[0].Length != 7 || fields[0][0] != ':' ||
+            fields[1].Length != 6 || fields[4].Length == 0)
+        {
+            throw new ActionCommandException("Invalid git diff --raw header.");
+        }
+        return new RawDiffHeader(fields[1], fields[4][0]);
     }
 
-    private static byte[] RequiredField(IReadOnlyList<byte[]> fields, ref int index, string status)
+    private static string ResolveWorkingTreePath(string repositoryRoot, string gitPath)
+    {
+        var relativePath = gitPath.Replace('/', Path.DirectorySeparatorChar);
+        var fullPath = Path.GetFullPath(Path.Combine(repositoryRoot, relativePath));
+        var rootPrefix = Path.TrimEndingDirectorySeparator(repositoryRoot) + Path.DirectorySeparatorChar;
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        if (!fullPath.StartsWith(rootPrefix, comparison))
+            throw new ActionCommandException($"Changed path '{gitPath}' escapes the repository working tree.");
+        return fullPath;
+    }
+
+    private static bool ContainsSymbolicLink(string repositoryRoot, string fullPath)
+    {
+        var components = Path.GetRelativePath(repositoryRoot, fullPath)
+            .Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+        var current = repositoryRoot;
+        for (var i = 0; i < components.Length; i++)
+        {
+            current = Path.Combine(current, components[i]);
+            FileSystemInfo entry = i == components.Length - 1
+                ? new FileInfo(current)
+                : new DirectoryInfo(current);
+            if (entry.LinkTarget is not null)
+                return true;
+        }
+        return false;
+    }
+
+    private static byte[] RequiredField(IReadOnlyList<byte[]> fields, ref int index, char status)
     {
         if (index >= fields.Count)
-            throw new ActionCommandException($"Invalid git diff --name-status output after status '{status}'.");
+            throw new ActionCommandException($"Invalid git diff --raw output after status '{status}'.");
         return fields[index++];
     }
 
@@ -886,54 +923,6 @@ internal sealed class GitPrChangeSource(
             throw new ActionCommandException("Pull request base/head SHA must be a 40-character hexadecimal Git object ID.");
     }
 
-    private static async Task<bool> VisitGitBlobAsync(
-        string repositoryPath,
-        string objectId,
-        PrChangedFile file,
-        Func<PrChangedFile, Stream?, CancellationToken, Task<bool>> visitor,
-        CancellationToken cancellationToken)
-    {
-        var startInfo = new ProcessStartInfo("git")
-        {
-            WorkingDirectory = Path.GetFullPath(repositoryPath),
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        startInfo.ArgumentList.Add("cat-file");
-        startInfo.ArgumentList.Add("blob");
-        startInfo.ArgumentList.Add(objectId);
-
-        using var process = Process.Start(startInfo) ?? throw new ActionCommandException("Failed to start git.");
-        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        try
-        {
-            var shouldContinue = await visitor(
-                file,
-                process.StandardOutput.BaseStream,
-                cancellationToken);
-            // A visitor is expected to consume the stream, but draining here also makes the process lifecycle
-            // safe for alternative IPrChangeSource consumers which intentionally stop inspecting early.
-            await process.StandardOutput.BaseStream.CopyToAsync(Stream.Null, cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
-            if (process.ExitCode != 0)
-            {
-                throw new ActionCommandException(
-                    $"git cat-file failed with exit code {process.ExitCode}: {(await errorTask).Trim()}");
-            }
-            return shouldContinue;
-        }
-        catch
-        {
-            if (!process.HasExited)
-            {
-                process.Kill(entireProcessTree: true);
-                await process.WaitForExitAsync(CancellationToken.None);
-            }
-            throw;
-        }
-    }
-
     private static async Task<byte[]> RunGitAsync(
         string repositoryPath,
         IReadOnlyList<string> arguments,
@@ -962,5 +951,5 @@ internal sealed class GitPrChangeSource(
         return output.ToArray();
     }
 
-    private readonly record struct GitTreeEntry(string Mode, string Type, string ObjectId, long Size);
+    private readonly record struct RawDiffHeader(string NewMode, char Status);
 }
