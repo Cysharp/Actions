@@ -21,4 +21,68 @@ public class UpdateVersionContentsTest
 
         Assert.Contains("version.txt", exception.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void UpdateUpmChangesOnlyRootVersionTest()
+    {
+        const string contents = """
+            {
+              "version": "1.0.0",
+              "metadata": {
+                "version": "schema-1"
+              }
+            }
+            """;
+
+        var updated = UpdateVersionCommand.UpdateContents("package.json", contents, "2.0.0");
+
+        Assert.Equal("""
+            {
+              "version": "2.0.0",
+              "metadata": {
+                "version": "schema-1"
+              }
+            }
+            """, updated);
+    }
+
+    [Fact]
+    public void UpdateGodotChangesOnlyPluginVersionTest()
+    {
+        const string contents = """
+            [application]
+            version="application-1"
+
+            [plugin]
+            minimum_version="4.0"
+            version="1.0.0"
+
+            [other]
+            version="other-1"
+            """;
+
+        var updated = UpdateVersionCommand.UpdateContents("plugin.cfg", contents, "2.0.0");
+
+        Assert.Equal("""
+            [application]
+            version="application-1"
+
+            [plugin]
+            minimum_version="4.0"
+            version="2.0.0"
+
+            [other]
+            version="other-1"
+            """, updated);
+    }
+
+    [Fact]
+    public void UpdateDirectoryBuildPropsPreservesMultipleVersionPrefixElementsTest()
+    {
+        const string contents = "<Project><PropertyGroup><VersionPrefix>1.0.0</VersionPrefix><Other>keep</Other><VersionPrefix>1.1.0</VersionPrefix></PropertyGroup></Project>";
+
+        var updated = UpdateVersionCommand.UpdateContents("Directory.Build.props", contents, "2.0.0");
+
+        Assert.Equal("<Project><PropertyGroup><VersionPrefix>2.0.0</VersionPrefix><Other>keep</Other><VersionPrefix>2.0.0</VersionPrefix></PropertyGroup></Project>", updated);
+    }
 }
