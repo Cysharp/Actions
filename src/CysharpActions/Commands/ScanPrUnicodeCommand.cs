@@ -60,6 +60,17 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
                 ScanText(file.OldPath, file.OldPath, UnicodeScanOptions.FileName, violations);
             }
 
+            if (file.IsSymbolicLink)
+            {
+                if (IsCSharpSource(file.Path))
+                {
+                    violations.Add(UnicodeViolation.FileError(
+                        file.Path,
+                        "C# source file must not be a symbolic link."));
+                }
+                continue;
+            }
+
             if (file.IsGitLink)
                 continue;
 
@@ -392,6 +403,7 @@ public sealed record PrChangedFile(
     string? OldPath,
     byte[] Content,
     bool IsGitLink = false,
+    bool IsSymbolicLink = false,
     long? DeclaredSize = null);
 
 public readonly record struct UnicodeViolation(
@@ -457,6 +469,14 @@ internal sealed class GitPrChangeSource : IPrChangeSource
                 continue;
 
             var tree = await ReadTreeEntryAsync(repositoryPath, headSha, path, cancellationToken);
+            if (tree.Mode == "120000")
+            {
+                // A Git symbolic link is stored as a blob whose content is only the target path. Scanning
+                // that blob would inspect "payload.txt", while a Linux build opening Link.cs would read the
+                // target file. Never follow an untrusted link; reject C# links in Scan() instead.
+                files.Add(new PrChangedFile(path, oldPath, [], IsSymbolicLink: true));
+                continue;
+            }
             if (tree.Type == "commit")
             {
                 files.Add(new PrChangedFile(path, oldPath, [], IsGitLink: true));
@@ -511,7 +531,7 @@ internal sealed class GitPrChangeSource : IPrChangeSource
             : long.TryParse(header[3], NumberStyles.None, CultureInfo.InvariantCulture, out var parsedSize)
                 ? parsedSize
                 : throw new ActionCommandException($"Invalid git blob size for '{path}'.");
-        return new GitTreeEntry(header[1], header[2], size);
+        return new GitTreeEntry(header[0], header[1], header[2], size);
     }
 
     private static byte[] RequiredField(IReadOnlyList<byte[]> fields, ref int index, string status)
@@ -583,5 +603,5 @@ internal sealed class GitPrChangeSource : IPrChangeSource
         return output.ToArray();
     }
 
-    private readonly record struct GitTreeEntry(string Type, string ObjectId, long Size);
+    private readonly record struct GitTreeEntry(string Mode, string Type, string ObjectId, long Size);
 }

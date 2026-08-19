@@ -140,6 +140,28 @@ public class ScanPrUnicodeCommandTest
     }
 
     [Fact]
+    public void CSharpSymbolicLinkFailsWithoutFollowingTargetTest()
+    {
+        var violation = Assert.Single(Scan(new PrChangedFile(
+            "src/Link.cs",
+            null,
+            [],
+            IsSymbolicLink: true)));
+
+        Assert.Contains("symbolic link", violation.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NonCSharpSymbolicLinkIsOutsideContentPolicyTest()
+    {
+        Assert.Empty(Scan(new PrChangedFile(
+            "docs/Link.txt",
+            null,
+            [],
+            IsSymbolicLink: true)));
+    }
+
+    [Fact]
     public async Task ValidateReadsChangedHeadBlobFromGitTest()
     {
         var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(ValidateReadsChangedHeadBlobFromGitTest)}");
@@ -159,6 +181,55 @@ public class ScanPrUnicodeCommandTest
             var zeroWidthSpace = char.ConvertFromUtf32(0x200B);
             CreateFile(Path.Combine(directory, "Test.cs"), "class" + zeroWidthSpace + " C {}");
             await RunGitAsync(directory, "add", "--", "Test.cs");
+            await RunGitAsync(directory, "commit", "-m", "head");
+            var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            var eventPath = Path.Combine(directory, "event.json");
+            CreateFile(eventPath, JsonSerializer.Serialize(new
+            {
+                pull_request = new
+                {
+                    title = "Clean title",
+                    body = "Clean body",
+                    @base = new { sha = baseSha },
+                    head = new { sha = headSha },
+                },
+            }));
+
+            var command = new ScanPrUnicodeCommand();
+            var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
+                command.ValidateAsync(eventPath, directory, TestContext.Current.CancellationToken));
+
+            Assert.Contains("1 violation", exception.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateRejectsCSharpSymbolicLinkFromGitModeTest()
+    {
+        var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(ValidateRejectsCSharpSymbolicLinkFromGitModeTest)}");
+        try
+        {
+            Directory.CreateDirectory(directory);
+            await RunGitAsync(directory, "init");
+            await RunGitAsync(directory, "config", "user.email", "test@example.com");
+            await RunGitAsync(directory, "config", "user.name", "Test User");
+            await RunGitAsync(directory, "config", "commit.gpgSign", "false");
+
+            CreateFile(Path.Combine(directory, "README.md"), "base");
+            await RunGitAsync(directory, "add", "--", "README.md");
+            await RunGitAsync(directory, "commit", "-m", "base");
+            var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            // Construct mode 120000 in the Git index directly. This is independent of whether the test
+            // host is allowed to create an operating-system symbolic link.
+            CreateFile(Path.Combine(directory, "Link.cs"), "payload.txt");
+            var linkBlob = await RunGitAsync(directory, "hash-object", "-w", "--", "Link.cs");
+            await RunGitAsync(directory, "update-index", "--add", "--cacheinfo", $"120000,{linkBlob},Link.cs");
             await RunGitAsync(directory, "commit", "-m", "head");
             var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
 

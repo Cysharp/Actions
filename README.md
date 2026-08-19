@@ -230,7 +230,7 @@ jobs:
     uses: Cysharp/Actions/.github/workflows/pr-harness.yaml@main
 ```
 
-The Unicode check is implemented by the `CysharpActions scan-pr-unicode` CLI command and invoked directly from `pr-harness`; there is no standalone Unicode workflow or composite action. The checked-in Linux binary is updated only by the release workflow. It scans the PR title, PR body, changed file names, and the complete head version of changed `.cs` and `.csx` files. C# source rejects raw Unicode format/default-ignorable characters, controls, forbidden `\uXXXX` / `\UXXXXXXXX` escapes, and non-ASCII spaces regardless of whether they occur in code, comments, strings, or test data. Other file contents are not scanned. Tests that intentionally need these values should construct them numerically, for example with `char.ConvertFromUtf32(0x200B)`.
+The Unicode check is implemented by the `CysharpActions scan-pr-unicode` CLI command and invoked directly from `pr-harness`; there is no standalone Unicode workflow or composite action. The checked-in Linux binary is updated only by the release workflow. It scans the PR title, PR body, changed file names, and the complete head version of changed `.cs` and `.csx` files. C# source rejects symbolic links, raw Unicode format/default-ignorable characters, controls, forbidden `\uXXXX` / `\UXXXXXXXX` escapes, and non-ASCII spaces regardless of whether they occur in code, comments, strings, or test data. Other file contents are not scanned. Tests that intentionally need these values should construct them numerically, for example with `char.ConvertFromUtf32(0x200B)`.
 
 #### stale-issue
 
