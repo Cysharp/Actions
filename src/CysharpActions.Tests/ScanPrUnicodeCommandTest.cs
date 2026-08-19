@@ -1,5 +1,6 @@
 ﻿using CysharpActions;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 
@@ -116,6 +117,50 @@ public class ScanPrUnicodeCommandTest
         var violation = Assert.Single(Scan(new PrChangedFile("src/Test.cs", null, [], DeclaredSize: oversized)));
         Assert.Contains("exceeds", violation.Reason, StringComparison.Ordinal);
         Assert.Empty(Scan(new PrChangedFile("image.bin", null, [], DeclaredSize: oversized)));
+    }
+
+    [Fact]
+    public void ScanRetainsOnlyAnnotationLimitViolationsTest()
+    {
+        var zeroWidthSpaces = string.Concat(Enumerable.Repeat(char.ConvertFromUtf32(0x200B), 100));
+
+        var violations = Scan(new PrChangedFile("src/Test.cs", null, Utf8(zeroWidthSpaces)));
+
+        Assert.Equal(50, violations.Count);
+    }
+
+    [Fact]
+    public async Task ValidateCountsAllViolationsWhileRetainingOnlyAnnotationsTest()
+    {
+        var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(ValidateCountsAllViolationsWhileRetainingOnlyAnnotationsTest)}");
+        try
+        {
+            Directory.CreateDirectory(directory);
+            var eventPath = Path.Combine(directory, "event.json");
+            CreateFile(eventPath, JsonSerializer.Serialize(new
+            {
+                pull_request = new
+                {
+                    title = "Clean title",
+                    body = "Clean body",
+                    @base = new { sha = new string('a', 40) },
+                    head = new { sha = new string('b', 40) },
+                },
+            }));
+            var zeroWidthSpaces = string.Concat(Enumerable.Repeat(char.ConvertFromUtf32(0x200B), 100));
+            var source = new TestPrChangeSource(
+                new PrChangedFile("src/Test.cs", null, Utf8(zeroWidthSpaces)));
+
+            var command = new ScanPrUnicodeCommand(source);
+            var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
+                command.ValidateAsync(eventPath, directory, TestContext.Current.CancellationToken));
+
+            Assert.Contains("100 violation", exception.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDeleteDirectory(directory);
+        }
     }
 
     [Fact]
@@ -257,6 +302,53 @@ public class ScanPrUnicodeCommandTest
         }
     }
 
+    [Fact]
+    public async Task GitSourceChecksTotalSizeBeforeLoadingNextBlobTest()
+    {
+        var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(GitSourceChecksTotalSizeBeforeLoadingNextBlobTest)}");
+        try
+        {
+            Directory.CreateDirectory(directory);
+            await RunGitAsync(directory, "init");
+            await RunGitAsync(directory, "config", "user.email", "test@example.com");
+            await RunGitAsync(directory, "config", "user.name", "Test User");
+            await RunGitAsync(directory, "config", "commit.gpgSign", "false");
+
+            CreateFile(Path.Combine(directory, "README.md"), "base");
+            await RunGitAsync(directory, "add", "--", "README.md");
+            await RunGitAsync(directory, "commit", "-m", "base");
+            var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            CreateFile(Path.Combine(directory, "A.cs"), "12345678");
+            CreateFile(Path.Combine(directory, "B.cs"), "abcdefgh");
+            await RunGitAsync(directory, "add", "--", "A.cs", "B.cs");
+            await RunGitAsync(directory, "commit", "-m", "head");
+            var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            var files = new List<PrChangedFile>();
+            var source = new GitPrChangeSource(maxTotalTextBytes: 10);
+            await foreach (var file in source.ReadChangedFilesAsync(
+                directory,
+                baseSha,
+                headSha,
+                TestContext.Current.CancellationToken))
+            {
+                files.Add(file);
+            }
+
+            Assert.Equal(2, files.Count);
+            Assert.Equal("A.cs", files[0].Path);
+            Assert.Equal(8, files[0].Content.Length);
+            Assert.Equal("B.cs", files[1].Path);
+            Assert.Empty(files[1].Content);
+            Assert.Contains("total scan limit", files[1].PreScanError, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDeleteDirectory(directory);
+        }
+    }
+
     private static IReadOnlyList<UnicodeViolation> Scan(params PrChangedFile[] files) =>
         Scan(Input, files);
 
@@ -285,5 +377,22 @@ public class ScanPrUnicodeCommandTest
         if (process.ExitCode != 0)
             throw new InvalidOperationException($"git {arguments[0]} failed: {await stderrTask}");
         return stdout.Trim();
+    }
+
+    private sealed class TestPrChangeSource(params PrChangedFile[] files) : IPrChangeSource
+    {
+        public async IAsyncEnumerable<PrChangedFile> ReadChangedFilesAsync(
+            string repositoryPath,
+            string baseSha,
+            string headSha,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            foreach (var file in files)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return file;
+            }
+        }
     }
 }

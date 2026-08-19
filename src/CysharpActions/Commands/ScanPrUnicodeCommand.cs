@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using CysharpActions.Utils;
@@ -9,7 +10,8 @@ namespace CysharpActions.Commands;
 public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
 {
     internal const long MaxFileBytes = 10 * 1024 * 1024;
-    private const long MaxTotalTextBytes = 100 * 1024 * 1024;
+    internal const long MaxTotalTextBytes = 100 * 1024 * 1024;
+    private const int MaxAnnotations = 50;
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
     private readonly IPrChangeSource changeSource = changeSource ?? new GitPrChangeSource();
 
@@ -19,27 +21,38 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         CancellationToken cancellationToken = default)
     {
         var input = await ReadPullRequestAsync(eventPath, cancellationToken);
-        var files = await changeSource.ReadChangedFilesAsync(
+        var state = new ScanState(MaxAnnotations);
+        ScanMetadata(input, state);
+
+        var fileCount = 0;
+        await foreach (var file in changeSource.ReadChangedFilesAsync(
             repositoryPath,
             input.BaseSha,
             input.HeadSha,
-            cancellationToken);
-        var violations = Scan(input, files);
+            cancellationToken))
+        {
+            fileCount++;
+            if (!ScanFile(file, state))
+                break;
+        }
 
-        foreach (var violation in violations.Take(50))
+        foreach (var violation in state.Violations)
         {
             WriteAnnotation(violation);
         }
-        if (violations.Count > 50)
+        if (state.ViolationCount > MaxAnnotations)
         {
-            GitHubActions.WriteLog($"Unicode scan found {violations.Count} violations. Only the first 50 were annotated.");
+            GitHubActions.WriteLog(
+                $"Unicode scan found {state.ViolationCount} violations. Only the first {MaxAnnotations} were annotated.");
         }
-        if (violations.Count != 0)
+        if (state.ViolationCount != 0)
         {
-            throw new ActionCommandException($"PR Unicode security scan found {violations.Count} violation(s).");
+            throw new ActionCommandException(
+                $"PR Unicode security scan found {state.ViolationCount} violation(s).");
         }
 
-        GitHubActions.WriteLog($"PR Unicode security scan passed. Scanned {files.Count} changed non-deleted file(s).");
+        GitHubActions.WriteLog(
+            $"PR Unicode security scan passed. Scanned {fileCount} changed non-deleted file(s).");
     }
 
     public static IReadOnlyList<UnicodeViolation> Scan(
@@ -47,82 +60,99 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         IReadOnlyList<PrChangedFile> files)
     {
         ArgumentNullException.ThrowIfNull(files);
-        var violations = new List<UnicodeViolation>();
-        ScanText("PR title", input.Title, UnicodeScanOptions.Metadata, violations);
-        ScanText("PR body", input.Body, UnicodeScanOptions.Metadata, violations);
+        var state = new ScanState(MaxAnnotations);
+        ScanMetadata(input, state);
 
-        long totalTextBytes = 0;
         foreach (var file in files)
         {
-            ScanText(file.Path, file.Path, UnicodeScanOptions.FileName, violations);
-            if (file.OldPath is not null)
-            {
-                ScanText(file.OldPath, file.OldPath, UnicodeScanOptions.FileName, violations);
-            }
-
-            if (file.IsSymbolicLink)
-            {
-                if (IsCSharpSource(file.Path))
-                {
-                    violations.Add(UnicodeViolation.FileError(
-                        file.Path,
-                        "C# source file must not be a symbolic link."));
-                }
-                continue;
-            }
-
-            if (file.IsGitLink)
-                continue;
-
-            if (!IsCSharpSource(file.Path))
-                continue;
-
-            var contentLength = file.DeclaredSize ?? file.Content.LongLength;
-            if (contentLength > MaxFileBytes)
-            {
-                violations.Add(UnicodeViolation.FileError(
-                    file.Path,
-                    $"C# source file exceeds the {MaxFileBytes / 1024 / 1024} MiB scan limit."));
-                continue;
-            }
-
-            if (file.Content.Contains((byte)0))
-            {
-                violations.Add(UnicodeViolation.FileError(file.Path, "C# source file contains a NUL byte."));
-                continue;
-            }
-
-            string text;
-            try
-            {
-                text = StrictUtf8.GetString(file.Content);
-            }
-            catch (DecoderFallbackException)
-            {
-                violations.Add(UnicodeViolation.FileError(file.Path, "C# source file is not valid UTF-8."));
-                continue;
-            }
-
-            totalTextBytes += file.Content.LongLength;
-            if (totalTextBytes > MaxTotalTextBytes)
-            {
-                violations.Add(UnicodeViolation.FileError(
-                    file.Path,
-                    $"Changed text exceeds the {MaxTotalTextBytes / 1024 / 1024} MiB total scan limit."));
+            if (!ScanFile(file, state))
                 break;
-            }
-
-            ScanText(
-                file.Path,
-                text,
-                new UnicodeScanOptions(
-                    AllowLeadingBom: true,
-                    ScanCSharpEscapes: true,
-                    RejectNonAsciiSpace: true),
-                violations);
         }
 
-        return violations;
+        return state.Violations;
+    }
+
+    private static void ScanMetadata(PullRequestScanInput input, ScanState state)
+    {
+        ScanText("PR title", input.Title, UnicodeScanOptions.Metadata, state);
+        ScanText("PR body", input.Body, UnicodeScanOptions.Metadata, state);
+    }
+
+    private static bool ScanFile(PrChangedFile file, ScanState state)
+    {
+        ScanText(file.Path, file.Path, UnicodeScanOptions.FileName, state);
+        if (file.OldPath is not null)
+        {
+            ScanText(file.OldPath, file.OldPath, UnicodeScanOptions.FileName, state);
+        }
+
+        if (file.PreScanError is not null)
+        {
+            state.Add(UnicodeViolation.FileError(file.Path, file.PreScanError));
+            return false;
+        }
+
+        if (file.IsSymbolicLink)
+        {
+            if (IsCSharpSource(file.Path))
+            {
+                state.Add(UnicodeViolation.FileError(
+                    file.Path,
+                    "C# source file must not be a symbolic link."));
+            }
+            return true;
+        }
+
+        if (file.IsGitLink || !IsCSharpSource(file.Path))
+            return true;
+
+        var contentLength = file.DeclaredSize ?? file.Content.LongLength;
+        if (contentLength > MaxFileBytes)
+        {
+            state.Add(UnicodeViolation.FileError(
+                file.Path,
+                $"C# source file exceeds the {MaxFileBytes / 1024 / 1024} MiB scan limit."));
+            return true;
+        }
+
+        // GitPrChangeSource checks this from tree metadata before loading a blob. Keep the same
+        // guard here for tests and alternative IPrChangeSource implementations.
+        if (state.TotalTextBytes > MaxTotalTextBytes - contentLength)
+        {
+            state.Add(UnicodeViolation.FileError(
+                file.Path,
+                $"Changed C# source exceeds the {MaxTotalTextBytes / 1024 / 1024} MiB total scan limit."));
+            return false;
+        }
+        state.TotalTextBytes += contentLength;
+
+        if (file.Content.Contains((byte)0))
+        {
+            state.Add(UnicodeViolation.FileError(file.Path, "C# source file contains a NUL byte."));
+            return true;
+        }
+
+        string text;
+        try
+        {
+            text = StrictUtf8.GetString(file.Content);
+        }
+        catch (DecoderFallbackException)
+        {
+            state.Add(UnicodeViolation.FileError(file.Path, "C# source file is not valid UTF-8."));
+            return true;
+        }
+
+        ScanText(
+            file.Path,
+            text,
+            new UnicodeScanOptions(
+                AllowLeadingBom: true,
+                ScanCSharpEscapes: true,
+                RejectNonAsciiSpace: true),
+            state);
+
+        return true;
     }
 
     private static async Task<PullRequestScanInput> ReadPullRequestAsync(
@@ -173,7 +203,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         string source,
         string text,
         UnicodeScanOptions options,
-        List<UnicodeViolation> violations)
+        ScanState state)
     {
         var lineStarts = BuildLineStarts(text);
         var offset = 0;
@@ -196,7 +226,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
             if (reason is not null)
             {
                 var (line, column) = GetLineColumn(lineStarts, offset);
-                violations.Add(new UnicodeViolation(source, line, column, value, "raw", reason));
+                state.Add(new UnicodeViolation(source, line, column, value, "raw", reason));
             }
             offset += rune.Utf16SequenceLength;
         }
@@ -240,7 +270,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
                 continue;
 
             var (line, column) = GetLineColumn(lineStarts, i);
-            violations.Add(new UnicodeViolation(
+            state.Add(new UnicodeViolation(
                 source,
                 line,
                 column,
@@ -386,6 +416,24 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         .Replace("\r", "%0D", StringComparison.Ordinal)
         .Replace("\n", "%0A", StringComparison.Ordinal);
 
+    private sealed class ScanState(int maxRetainedViolations)
+    {
+        public List<UnicodeViolation> Violations { get; } = [];
+
+        public int ViolationCount { get; private set; }
+
+        public long TotalTextBytes { get; set; }
+
+        public void Add(UnicodeViolation violation)
+        {
+            ViolationCount++;
+            if (Violations.Count < maxRetainedViolations)
+            {
+                Violations.Add(violation);
+            }
+        }
+    }
+
     private readonly record struct UnicodeScanOptions(
         bool AllowLeadingBom,
         bool ScanCSharpEscapes,
@@ -404,7 +452,8 @@ public sealed record PrChangedFile(
     byte[] Content,
     bool IsGitLink = false,
     bool IsSymbolicLink = false,
-    long? DeclaredSize = null);
+    long? DeclaredSize = null,
+    string? PreScanError = null);
 
 public readonly record struct UnicodeViolation(
     string Source,
@@ -419,22 +468,23 @@ public readonly record struct UnicodeViolation(
 
 public interface IPrChangeSource
 {
-    Task<IReadOnlyList<PrChangedFile>> ReadChangedFilesAsync(
+    IAsyncEnumerable<PrChangedFile> ReadChangedFilesAsync(
         string repositoryPath,
         string baseSha,
         string headSha,
         CancellationToken cancellationToken = default);
 }
 
-internal sealed class GitPrChangeSource : IPrChangeSource
+internal sealed class GitPrChangeSource(
+    long maxTotalTextBytes = ScanPrUnicodeCommand.MaxTotalTextBytes) : IPrChangeSource
 {
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
-    public async Task<IReadOnlyList<PrChangedFile>> ReadChangedFilesAsync(
+    public async IAsyncEnumerable<PrChangedFile> ReadChangedFilesAsync(
         string repositoryPath,
         string baseSha,
         string headSha,
-        CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ValidateSha(baseSha);
         ValidateSha(headSha);
@@ -446,7 +496,7 @@ internal sealed class GitPrChangeSource : IPrChangeSource
             ["diff", "--name-status", "-z", "--find-renames", baseSha, headSha, "--"],
             cancellationToken);
         var fields = SplitNullTerminated(diff);
-        var files = new List<PrChangedFile>();
+        long totalTextBytes = 0;
         for (var i = 0; i < fields.Count;)
         {
             var status = DecodeUtf8(fields[i++], "git diff status");
@@ -474,12 +524,12 @@ internal sealed class GitPrChangeSource : IPrChangeSource
                 // A Git symbolic link is stored as a blob whose content is only the target path. Scanning
                 // that blob would inspect "payload.txt", while a Linux build opening Link.cs would read the
                 // target file. Never follow an untrusted link; reject C# links in Scan() instead.
-                files.Add(new PrChangedFile(path, oldPath, [], IsSymbolicLink: true));
+                yield return new PrChangedFile(path, oldPath, [], IsSymbolicLink: true);
                 continue;
             }
             if (tree.Type == "commit")
             {
-                files.Add(new PrChangedFile(path, oldPath, [], IsGitLink: true));
+                yield return new PrChangedFile(path, oldPath, [], IsGitLink: true);
                 continue;
             }
             if (tree.Type != "blob")
@@ -489,20 +539,32 @@ internal sealed class GitPrChangeSource : IPrChangeSource
             // Do not load unrelated blobs merely to discover that Scan() will skip them.
             if (!ScanPrUnicodeCommand.IsCSharpSource(path))
             {
-                files.Add(new PrChangedFile(path, oldPath, []));
+                yield return new PrChangedFile(path, oldPath, []);
                 continue;
             }
 
             if (tree.Size > ScanPrUnicodeCommand.MaxFileBytes)
             {
-                files.Add(new PrChangedFile(path, oldPath, [], DeclaredSize: tree.Size));
+                yield return new PrChangedFile(path, oldPath, [], DeclaredSize: tree.Size);
                 continue;
             }
 
+            if (totalTextBytes > maxTotalTextBytes - tree.Size)
+            {
+                yield return new PrChangedFile(
+                    path,
+                    oldPath,
+                    [],
+                    DeclaredSize: tree.Size,
+                    PreScanError:
+                        $"Changed C# source exceeds the {maxTotalTextBytes / 1024 / 1024} MiB total scan limit.");
+                yield break;
+            }
+            totalTextBytes += tree.Size;
+
             var content = await RunGitAsync(repositoryPath, ["cat-file", "blob", tree.ObjectId], cancellationToken);
-            files.Add(new PrChangedFile(path, oldPath, content, DeclaredSize: tree.Size));
+            yield return new PrChangedFile(path, oldPath, content, DeclaredSize: tree.Size);
         }
-        return files;
     }
 
     private static async Task<GitTreeEntry> ReadTreeEntryAsync(
