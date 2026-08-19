@@ -67,8 +67,34 @@ jobs:
           license-check: true
           vulnerability-check: true
 
+  unicode-security:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: Cysharp/Actions/.github/actions/checkout@main
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+          lfs: false
+          submodules: false
+      - name: Reject unsafe Unicode in PR metadata and changed files
+        shell: bash
+        env:
+          SCANNER: ${{ github.workspace }}/../../_actions/Cysharp/Actions/main/actions/Linux-${{ runner.arch }}/CysharpActions
+        run: |
+          if [[ ! -f "${SCANNER}" ]]; then
+            echo "CysharpActions scanner binary not found: ${SCANNER}" >&2
+            exit 1
+          fi
+          chmod +x "${SCANNER}"
+          "${SCANNER}" scan-pr-unicode \
+            --event-path "${GITHUB_EVENT_PATH}" \
+            --repository-path "${GITHUB_WORKSPACE}"
+
   pr-harness-check:
-    needs: [prevent-githubactions-changes, dependency-review]
+    needs: [prevent-githubactions-changes, dependency-review, unicode-security]
     permissions: {}
     runs-on: ubuntu-24.04
     timeout-minutes: 3

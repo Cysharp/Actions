@@ -1,0 +1,218 @@
+﻿using CysharpActions;
+using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
+
+namespace CysharpActions.Tests;
+
+public class ScanPrUnicodeCommandTest
+{
+    private static readonly PullRequestScanInput Input = new(
+        new string('a', 40),
+        new string('b', 40),
+        "Clean title",
+        "Clean body");
+
+    [Fact]
+    public void CleanChangedFilePassesTest()
+    {
+        var violations = Scan(new PrChangedFile("src/Program.cs", null, Utf8("class Program { }")));
+
+        Assert.Empty(violations);
+    }
+
+    [Theory]
+    [InlineData(0x200B)] // ZERO WIDTH SPACE (Cf)
+    [InlineData(0x202E)] // RIGHT-TO-LEFT OVERRIDE (Cf)
+    [InlineData(0x3164)] // HANGUL FILLER (Lo, Default Ignorable)
+    [InlineData(0xFE0F)] // VARIATION SELECTOR-16 (Mn, Default Ignorable)
+    public void RawForbiddenCodePointFailsAnywhereInTextTest(int codePoint)
+    {
+        var text = $"prefix{char.ConvertFromUtf32(codePoint)}suffix";
+
+        var violation = Assert.Single(Scan(new PrChangedFile("src/Test.cs", null, Utf8(text))));
+
+        Assert.Equal(codePoint, violation.CodePoint);
+        Assert.Equal("raw", violation.Rule);
+    }
+
+    public static TheoryData<string, int> ForbiddenCSharpEscapes => new()
+    {
+        { "\\" + "u200B", 0x200B },
+        { "\\" + "U00003164", 0x3164 },
+        { "var value = \"" + "\\" + "uFE0F\";", 0xFE0F },
+        { "// example: " + "\\" + "u202E", 0x202E },
+    };
+
+    [Theory]
+    [MemberData(nameof(ForbiddenCSharpEscapes))]
+    public void ForbiddenCSharpUnicodeEscapeFailsRegardlessOfSyntaxContextTest(string text, int codePoint)
+    {
+        var violation = Assert.Single(Scan(new PrChangedFile("src/Test.cs", null, Utf8(text))));
+
+        Assert.Equal(codePoint, violation.CodePoint);
+        Assert.Equal("C# Unicode escape", violation.Rule);
+    }
+
+    [Fact]
+    public void UnicodeEscapeIsAllowedInNonCSharpDocumentationTest()
+    {
+        var violations = Scan(new PrChangedFile("README.md", null, Utf8("Use " + "\\" + "u200B in this example.")));
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void RawForbiddenCodePointIsAllowedInNonCSharpFileTest()
+    {
+        var text = "example" + char.ConvertFromUtf32(0x200B);
+
+        Assert.Empty(Scan(new PrChangedFile("README.md", null, Utf8(text))));
+    }
+
+    [Fact]
+    public void VisibleCSharpUnicodeEscapeIsAllowedTest()
+    {
+        var violations = Scan(new PrChangedFile("src/Test.cs", null, Utf8("int " + "\\" + "u0061 = 1;")));
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void LeadingUtf8BomIsAllowedButEmbeddedBomFailsTest()
+    {
+        var bom = char.ConvertFromUtf32(0xFEFF);
+
+        Assert.Empty(Scan(new PrChangedFile("src/Clean.cs", null, Utf8(bom + "class C {}"))));
+        var violation = Assert.Single(Scan(new PrChangedFile("src/Bad.cs", null, Utf8("class" + bom + " C {}"))));
+        Assert.Equal(0xFEFF, violation.CodePoint);
+    }
+
+    [Fact]
+    public void NonAsciiSpaceFailsInCSharpButIsAllowedInDocumentationTest()
+    {
+        var ideographicSpace = char.ConvertFromUtf32(0x3000);
+
+        var violation = Assert.Single(Scan(new PrChangedFile("src/Test.cs", null, Utf8("// 日本語" + ideographicSpace + "コメント"))));
+        Assert.Equal(0x3000, violation.CodePoint);
+        Assert.Empty(Scan(new PrChangedFile("README.md", null, Utf8("日本語" + ideographicSpace + "文章"))));
+    }
+
+    [Fact]
+    public void CSharpMustBeValidUtf8ButNonCSharpFileIsSkippedTest()
+    {
+        var invalidUtf8 = new byte[] { 0xFF, 0xFE, 0xFD };
+
+        var violation = Assert.Single(Scan(new PrChangedFile("src/Test.cs", null, invalidUtf8)));
+        Assert.Contains("not valid UTF-8", violation.Reason, StringComparison.Ordinal);
+        Assert.Empty(Scan(new PrChangedFile("image.bin", null, invalidUtf8)));
+    }
+
+    [Fact]
+    public void OversizedCSharpFailsWithoutLoadingBlobTest()
+    {
+        const long oversized = 10L * 1024 * 1024 + 1;
+
+        var violation = Assert.Single(Scan(new PrChangedFile("src/Test.cs", null, [], DeclaredSize: oversized)));
+        Assert.Contains("exceeds", violation.Reason, StringComparison.Ordinal);
+        Assert.Empty(Scan(new PrChangedFile("image.bin", null, [], DeclaredSize: oversized)));
+    }
+
+    [Fact]
+    public void FileNamesAndPullRequestMetadataAreScannedTest()
+    {
+        var zeroWidthSpace = char.ConvertFromUtf32(0x200B);
+        var input = Input with { Title = "title" + zeroWidthSpace, Body = "body" + zeroWidthSpace };
+
+        var violations = Scan(
+            input,
+            new PrChangedFile("src/new" + zeroWidthSpace + ".cs", "src/old" + zeroWidthSpace + ".cs", Utf8("class C {}")));
+
+        Assert.Equal(4, violations.Count(x => x.CodePoint == 0x200B));
+    }
+
+    [Fact]
+    public void GitLinkContentIsNotScannedTest()
+    {
+        var violations = Scan(new PrChangedFile("vendor/submodule", null, Utf8(char.ConvertFromUtf32(0x200B)), IsGitLink: true));
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public async Task ValidateReadsChangedHeadBlobFromGitTest()
+    {
+        var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(ValidateReadsChangedHeadBlobFromGitTest)}");
+        try
+        {
+            Directory.CreateDirectory(directory);
+            await RunGitAsync(directory, "init");
+            await RunGitAsync(directory, "config", "user.email", "test@example.com");
+            await RunGitAsync(directory, "config", "user.name", "Test User");
+            await RunGitAsync(directory, "config", "commit.gpgSign", "false");
+
+            CreateFile(Path.Combine(directory, "Test.cs"), "class C {}");
+            await RunGitAsync(directory, "add", "--", "Test.cs");
+            await RunGitAsync(directory, "commit", "-m", "base");
+            var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            var zeroWidthSpace = char.ConvertFromUtf32(0x200B);
+            CreateFile(Path.Combine(directory, "Test.cs"), "class" + zeroWidthSpace + " C {}");
+            await RunGitAsync(directory, "add", "--", "Test.cs");
+            await RunGitAsync(directory, "commit", "-m", "head");
+            var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            var eventPath = Path.Combine(directory, "event.json");
+            CreateFile(eventPath, JsonSerializer.Serialize(new
+            {
+                pull_request = new
+                {
+                    title = "Clean title",
+                    body = "Clean body",
+                    @base = new { sha = baseSha },
+                    head = new { sha = headSha },
+                },
+            }));
+
+            var command = new ScanPrUnicodeCommand();
+            var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
+                command.ValidateAsync(eventPath, directory, TestContext.Current.CancellationToken));
+
+            Assert.Contains("1 violation", exception.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDeleteDirectory(directory);
+        }
+    }
+
+    private static IReadOnlyList<UnicodeViolation> Scan(params PrChangedFile[] files) =>
+        Scan(Input, files);
+
+    private static IReadOnlyList<UnicodeViolation> Scan(PullRequestScanInput input, params PrChangedFile[] files) =>
+        ScanPrUnicodeCommand.Scan(input, files);
+
+    private static byte[] Utf8(string value) => Encoding.UTF8.GetBytes(value);
+
+    private static async Task<string> RunGitAsync(string workingDirectory, params string[] arguments)
+    {
+        var startInfo = new ProcessStartInfo("git")
+        {
+            WorkingDirectory = workingDirectory,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        foreach (var argument in arguments)
+            startInfo.ArgumentList.Add(argument);
+
+        using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start git.");
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
+        var stderrTask = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        var stdout = await stdoutTask;
+        if (process.ExitCode != 0)
+            throw new InvalidOperationException($"git {arguments[0]} failed: {await stderrTask}");
+        return stdout.Trim();
+    }
+}

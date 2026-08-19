@@ -21,6 +21,7 @@ public class CliContractTest
                 "delete-branch",
                 "increment-version",
                 "nuget-push",
+                "scan-pr-unicode",
                 "update-version",
                 "validate-file-exists",
                 "validate-nupkg-exists",

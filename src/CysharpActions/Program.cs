@@ -187,6 +187,21 @@ namespace CysharpActions
         }
 
         /// <summary>
+        /// Scan pull request metadata and changed files for forbidden Unicode characters.
+        /// </summary>
+        /// <param name="eventPath">Path to the GitHub pull_request event JSON.</param>
+        /// <param name="repositoryPath">Path to the checked out Git repository.</param>
+        [Command("scan-pr-unicode")]
+        public async Task ScanPrUnicode(
+            string eventPath,
+            string repositoryPath = ".",
+            CancellationToken cancellationToken = default)
+        {
+            var command = new ScanPrUnicodeCommand();
+            await command.ValidateAsync(eventPath, repositoryPath, cancellationToken);
+        }
+
+        /// <summary>
         /// Create Release
         /// </summary>
         /// <param name="tag">version string. ex) 1.0.0</param>
