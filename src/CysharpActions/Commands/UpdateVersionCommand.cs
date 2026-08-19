@@ -1,6 +1,8 @@
 using CysharpActions.Contexts;
 using CysharpActions.Utils;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace CysharpActions.Commands;
 
@@ -71,44 +73,92 @@ public sealed class UpdateVersionCommand
 
     private static string UpdateUpm(string contents, string version)
     {
-        var (_, after) = RegrexReplace.Replace(contents, @"""version"":\s*""(.*?)""", $@"""version"": ""{version}""");
+        var utf8 = Encoding.UTF8.GetBytes(contents);
+        var reader = new Utf8JsonReader(utf8);
+        var replacementStart = -1;
+        var valueEnd = -1;
+        while (reader.Read())
+        {
+            if (reader.TokenType != JsonTokenType.PropertyName ||
+                reader.CurrentDepth != 1 ||
+                !reader.ValueTextEquals("version"))
+            {
+                continue;
+            }
+
+            replacementStart = checked((int)reader.TokenStartIndex);
+            if (!reader.Read() || reader.TokenType != JsonTokenType.String)
+                throw new ActionCommandException("UPM package.json version must be a string.");
+
+            valueEnd = checked((int)reader.BytesConsumed);
+            break;
+        }
+
+        if (replacementStart < 0)
+            throw new ActionCommandException("UPM package.json version key not found.");
+
+        var replacement = Encoding.UTF8.GetBytes($"\"version\": {JsonSerializer.Serialize(version)}");
+        var updatedUtf8 = new byte[utf8.Length - (valueEnd - replacementStart) + replacement.Length];
+        utf8.AsSpan(0, replacementStart).CopyTo(updatedUtf8);
+        replacement.CopyTo(updatedUtf8.AsSpan(replacementStart));
+        utf8.AsSpan(valueEnd).CopyTo(updatedUtf8.AsSpan(replacementStart + replacement.Length));
+        var after = Encoding.UTF8.GetString(updatedUtf8);
+
         var packageJson = JsonSerializer.Deserialize(after, JsonSourceGenerationContext.Default.UpmPackageJson) ??
                           throw new ActionCommandException($"UPM package.json updated, but failed to load as valid JSON. contents: {after}");
         if (packageJson.Version != version)
-            throw new ActionCommandException($"UPM package.json updated, but version miss-match. actual {packageJson.Version}, expected {version}");
+            throw new ActionCommandException($"UPM package.json updated, but version mismatch. actual {packageJson.Version}, expected {version}");
         return after;
     }
 
     private static string UpdateGodot(string contents, string version)
     {
-        var (_, after) = RegrexReplace.Replace(contents, @"(version=)""(.*?)""", $@"$1""{version}""");
-        foreach (var line in after.Split('\n'))
-        {
-            if (!line.StartsWith("version=", StringComparison.Ordinal))
-                continue;
+        if (version.IndexOfAny(['"', '\r', '\n']) >= 0)
+            throw new ActionCommandException("Godot plugin.cfg version contains an invalid character.");
 
-            Span<Range> destination = stackalloc Range[2];
-            var span = line.AsSpan();
-            if (span.Split(destination, '=', StringSplitOptions.TrimEntries) != 2)
-                continue;
+        var sectionHeader = Regex.Match(contents, @"^[ \t]*\[plugin\][ \t]*\r?$", RegexOptions.Multiline);
+        if (!sectionHeader.Success)
+            throw new ActionCommandException("Godot plugin.cfg [plugin] section not found.");
 
-            var versionValue = span[destination[1]].ToString();
-            if (versionValue != $"\"{version}\"")
-                throw new ActionCommandException($"Godot plugin.cfg updated, but version miss-match. actual {versionValue}, expected {version}");
-            return after;
-        }
-        throw new ActionCommandException("Godot plugin.cfg updated, but version key not found.");
+        var sectionStart = sectionHeader.Index + sectionHeader.Length;
+        var nextSection = Regex.Match(
+            contents,
+            @"^[ \t]*\[[^\]\r\n]+\][ \t]*\r?$",
+            RegexOptions.Multiline,
+            TimeSpan.FromSeconds(1));
+        while (nextSection.Success && nextSection.Index <= sectionHeader.Index)
+            nextSection = nextSection.NextMatch();
+
+        var sectionEnd = nextSection.Success ? nextSection.Index : contents.Length;
+        var section = contents[sectionStart..sectionEnd];
+        var versionMatch = Regex.Match(
+            section,
+            @"^(?<prefix>[ \t]*version[ \t]*=[ \t]*)""(?<value>[^""\r\n]*)""",
+            RegexOptions.Multiline);
+        if (!versionMatch.Success)
+            throw new ActionCommandException("Godot plugin.cfg version key not found in [plugin] section.");
+
+        var value = versionMatch.Groups["value"];
+        var valueStart = sectionStart + value.Index;
+        return contents[..valueStart] + version + contents[(valueStart + value.Length)..];
     }
 
     private static string UpdateDirectoryBuildProps(string contents, string version)
     {
-        var (_, after) = RegrexReplace.Replace(contents, @"<VersionPrefix>.*</VersionPrefix>", $@"<VersionPrefix>{version}</VersionPrefix>");
+        var after = Regex.Replace(
+            contents,
+            @"(?<=<VersionPrefix>)[^<]*(?=</VersionPrefix>)",
+            _ => version);
         var xmlDoc = new System.Xml.XmlDocument();
         xmlDoc.LoadXml(after);
-        var versionPrefixNode = xmlDoc.SelectSingleNode("//VersionPrefix") ??
-                                throw new ActionCommandException("Directory.Build.props updated, but VersionPrefix key not found.");
-        if (versionPrefixNode.InnerText != version)
-            throw new ActionCommandException($"Directory.Build.props updated, but version miss-match. actual {versionPrefixNode.InnerText}, expected {version}");
+        var versionPrefixNodes = xmlDoc.SelectNodes("//VersionPrefix");
+        if (versionPrefixNodes == null || versionPrefixNodes.Count == 0)
+            throw new ActionCommandException("Directory.Build.props updated, but VersionPrefix key not found.");
+        foreach (System.Xml.XmlNode versionPrefixNode in versionPrefixNodes)
+        {
+            if (versionPrefixNode.InnerText != version)
+                throw new ActionCommandException($"Directory.Build.props updated, but version mismatch. actual {versionPrefixNode.InnerText}, expected {version}");
+        }
         return after;
     }
 
