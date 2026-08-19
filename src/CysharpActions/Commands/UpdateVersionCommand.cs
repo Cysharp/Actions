@@ -107,7 +107,7 @@ public sealed class UpdateVersionCommand
         var packageJson = JsonSerializer.Deserialize(after, JsonSourceGenerationContext.Default.UpmPackageJson) ??
                           throw new ActionCommandException($"UPM package.json updated, but failed to load as valid JSON. contents: {after}");
         if (packageJson.Version != version)
-            throw new ActionCommandException($"UPM package.json updated, but version miss-match. actual {packageJson.Version}, expected {version}");
+            throw new ActionCommandException($"UPM package.json updated, but version mismatch. actual {packageJson.Version}, expected {version}");
         return after;
     }
 
@@ -157,7 +157,7 @@ public sealed class UpdateVersionCommand
         foreach (System.Xml.XmlNode versionPrefixNode in versionPrefixNodes)
         {
             if (versionPrefixNode.InnerText != version)
-                throw new ActionCommandException($"Directory.Build.props updated, but version miss-match. actual {versionPrefixNode.InnerText}, expected {version}");
+                throw new ActionCommandException($"Directory.Build.props updated, but version mismatch. actual {versionPrefixNode.InnerText}, expected {version}");
         }
         return after;
     }
