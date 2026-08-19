@@ -367,15 +367,21 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
                 return;
             }
 
-            var value = 0;
+            uint value = 0;
             for (var i = 0; i < digitCount; i++)
             {
                 var digit = HexValue(EscapeAt(escapeCount - digitCount + i));
                 if (digit < 0)
                     return;
-                value = checked(value * 16 + digit);
+                // Eight hexadecimal digits fit exactly in UInt32, including values such as FFFFFFFF.
+                // Check the Unicode scalar range before converting to Int32 so hostile escapes cannot
+                // overflow the scanner itself.
+                value = value * 16 + (uint)digit;
             }
-            if (!Rune.IsValid(value) || !(IsFormat(value) || IsDefaultIgnorable(value)))
+            if (value > 0x10FFFF)
+                return;
+            var scalarValue = (int)value;
+            if (!Rune.IsValid(scalarValue) || !(IsFormat(scalarValue) || IsDefaultIgnorable(scalarValue)))
                 return;
 
             var start = (escapeStart + escapeCount - length) % EscapeWindowSize;
@@ -383,7 +389,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
                 source,
                 escapeLines[start],
                 escapeColumns[start],
-                value,
+                scalarValue,
                 "C# Unicode escape",
                 "escape resolves to a forbidden identifier character"));
         }

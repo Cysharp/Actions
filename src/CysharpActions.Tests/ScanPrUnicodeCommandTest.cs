@@ -77,6 +77,20 @@ public class ScanPrUnicodeCommandTest
         Assert.Empty(violations);
     }
 
+    [Theory]
+    [InlineData("FFFFFFFF")]
+    [InlineData("80000000")]
+    [InlineData("00110000")]
+    [InlineData("0000D800")]
+    public void InvalidCSharpUnicodeEscapeDoesNotOverflowScannerTest(string digits)
+    {
+        var text = "\\" + "U" + digits;
+
+        Assert.Empty(Scan(new PrChangedFile("src/Test.cs", null, Utf8(text))));
+        Assert.Empty(ScanPrUnicodeCommand.ScanCSharpChunksForTest(
+            Utf8(text).Select(value => new ReadOnlyMemory<byte>([value])).ToArray()));
+    }
+
     [Fact]
     public void LeadingUtf8BomIsAllowedButEmbeddedBomFailsTest()
     {
