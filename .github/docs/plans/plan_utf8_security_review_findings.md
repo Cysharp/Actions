@@ -16,6 +16,14 @@
 
 ### P2: `git diff`出力と変更ファイル数に上限がない
 
+状態: 対応済み
+
+採用設定:
+
+- 変更ファイル数: 最大3,000件
+- `git diff --raw -z`出力: 最大16 MiB
+- NUL区切りfield数: 最大9,000件（rename/copy時の3 field × 3,000ファイル）
+
 対象:
 
 - `src/CysharpActions/Commands/ScanPrUnicodeCommand.cs`
@@ -35,6 +43,8 @@
 - 非C#ファイルだけでも上限が機能する。
 - 上限超過はscan成功ではなく明示的な失敗になる。
 - 上限直前、直後、および非常に長いファイル名のテストがある。
+
+実装では出力上限を読込中に判定し、超過時はGitプロセスを停止する。これにより、上限判定前に全出力を`MemoryStream`へ保持することを防ぐ。変更ファイル数は削除ファイルも含めて数え、3,000件を超えた時点でhard errorにする。
 
 ### P2: 既存の`.cs`/`.csx`シンボリックリンクから検査対象外ファイルを参照できる
 
@@ -142,4 +152,3 @@ step outputへ`dotnet run ... --`または実行ファイルpathを格納し、�
 3. annotationへ出す攻撃者制御文字を可視化する。
 4. READMEをworking tree検査へ合わせる。
 5. self実行時の.NET 9 setupとdebug出力を安定化する。
-

@@ -11,6 +11,8 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
 {
     internal const long MaxFileBytes = 10 * 1024 * 1024;
     internal const long MaxTotalTextBytes = 100 * 1024 * 1024;
+    internal const int MaxChangedFiles = 3000;
+    internal const int MaxDiffBytes = 16 * 1024 * 1024;
     private const int MaxAnnotations = 50;
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
     private readonly IPrChangeSource changeSource = changeSource ?? new GitPrChangeSource();
@@ -694,7 +696,9 @@ public interface IPrChangeSource
 }
 
 internal sealed class GitPrChangeSource(
-    long maxTotalTextBytes = ScanPrUnicodeCommand.MaxTotalTextBytes) : IPrChangeSource
+    long maxTotalTextBytes = ScanPrUnicodeCommand.MaxTotalTextBytes,
+    int maxChangedFiles = ScanPrUnicodeCommand.MaxChangedFiles,
+    int maxDiffBytes = ScanPrUnicodeCommand.MaxDiffBytes) : IPrChangeSource
 {
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
@@ -712,11 +716,15 @@ internal sealed class GitPrChangeSource(
         var diff = await RunGitAsync(
             repositoryPath,
             ["diff", "--raw", "-z", "--find-renames", baseSha, headSha, "--"],
+            maxDiffBytes,
             cancellationToken);
-        var fields = SplitNullTerminated(diff);
+        // A rename/copy uses three NUL-terminated fields (header, old path, new path).
+        // Bound field allocation separately from raw byte size so many empty/short paths cannot amplify memory.
+        var fields = SplitNullTerminated(diff, ScanPrUnicodeCommand.MaxChangedFiles * 3);
         var repositoryRoot = Path.GetFullPath(repositoryPath);
         long totalTextBytes = 0;
         var fileCount = 0;
+        var changedFileCount = 0;
         for (var i = 0; i < fields.Count;)
         {
             var header = ParseRawDiffHeader(DecodeUtf8(fields[i++], "git diff raw header"));
@@ -731,6 +739,13 @@ internal sealed class GitPrChangeSource(
             else
             {
                 path = DecodeUtf8(RequiredField(fields, ref i, header.Status), "Git path");
+            }
+
+            changedFileCount++;
+            if (changedFileCount > maxChangedFiles)
+            {
+                throw new ActionCommandException(
+                    $"Pull request changes more than the {maxChangedFiles} file scan limit.");
             }
 
             if (header.Status == 'D')
@@ -895,7 +910,7 @@ internal sealed class GitPrChangeSource(
         return fields[index++];
     }
 
-    private static List<byte[]> SplitNullTerminated(byte[] value)
+    private static List<byte[]> SplitNullTerminated(byte[] value, int maxFields)
     {
         var result = new List<byte[]>();
         var start = 0;
@@ -903,6 +918,8 @@ internal sealed class GitPrChangeSource(
         {
             if (value[i] != 0)
                 continue;
+            if (result.Count >= maxFields)
+                throw new ActionCommandException("Git diff contains too many path fields to scan safely.");
             result.Add(value[start..i]);
             start = i + 1;
         }
@@ -932,6 +949,7 @@ internal sealed class GitPrChangeSource(
     private static async Task<byte[]> RunGitAsync(
         string repositoryPath,
         IReadOnlyList<string> arguments,
+        int maxOutputBytes,
         CancellationToken cancellationToken)
     {
         var startInfo = new ProcessStartInfo("git")
@@ -945,16 +963,59 @@ internal sealed class GitPrChangeSource(
             startInfo.ArgumentList.Add(argument);
 
         using var process = Process.Start(startInfo) ?? throw new ActionCommandException("Failed to start git.");
-        await using var output = new MemoryStream();
-        var outputTask = process.StandardOutput.BaseStream.CopyToAsync(output, cancellationToken);
         var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        await Task.WhenAll(outputTask, errorTask, process.WaitForExitAsync(cancellationToken));
-        if (process.ExitCode != 0)
+        try
         {
-            var stderr = await errorTask;
-            throw new ActionCommandException($"git {arguments[0]} failed with exit code {process.ExitCode}: {stderr.Trim()}");
+            var output = await ReadBoundedOutputAsync(
+                process.StandardOutput.BaseStream,
+                maxOutputBytes,
+                cancellationToken);
+            await Task.WhenAll(errorTask, process.WaitForExitAsync(cancellationToken));
+            if (process.ExitCode != 0)
+            {
+                var stderr = await errorTask;
+                throw new ActionCommandException($"git {arguments[0]} failed with exit code {process.ExitCode}: {stderr.Trim()}");
+            }
+            return output;
         }
-        return output.ToArray();
+        catch
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync(CancellationToken.None);
+            }
+            throw;
+        }
+    }
+
+    private static async Task<byte[]> ReadBoundedOutputAsync(
+        Stream stream,
+        int maxOutputBytes,
+        CancellationToken cancellationToken)
+    {
+        const int bufferSize = 64 * 1024;
+        var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+        try
+        {
+            await using var output = new MemoryStream();
+            while (true)
+            {
+                var read = await stream.ReadAsync(buffer.AsMemory(0, bufferSize), cancellationToken);
+                if (read == 0)
+                    return output.ToArray();
+                if (output.Length > maxOutputBytes - read)
+                {
+                    throw new ActionCommandException(
+                        $"Git diff output exceeds the {maxOutputBytes / 1024 / 1024} MiB scan limit.");
+                }
+                await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 
     private readonly record struct RawDiffHeader(string NewMode, char Status);

@@ -428,6 +428,101 @@ public class ScanPrUnicodeCommandTest
         }
     }
 
+    [Fact]
+    public async Task GitSourceRejectsTooManyChangedFilesTest()
+    {
+        var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(GitSourceRejectsTooManyChangedFilesTest)}");
+        try
+        {
+            Directory.CreateDirectory(directory);
+            await RunGitAsync(directory, "init");
+            await RunGitAsync(directory, "config", "user.email", "test@example.com");
+            await RunGitAsync(directory, "config", "user.name", "Test User");
+            await RunGitAsync(directory, "config", "commit.gpgSign", "false");
+
+            CreateFile(Path.Combine(directory, "README.md"), "base");
+            await RunGitAsync(directory, "add", "--", "README.md");
+            await RunGitAsync(directory, "commit", "-m", "base");
+            var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            CreateFile(Path.Combine(directory, "A.txt"), "a");
+            CreateFile(Path.Combine(directory, "B.txt"), "b");
+            CreateFile(Path.Combine(directory, "C.txt"), "c");
+            await RunGitAsync(directory, "add", "--", "A.txt", "B.txt", "C.txt");
+            await RunGitAsync(directory, "commit", "-m", "head");
+            var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            var boundarySource = new GitPrChangeSource(maxChangedFiles: 3);
+            var visited = 0;
+            var fileCount = await boundarySource.VisitChangedFilesAsync(
+                directory,
+                baseSha,
+                headSha,
+                (_, _, _) =>
+                {
+                    visited++;
+                    return Task.FromResult(true);
+                },
+                TestContext.Current.CancellationToken);
+            Assert.Equal(3, fileCount);
+            Assert.Equal(3, visited);
+
+            var source = new GitPrChangeSource(maxChangedFiles: 2);
+            var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
+                source.VisitChangedFilesAsync(
+                    directory,
+                    baseSha,
+                    headSha,
+                    (_, _, _) => Task.FromResult(true),
+                    TestContext.Current.CancellationToken));
+
+            Assert.Contains("more than the 2 file scan limit", exception.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task GitSourceRejectsOversizedDiffOutputTest()
+    {
+        var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(GitSourceRejectsOversizedDiffOutputTest)}");
+        try
+        {
+            Directory.CreateDirectory(directory);
+            await RunGitAsync(directory, "init");
+            await RunGitAsync(directory, "config", "user.email", "test@example.com");
+            await RunGitAsync(directory, "config", "user.name", "Test User");
+            await RunGitAsync(directory, "config", "commit.gpgSign", "false");
+
+            CreateFile(Path.Combine(directory, "README.md"), "base");
+            await RunGitAsync(directory, "add", "--", "README.md");
+            await RunGitAsync(directory, "commit", "-m", "base");
+            var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            CreateFile(Path.Combine(directory, "Changed.txt"), "changed");
+            await RunGitAsync(directory, "add", "--", "Changed.txt");
+            await RunGitAsync(directory, "commit", "-m", "head");
+            var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            var source = new GitPrChangeSource(maxDiffBytes: 1);
+            var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
+                source.VisitChangedFilesAsync(
+                    directory,
+                    baseSha,
+                    headSha,
+                    (_, _, _) => Task.FromResult(true),
+                    TestContext.Current.CancellationToken));
+
+            Assert.Contains("Git diff output exceeds", exception.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDeleteDirectory(directory);
+        }
+    }
+
     private static IReadOnlyList<UnicodeViolation> Scan(params PrChangedFile[] files) =>
         Scan(Input, files);
 
