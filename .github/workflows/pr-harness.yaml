@@ -10,22 +10,22 @@ on:
         required: false
         default: false
         type: boolean
-      license-allow-licenses:
+      allow-licenses:
         description: "Comma-separated SPDX License Identifiers allowed by ol."
         required: false
         default: "Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0"
         type: string
-      license-allow-dev-licenses:
+      allow-dev-licenses:
         description: "Comma-separated SPDX License Identifiers additionally allowed for proven development-only dependencies."
         required: false
         default: ""
         type: string
-      license-additional-baseline-paths:
+      additional-license-baseline-paths:
         description: "Newline-separated additional committed ol baselines applied before the optional repository ol-baseline.json."
         required: false
         default: ""
         type: string
-      license-exclude-input-paths:
+      exclude-license-input-paths:
         description: "Newline-separated repository files or directories excluded from package-manager discovery and ol input discovery."
         required: false
         default: ""
@@ -94,7 +94,7 @@ jobs:
         if: ${{ github.repository_visibility == 'public' }}
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # 5.0.0
         with:
-          allow-licenses: ${{ inputs.license-allow-licenses }}
+          allow-licenses: ${{ inputs.allow-licenses }}
           license-check: true
           vulnerability-check: true
 
@@ -166,10 +166,10 @@ jobs:
           } >> "$GITHUB_ENV"
       - name: "Validate license check inputs"
         env:
-          ALLOW_LICENSES: ${{ inputs.license-allow-licenses }}
+          ALLOW_LICENSES: ${{ inputs.allow-licenses || 'Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0' }}
         run: |
           if [[ -z "$ALLOW_LICENSES" ]]; then
-            echo "::error::license-allow-licenses is required when license-check is true."
+            echo "::error::allow-licenses is required when license-check is true."
             exit 1
           fi
       # ol resolves most NuGet licenses from registries and the GitHub License API. A cold cache on
@@ -186,7 +186,7 @@ jobs:
         id: license-inputs
         shell: bash
         env:
-          EXCLUDED_INPUT_PATHS: ${{ inputs.license-exclude-input-paths }}
+          EXCLUDED_INPUT_PATHS: ${{ inputs.exclude-license-input-paths }}
         run: |
           : > "$OL_DOTNET_SLNX_LIST"
           : > "$OL_DOTNET_SLN_LIST"
@@ -302,7 +302,7 @@ jobs:
           ol-version: ${{ env.OL_VERSION }}
       - name: "Scan license evidence"
         env:
-          EXCLUDED_INPUT_PATHS: ${{ inputs.license-exclude-input-paths }}
+          EXCLUDED_INPUT_PATHS: ${{ inputs.exclude-license-input-paths }}
           OL_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           scan_args=(--input .)
@@ -330,9 +330,9 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       - name: "Check license policy"
         env:
-          ADDITIONAL_BASELINE_PATHS: ${{ inputs.license-additional-baseline-paths }}
-          ALLOW_DEV_LICENSES: ${{ inputs.license-allow-dev-licenses }}
-          ALLOW_LICENSES: ${{ inputs.license-allow-licenses }}
+          ADDITIONAL_BASELINE_PATHS: ${{ inputs.additional-license-baseline-paths }}
+          ALLOW_DEV_LICENSES: ${{ inputs.allow-dev-licenses }}
+          ALLOW_LICENSES: ${{ inputs.allow-licenses }}
         run: |
           check_args=(--report "$OL_REPORT_PATH" --allow-licenses "$ALLOW_LICENSES" --sarif "$OL_SARIF_PATH")
           while IFS= read -r baseline_path || [[ -n "$baseline_path" ]]; do
