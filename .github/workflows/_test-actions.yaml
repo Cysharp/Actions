@@ -21,7 +21,7 @@ jobs:
         run: dotnet test -c Release --no-build --filter "Category!=LiveGitHub" --logger:"console;verbosity=normal"
 
   live-github:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
     concurrency:
       group: cysharp-actions-live-github-tests
       cancel-in-progress: false
