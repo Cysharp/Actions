@@ -44,7 +44,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         }
         if (state.ViolationCount != 0)
         {
-            throw new ActionCommandException($"PR Unicode security scan found {state.ViolationCount} violation(s).");
+            throw new UnicodeScanViolationException(state.ViolationCount);
         }
 
         GitHubActions.WriteLog(
@@ -701,6 +701,9 @@ public readonly record struct UnicodeViolation(
 {
     public static UnicodeViolation FileError(string source, string reason) => new(source, 0, 0, 0, "file", reason);
 }
+
+internal sealed class UnicodeScanViolationException(int violationCount)
+    : ActionCommandException($"PR Unicode security scan found {violationCount} violation(s).");
 
 public interface IPrChangeSource
 {

@@ -198,7 +198,16 @@ namespace CysharpActions
             CancellationToken cancellationToken = default)
         {
             var command = new ScanPrUnicodeCommand();
-            await command.ValidateAsync(eventPath, repositoryPath, cancellationToken);
+            try
+            {
+                await command.ValidateAsync(eventPath, repositoryPath, cancellationToken);
+            }
+            catch (UnicodeScanViolationException)
+            {
+                // Policy violations are already emitted as source-located GitHub annotations.
+                // Return a failing exit code without burying those actionable messages in a stack trace.
+                Environment.ExitCode = 1;
+            }
         }
 
         /// <summary>

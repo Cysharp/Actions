@@ -237,9 +237,13 @@ public class ScanPrUnicodeCommandTest
         var violation = new UnicodeViolation(source, 3, 4, 0x202E, "raw", "Forbidden format character.");
 
         var annotation = ScanPrUnicodeCommand.FormatAnnotation(violation);
+        const string slash = "\\";
 
         Assert.Equal(
-            "::error file=src/\\u001B\\u0009\\u0085\\u202E\\U000E0001%25%2C%3ATest.cs,line=3,col=4,title=Forbidden Unicode::src/\\u001B\\u0009\\u0085\\u202E\\U000E0001%25,:Test.cs:3:4: raw: U+202E; Forbidden format character.",
+            "::error file=src/" + slash + "u001B" + slash + "u0009" + slash + "u0085" +
+            slash + "u202E" + slash + "U000E0001%25%2C%3ATest.cs,line=3,col=4,title=Forbidden Unicode::src/" +
+            slash + "u001B" + slash + "u0009" + slash + "u0085" + slash + "u202E" +
+            slash + "U000E0001%25,:Test.cs:3:4: raw: U+202E; Forbidden format character.",
             annotation);
         Assert.DoesNotContain(char.ConvertFromUtf32(0x001B), annotation, StringComparison.Ordinal);
         Assert.DoesNotContain(char.ConvertFromUtf32(0x202E), annotation, StringComparison.Ordinal);
@@ -302,7 +306,7 @@ public class ScanPrUnicodeCommandTest
                 new PrChangedFile("src/Test.cs", null, Utf8(zeroWidthSpaces)));
 
             var command = new ScanPrUnicodeCommand(source);
-            var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
+            var exception = await Assert.ThrowsAsync<UnicodeScanViolationException>(() =>
                 command.ValidateAsync(eventPath, directory, TestContext.Current.CancellationToken));
 
             Assert.Contains("100 violation", exception.Message, StringComparison.Ordinal);
@@ -395,7 +399,7 @@ public class ScanPrUnicodeCommandTest
             }));
 
             var command = new ScanPrUnicodeCommand();
-            var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
+            var exception = await Assert.ThrowsAsync<UnicodeScanViolationException>(() =>
                 command.ValidateAsync(eventPath, directory, TestContext.Current.CancellationToken));
 
             Assert.Contains("1 violation", exception.Message, StringComparison.Ordinal);
@@ -444,7 +448,7 @@ public class ScanPrUnicodeCommandTest
             }));
 
             var command = new ScanPrUnicodeCommand();
-            var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
+            var exception = await Assert.ThrowsAsync<UnicodeScanViolationException>(() =>
                 command.ValidateAsync(eventPath, directory, TestContext.Current.CancellationToken));
 
             Assert.Contains("1 violation", exception.Message, StringComparison.Ordinal);
@@ -495,7 +499,7 @@ public class ScanPrUnicodeCommandTest
             }));
 
             var command = new ScanPrUnicodeCommand();
-            var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
+            var exception = await Assert.ThrowsAsync<UnicodeScanViolationException>(() =>
                 command.ValidateAsync(eventPath, directory, TestContext.Current.CancellationToken));
 
             Assert.Contains("1 violation", exception.Message, StringComparison.Ordinal);
