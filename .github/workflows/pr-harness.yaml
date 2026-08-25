@@ -1,6 +1,8 @@
 name: (R) PR Harness Check
 
 on:
+  pull_request:
+    branches: [main]
   workflow_call:
 
 jobs:
