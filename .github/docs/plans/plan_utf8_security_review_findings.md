@@ -122,6 +122,8 @@ READMEを、変更pathはPRのbase/head diffから決定し、変更された`.c
 
 ### P3: self `dotnet run`が.NET SDKのrunnerイメージへ依存する
 
+状態: 対応済み
+
 対象:
 
 - `.github/workflows/pr-harness.yaml`の`Set Cysharp/Actions binary path`
@@ -133,7 +135,11 @@ Cysharp/Actions自身では`dotnet run`を使うが、job内で.NET 9 SDKを明�
 - `github.repository == 'Cysharp/Actions'`の場合だけ`setup-dotnet`で`9.0.x`を準備する。
 - 実測時間を確認し、必要ならtimeoutを調整する。
 
+`Cysharp/Actions`自身である場合に限り、共有`setup-dotnet` actionで.NET SDK `9.0.x`を明示的に準備するstepを追加した。外部repositoryの配布バイナリ実行ではこのstepをskipする。SDK setupと初回restore/buildの余裕を確保するため、`unicode-security` jobのtimeoutを5分から10分へ変更した。
+
 ### P3: バイナリ探索失敗時のdebug `ls`が途中終了し得る
+
+状態: 対応済み
 
 対象:
 
@@ -147,6 +153,8 @@ GitHub Actionsのbash stepは通常`-e`で実行される。debug対象ディレ
 ls -lR "${{ github.workspace }}/../../_actions/" || true
 ls -lR "${{ github.workspace }}/../../_actions/Cysharp/Actions/" || true
 ```
+
+両方のdebug `ls`へ`|| true`を追加し、対象directoryが存在しなくても後続のdebug groupを出力して、最後の明示的な`exit 1`へ到達するようにした。
 
 ## 3. 今回は保留または許容する事項
 
