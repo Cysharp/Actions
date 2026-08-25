@@ -104,6 +104,8 @@
 
 ### P3: READMEの「head version」と実装のworking tree検査が一致しない
 
+状態: 対応済み
+
 対象:
 
 - `README.md`の`pr-harness`説明
@@ -115,6 +117,8 @@ READMEは変更されたC#ファイルの「complete head version」を検査す
 
 - READMEを「checkout済みworking treeの完全なファイル内容」に修正する。
 - changed lineだけでなくchanged file全体を検査する点は維持する。
+
+READMEを、変更pathはPRのbase/head diffから決定し、変更された`.cs`/`.csx`の内容はcheckout済みworking tree（GitHubのtest merge resultの場合を含む）から読むという説明へ修正した。changed lineだけでなくファイル全体を検査すること、およびPRで未変更のものを含むtracked C# path全体でGit symlink modeを拒否することも明記した。
 
 ### P3: self `dotnet run`が.NET SDKのrunnerイメージへ依存する
 
