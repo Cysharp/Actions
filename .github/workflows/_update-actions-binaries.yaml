@@ -50,6 +50,7 @@ jobs:
         run: |
           chmod +x ./actions/Linux-X64/CysharpActions
           ./actions/Linux-X64/CysharpActions --help | grep -Fq "update-version"
+          ./actions/Linux-X64/CysharpActions --help | grep -Fq "scan-pr-unicode"
           ./actions/Linux-X64/CysharpActions update-version --help | grep -Fq -- "--additional-commit-path-string"
           output_file="${RUNNER_TEMP}/generated-binary-output.txt"
           GITHUB_OUTPUT="${output_file}" ./actions/Linux-X64/CysharpActions increment-version --version 1.2.3 --type patch

@@ -1,6 +1,8 @@
 name: (R) PR Harness Check
 
 on:
+  pull_request:
+    branches: [main]
   workflow_call:
 
 jobs:
@@ -67,8 +69,47 @@ jobs:
           license-check: true
           vulnerability-check: true
 
+  unicode-security:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: Cysharp/Actions/.github/actions/checkout@main
+        with:
+          persist-credentials: false
+          fetch-depth: 2 # diff requires at least 2 commits
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        if: ${{ github.repository == 'Cysharp/Actions' }}
+        with:
+          dotnet-version: 9.0.x
+      - name: Set Cysharp/Actions binary path
+        id: actions-caller
+        run: |
+          branch=main
+          if [[ ${{ github.repository }} == "Cysharp/Actions" ]]; then
+            echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
+            exit
+          elif [[ -f "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" ]]; then
+            echo path="${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions" | tee -a "$GITHUB_OUTPUT"
+            chmod +x "${{ github.workspace }}/../../_actions/Cysharp/Actions/${branch}/actions/Linux-${{ runner.arch }}/CysharpActions"
+          else
+            echo "ERROR: CysharpActions binary not found."
+            echo "::group::Debug _actions folder."
+              ls -lR "${{ github.workspace }}/../../_actions/" || true
+            echo "::endgroup::"
+            echo "::group::Debug _actions/Cysharp/Actions folder."
+              ls -lR "${{ github.workspace }}/../../_actions/Cysharp/Actions/" || true
+            echo "::endgroup::"
+            exit 1
+          fi
+      - name: Reject unsafe Unicode in PR metadata and changed files
+        shell: bash
+        run: |
+          ${{ steps.actions-caller.outputs.path }} scan-pr-unicode --event-path "${GITHUB_EVENT_PATH}" --repository-path "${GITHUB_WORKSPACE}"
+
   pr-harness-check:
-    needs: [prevent-githubactions-changes, dependency-review]
+    needs: [prevent-githubactions-changes, dependency-review, unicode-security]
     permissions: {}
     runs-on: ubuntu-24.04
     timeout-minutes: 3

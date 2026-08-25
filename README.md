@@ -29,6 +29,7 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
     - [dd-event-post](#dd-event-post)
     - [increment-version](#increment-version)
     - [prevent-github-change](#prevent-github-change)
+    - [pr-harness](#pr-harness)
     - [stale-issue](#stale-issue)
     - [update-packagejson](#update-packagejson)
 - [Composite actions](#composite-actions)
@@ -57,6 +58,7 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
 | `dd-event-post` | Post an event to Datadog, typically for PR merge notifications. | Inputs include `title`, `text`, `event`, `additional-tags`, `alert-type`. |
 | `increment-version` | Increment a semantic version string and expose the computed version. | Inputs: `tag`, `type`, optional `prefix`, `suffix`, `ref`. Output: `version`. |
 | `prevent-github-change` | Fail PRs from forks when they modify `.github/**/*.yml` or `.github/**/*.yaml`. | Intended for policy enforcement around GitHub configuration changes. |
+| `pr-harness` | Apply shared PR security checks, including protected workflow files, dependency review, and forbidden Unicode scanning. | Trigger on `edited` as well as code-changing PR events so title/body edits are rescanned. |
 | `stale-issue` | Mark and close stale issues and PRs using `actions/stale`. | Current defaults: stale after 180 days, close 30 days later. |
 | `update-packagejson` | Normalize a release tag, update version-bearing files, optionally run project-specific `dotnet run -- --version {tag}`, and push the result. | Supports `package.json`, `plugin.cfg`, and `Directory.Build.props`. Outputs: `branch-name`, `is-branch-created`, `sha`. |
 
@@ -211,6 +213,24 @@ jobs:
     # Reusable workflow blocks fork PR changes to .github files.
     uses: Cysharp/Actions/.github/workflows/prevent-github-change.yaml@main
 ```
+
+#### pr-harness
+
+```yaml
+on:
+  pull_request:
+    # `edited` is required to rescan PR title/body changes.
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  pr-harness:
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: Cysharp/Actions/.github/workflows/pr-harness.yaml@main
+```
+
+The Unicode check is implemented by the `CysharpActions scan-pr-unicode` CLI command and invoked directly from `pr-harness`; there is no standalone Unicode workflow or composite action. The checked-in Linux binary is updated only by the release workflow. It scans the PR title, PR body, changed file names, and the complete contents of changed `.cs` and `.csx` files in the checked-out working tree. Changed paths are determined from the PR base/head diff, but file contents are read from the checkout (which may be GitHub's test merge result), not directly from the PR head tree. C# source rejects symbolic links, raw Unicode format/default-ignorable characters, controls, forbidden `\uXXXX` / `\UXXXXXXXX` escapes, and non-ASCII spaces regardless of whether they occur in code, comments, strings, or test data. In addition, every tracked `.cs` and `.csx` path is checked for Git symbolic-link mode, including paths not changed by the PR. Other file contents are not scanned. Tests that intentionally need these values should construct them numerically, for example with `char.ConvertFromUtf32(0x200B)`.
 
 #### stale-issue
 
