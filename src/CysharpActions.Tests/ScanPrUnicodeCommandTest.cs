@@ -371,6 +371,57 @@ public class ScanPrUnicodeCommandTest
     }
 
     [Fact]
+    public async Task ValidateRejectsUnchangedCSharpSymbolicLinkWhenTargetChangesTest()
+    {
+        var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(ValidateRejectsUnchangedCSharpSymbolicLinkWhenTargetChangesTest)}");
+        try
+        {
+            Directory.CreateDirectory(directory);
+            await RunGitAsync(directory, "init");
+            await RunGitAsync(directory, "config", "user.email", "test@example.com");
+            await RunGitAsync(directory, "config", "user.name", "Test User");
+            await RunGitAsync(directory, "config", "commit.gpgSign", "false");
+
+            CreateFile(Path.Combine(directory, "Payload.txt"), "class Clean {}");
+            CreateFile(Path.Combine(directory, "Link.cs"), "Payload.txt");
+            await RunGitAsync(directory, "add", "--", "Payload.txt");
+            var linkBlob = await RunGitAsync(directory, "hash-object", "-w", "--", "Link.cs");
+            await RunGitAsync(directory, "update-index", "--add", "--cacheinfo", $"120000,{linkBlob},Link.cs");
+            await RunGitAsync(directory, "commit", "-m", "base");
+            var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            CreateFile(
+                Path.Combine(directory, "Payload.txt"),
+                "class" + char.ConvertFromUtf32(0x200B) + " Changed {}");
+            await RunGitAsync(directory, "add", "--", "Payload.txt");
+            await RunGitAsync(directory, "commit", "-m", "head");
+            var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            var eventPath = Path.Combine(directory, "event.json");
+            CreateFile(eventPath, JsonSerializer.Serialize(new
+            {
+                pull_request = new
+                {
+                    title = "Clean title",
+                    body = "Clean body",
+                    @base = new { sha = baseSha },
+                    head = new { sha = headSha },
+                },
+            }));
+
+            var command = new ScanPrUnicodeCommand();
+            var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
+                command.ValidateAsync(eventPath, directory, TestContext.Current.CancellationToken));
+
+            Assert.Contains("1 violation", exception.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
     public async Task GitSourceChecksTotalSizeBeforeLoadingNextBlobTest()
     {
         var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(GitSourceChecksTotalSizeBeforeLoadingNextBlobTest)}");

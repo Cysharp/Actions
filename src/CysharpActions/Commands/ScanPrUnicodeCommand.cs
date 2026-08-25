@@ -13,6 +13,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
     internal const long MaxTotalTextBytes = 100 * 1024 * 1024;
     internal const int MaxChangedFiles = 3000;
     internal const int MaxDiffBytes = 16 * 1024 * 1024;
+    internal const int MaxTrackedCSharpListBytes = 16 * 1024 * 1024;
     private const int MaxAnnotations = 50;
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
     private readonly IPrChangeSource changeSource = changeSource ?? new GitPrChangeSource();
@@ -713,10 +714,21 @@ internal sealed class GitPrChangeSource(
         ValidateSha(baseSha);
         ValidateSha(headSha);
 
+        var trackedSymlink = await FindTrackedCSharpSymlinkAsync(repositoryPath, cancellationToken);
+        if (trackedSymlink is not null)
+        {
+            await visitor(
+                new PrChangedFile(trackedSymlink, null, [], IsSymbolicLink: true),
+                null,
+                cancellationToken);
+            return 0;
+        }
+
         var diff = await RunGitAsync(
             repositoryPath,
             ["diff", "--raw", "-z", "--find-renames", baseSha, headSha, "--"],
             maxDiffBytes,
+            "Git diff output",
             cancellationToken);
         // A rename/copy uses three NUL-terminated fields (header, old path, new path).
         // Bound field allocation separately from raw byte size so many empty/short paths cannot amplify memory.
@@ -862,6 +874,47 @@ internal sealed class GitPrChangeSource(
         return fileCount;
     }
 
+    private static async Task<string?> FindTrackedCSharpSymlinkAsync(
+        string repositoryPath,
+        CancellationToken cancellationToken)
+    {
+        // Validate the complete index, not only changed paths. Otherwise an existing Link.cs -> Payload.txt
+        // could consume a changed Payload.txt while that non-C# file remains outside the content policy.
+        var output = await RunGitAsync(
+            repositoryPath,
+            ["ls-files", "--stage", "-z", "--", ":(icase)*.cs", ":(icase)*.csx"],
+            ScanPrUnicodeCommand.MaxTrackedCSharpListBytes,
+            "Git tracked C# file list",
+            cancellationToken);
+
+        var start = 0;
+        for (var i = 0; i < output.Length; i++)
+        {
+            if (output[i] != 0)
+                continue;
+
+            var entry = output.AsSpan(start, i - start);
+            var tab = entry.IndexOf((byte)'\t');
+            if (tab < 7 || entry[6] != (byte)' ')
+                throw new ActionCommandException("Invalid git ls-files --stage output.");
+            if (entry[..6].SequenceEqual("120000"u8))
+            {
+                try
+                {
+                    return StrictUtf8.GetString(entry[(tab + 1)..]);
+                }
+                catch (DecoderFallbackException exception)
+                {
+                    throw new ActionCommandException("Tracked C# symbolic-link path is not valid UTF-8.", exception);
+                }
+            }
+            start = i + 1;
+        }
+        if (start != output.Length)
+            throw new ActionCommandException("Git returned non-NUL-terminated tracked C# file output.");
+        return null;
+    }
+
     private static RawDiffHeader ParseRawDiffHeader(string value)
     {
         var fields = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -950,6 +1003,7 @@ internal sealed class GitPrChangeSource(
         string repositoryPath,
         IReadOnlyList<string> arguments,
         int maxOutputBytes,
+        string outputDescription,
         CancellationToken cancellationToken)
     {
         var startInfo = new ProcessStartInfo("git")
@@ -969,6 +1023,7 @@ internal sealed class GitPrChangeSource(
             var output = await ReadBoundedOutputAsync(
                 process.StandardOutput.BaseStream,
                 maxOutputBytes,
+                outputDescription,
                 cancellationToken);
             await Task.WhenAll(errorTask, process.WaitForExitAsync(cancellationToken));
             if (process.ExitCode != 0)
@@ -992,6 +1047,7 @@ internal sealed class GitPrChangeSource(
     private static async Task<byte[]> ReadBoundedOutputAsync(
         Stream stream,
         int maxOutputBytes,
+        string outputDescription,
         CancellationToken cancellationToken)
     {
         const int bufferSize = 64 * 1024;
@@ -1007,7 +1063,7 @@ internal sealed class GitPrChangeSource(
                 if (output.Length > maxOutputBytes - read)
                 {
                     throw new ActionCommandException(
-                        $"Git diff output exceeds the {maxOutputBytes / 1024 / 1024} MiB scan limit.");
+                        $"{outputDescription} exceeds the {maxOutputBytes / 1024 / 1024} MiB scan limit.");
                 }
                 await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
             }

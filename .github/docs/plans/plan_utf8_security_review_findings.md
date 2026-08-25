@@ -48,6 +48,15 @@
 
 ### P2: 既存の`.cs`/`.csx`シンボリックリンクから検査対象外ファイルを参照できる
 
+状態: 対応済み
+
+採用方式:
+
+- PRごとに`git ls-files --stage -z`を1回実行する。
+- case-insensitive pathspecでtracked `.cs`/`.csx`だけを列挙する。
+- index内にmode `120000`が1件でもあれば、変更有無にかかわらずhard errorにする。
+- tracked C# file listの出力は16 MiBで制限する。
+
 対象:
 
 - `GitPrChangeSource.VisitChangedFilesAsync`
@@ -66,6 +75,8 @@
 
 - 変更されていない`.cs` symlinkの参照先だけを変更するテストが失敗する。
 - 通常ファイル数に比例してGitプロセス数が増えない。
+
+実装ではentryを個別の`byte[]`へコピーせず、上限付き出力bufferをNUL区切りで走査する。既存の`Link.cs -> Payload.txt`に対して`Payload.txt`だけを変更する回帰テストを追加する。
 
 ### P2: 違反ファイル名の制御文字をActionsログへ再出力できる
 
