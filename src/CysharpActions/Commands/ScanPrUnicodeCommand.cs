@@ -619,16 +619,49 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
 
     private static void WriteAnnotation(UnicodeViolation violation)
     {
-        var message = $"{violation.Rule}: U+{violation.CodePoint:X4}; {violation.Reason}";
+        Console.WriteLine(FormatAnnotation(violation));
+    }
+
+    internal static string FormatAnnotation(UnicodeViolation violation)
+    {
+        var source = VisualizeUnsafeAnnotationCharacters(violation.Source);
+        var message = VisualizeUnsafeAnnotationCharacters(
+            $"{violation.Rule}: U+{violation.CodePoint:X4}; {violation.Reason}");
         if (violation.Line > 0)
         {
-            Console.WriteLine(
-                $"::error file={EscapeProperty(violation.Source)},line={violation.Line},col={violation.Column},title=Forbidden Unicode::{EscapeData(message)}");
+            return $"::error file={EscapeProperty(source)},line={violation.Line},col={violation.Column},title=Forbidden Unicode::{EscapeData(message)}";
         }
-        else
+
+        var failure = VisualizeUnsafeAnnotationCharacters($"{violation.Source}: {violation.Reason}");
+        return $"::error title=Unicode scan failed::{EscapeData(failure)}";
+    }
+
+    // Human-readable visualization and GitHub workflow-command escaping solve different problems.
+    // First make attacker-controlled controls and invisible Unicode explicit in logs, then let
+    // EscapeProperty/EscapeData protect the workflow-command syntax itself.
+    private static string VisualizeUnsafeAnnotationCharacters(string value)
+    {
+        StringBuilder? builder = null;
+        var copiedLength = 0;
+        foreach (var rune in value.EnumerateRunes())
         {
-            Console.WriteLine($"::error title=Unicode scan failed::{EscapeData($"{violation.Source}: {violation.Reason}")}");
+            var codePoint = rune.Value;
+            var mustVisualize = codePoint is >= 0x0000 and <= 0x001F or >= 0x007F and <= 0x009F ||
+                IsForbiddenControl(codePoint) || IsFormat(codePoint) || IsDefaultIgnorable(codePoint);
+            if (!mustVisualize)
+            {
+                if (builder is not null)
+                    builder.Append(rune.ToString());
+                copiedLength += rune.Utf16SequenceLength;
+                continue;
+            }
+
+            builder ??= new StringBuilder(value.Length + 16).Append(value.AsSpan(0, copiedLength));
+            builder.Append(codePoint <= 0xFFFF ? $"\\u{codePoint:X4}" : $"\\U{codePoint:X8}");
+            copiedLength += rune.Utf16SequenceLength;
         }
+
+        return builder?.ToString() ?? value;
     }
 
     private static string EscapeProperty(string value) =>

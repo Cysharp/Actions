@@ -195,6 +195,43 @@ public class ScanPrUnicodeCommandTest
     }
 
     [Fact]
+    public void AnnotationVisualizesAttackerControlledControlsAndInvisibleUnicodeTest()
+    {
+        var source = "src/" +
+            char.ConvertFromUtf32(0x001B) + // ESC (C0 control)
+            char.ConvertFromUtf32(0x0009) + // TAB (C0 control allowed in C# source text)
+            char.ConvertFromUtf32(0x0085) + // NEXT LINE (C1 control)
+            char.ConvertFromUtf32(0x202E) + // RIGHT-TO-LEFT OVERRIDE (Cf)
+            char.ConvertFromUtf32(0xE0001) + // LANGUAGE TAG (supplementary-plane Default Ignorable)
+            "%,:Test.cs";
+        var violation = new UnicodeViolation(source, 3, 4, 0x202E, "raw", "Forbidden format character.");
+
+        var annotation = ScanPrUnicodeCommand.FormatAnnotation(violation);
+
+        Assert.Equal(
+            "::error file=src/\\u001B\\u0009\\u0085\\u202E\\U000E0001%25%2C%3ATest.cs,line=3,col=4,title=Forbidden Unicode::raw: U+202E; Forbidden format character.",
+            annotation);
+        Assert.DoesNotContain(char.ConvertFromUtf32(0x001B), annotation, StringComparison.Ordinal);
+        Assert.DoesNotContain(char.ConvertFromUtf32(0x202E), annotation, StringComparison.Ordinal);
+        Assert.DoesNotContain(char.ConvertFromUtf32(0xE0001), annotation, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnnotationVisualizationPreservesWorkflowCommandEscapingTest()
+    {
+        var violation = UnicodeViolation.FileError("bad\r\n%,name.cs", "failed\u2028next");
+
+        var annotation = ScanPrUnicodeCommand.FormatAnnotation(violation);
+
+        Assert.Equal(
+            "::error title=Unicode scan failed::bad\\u000D\\u000A%25,name.cs: failed\\u2028next",
+            annotation);
+        Assert.DoesNotContain('\r', annotation);
+        Assert.DoesNotContain('\n', annotation);
+        Assert.DoesNotContain('\u2028', annotation);
+    }
+
+    [Fact]
     public async Task ValidateCountsAllViolationsWhileRetainingOnlyAnnotationsTest()
     {
         var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(ValidateCountsAllViolationsWhileRetainingOnlyAnnotationsTest)}");

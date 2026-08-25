@@ -80,6 +80,8 @@
 
 ### P2: 違反ファイル名の制御文字をActionsログへ再出力できる
 
+状態: 対応済み
+
 対象:
 
 - `ScanPrUnicodeCommand.WriteAnnotation`
@@ -97,6 +99,8 @@
 
 - ESC、TAB、C1 control、bidi controlを含むファイル名がログへ生で出力されない。
 - 改行によるworkflow command injection防止を維持する。
+
+実装では、人間向けの可視化とworkflow command用escapeを分離した。annotationに含める文字列は、C0/C1制御文字、U+2028/U+2029、Format文字、Default-Ignorable文字を先に`\\uXXXX`または`\\UXXXXXXXX`へ変換し、その後で既存のproperty/data escapeを適用する。ESC、TAB、C1 control、bidi control、補助平面のDefault-Ignorable、およびCR/LFを含む回帰テストを追加した。
 
 ### P3: READMEの「head version」と実装のworking tree検査が一致しない
 
