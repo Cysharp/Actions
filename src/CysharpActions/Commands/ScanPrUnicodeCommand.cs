@@ -40,13 +40,11 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         }
         if (state.ViolationCount > MaxAnnotations)
         {
-            GitHubActions.WriteLog(
-                $"Unicode scan found {state.ViolationCount} violations. Only the first {MaxAnnotations} were annotated.");
+            GitHubActions.WriteLog($"Unicode scan found {state.ViolationCount} violations. Only the first {MaxAnnotations} were annotated.");
         }
         if (state.ViolationCount != 0)
         {
-            throw new ActionCommandException(
-                $"PR Unicode security scan found {state.ViolationCount} violation(s).");
+            throw new ActionCommandException($"PR Unicode security scan found {state.ViolationCount} violation(s).");
         }
 
         GitHubActions.WriteLog(
@@ -97,9 +95,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         {
             if (IsCSharpSource(file.Path))
             {
-                state.Add(UnicodeViolation.FileError(
-                    file.Path,
-                    "C# source file must not be a symbolic link."));
+                state.Add(UnicodeViolation.FileError(file.Path, "C# source file must not be a symbolic link."));
             }
             return FileScanDisposition.Skip;
         }
@@ -110,9 +106,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         var contentLength = file.DeclaredSize ?? file.Content.LongLength;
         if (contentLength > MaxFileBytes)
         {
-            state.Add(UnicodeViolation.FileError(
-                file.Path,
-                $"C# source file exceeds the {MaxFileBytes / 1024 / 1024} MiB scan limit."));
+            state.Add(UnicodeViolation.FileError(file.Path, $"C# source file exceeds the {MaxFileBytes / 1024 / 1024} MiB scan limit."));
             return FileScanDisposition.Skip;
         }
 
@@ -120,9 +114,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         // guard here for tests and alternative IPrChangeSource implementations.
         if (state.TotalTextBytes > MaxTotalTextBytes - contentLength)
         {
-            state.Add(UnicodeViolation.FileError(
-                file.Path,
-                $"Changed C# source exceeds the {MaxTotalTextBytes / 1024 / 1024} MiB total scan limit."));
+            state.Add(UnicodeViolation.FileError(file.Path, $"Changed C# source exceeds the {MaxTotalTextBytes / 1024 / 1024} MiB total scan limit."));
             return FileScanDisposition.Stop;
         }
         state.TotalTextBytes += contentLength;
@@ -245,13 +237,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         {
             do
             {
-                decoder.Convert(
-                    bytes,
-                    characters,
-                    flush,
-                    out var bytesUsed,
-                    out var charactersUsed,
-                    out var completed);
+                decoder.Convert(bytes, characters, flush, out var bytesUsed, out var charactersUsed, out var completed);
                 scanner.Append(characters.AsSpan(0, charactersUsed));
                 bytes = bytes[bytesUsed..];
                 if (completed)
@@ -388,13 +374,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
                 return;
 
             var start = (escapeStart + escapeCount - length) % EscapeWindowSize;
-            state.Add(new UnicodeViolation(
-                source,
-                escapeLines[start],
-                escapeColumns[start],
-                scalarValue,
-                "C# Unicode escape",
-                "escape resolves to a forbidden identifier character"));
+            state.Add(new UnicodeViolation(source, escapeLines[start], escapeColumns[start], scalarValue, "C# Unicode escape", "escape resolves to a forbidden identifier character"));
         }
 
         private char EscapeAt(int relativeIndex) =>
