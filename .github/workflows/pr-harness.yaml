@@ -138,7 +138,6 @@ jobs:
           ${{ steps.actions-caller.outputs.path }} scan-pr-unicode --event-path "${GITHUB_EVENT_PATH}" --repository-path "${GITHUB_WORKSPACE}"
 
   license-check:
-    if: ${{ inputs.license-check }}
     needs: [prevent-githubactions-changes]
     permissions:
       contents: read
@@ -368,6 +367,7 @@ jobs:
             *) echo "::error::ol check failed to run (exit $check_exit)." ;;
           esac
           exit "$check_exit"
+        if: ${{ inputs.license-check || github.repository == 'Cysharp/Actions' }}
 
   pr-harness-check:
     needs:
