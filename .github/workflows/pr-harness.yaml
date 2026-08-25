@@ -143,10 +143,20 @@ jobs:
       contents: read
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+        working-directory: repo
     steps:
       - uses: cysharp/actions/.github/actions/checkout@main
         with:
           persist-credentials: false
+          path: repo
+      - uses: cysharp/actions/.github/actions/checkout@main
+        with:
+          persist-credentials: false
+          repository: Cysharp/Actions
+          path: Actions
       - name: "Initialize license check paths"
         run: |
           ol_work_dir="$RUNNER_TEMP/ol-license-check"
@@ -348,10 +358,10 @@ jobs:
           # A baseline acknowledges unresolved evidence a reviewer has already accepted. Without one,
           # unresolved components still fail, so requiring the file adds no safety - only an empty file
           # that nobody reviews. Repositories that need no acknowledgement commit nothing.
-          if [[ -f "ol-baseline.json" ]]; then
-            check_args+=(--baseline "ol-baseline.json")
+          if [[ -f "../Actions/ol-baseline.json" ]]; then
+            check_args+=(--baseline "../Actions/ol-baseline.json")
           else
-            echo "No ol baseline at ol-baseline.json; every unresolved component must satisfy the allow-list."
+            echo "No ol baseline at ../Actions/ol-baseline.json; every unresolved component must satisfy the allow-list."
           fi
           if [[ -n "$ALLOW_DEV_LICENSES" ]]; then
             check_args+=(--allow-dev-licenses "$ALLOW_DEV_LICENSES")
