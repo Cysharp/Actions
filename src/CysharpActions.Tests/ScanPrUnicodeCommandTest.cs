@@ -108,7 +108,37 @@ public class ScanPrUnicodeCommandTest
 
         var violation = Assert.Single(Scan(new PrChangedFile("src/Test.cs", null, Utf8("// 日本語" + ideographicSpace + "コメント"))));
         Assert.Equal(0x3000, violation.CodePoint);
+        Assert.Equal("non-ASCII space in a C# source file", violation.Reason);
         Assert.Empty(Scan(new PrChangedFile("README.md", null, Utf8("日本語" + ideographicSpace + "文章"))));
+    }
+
+    [Fact]
+    public void NonAsciiSpaceInFileNameHasFileNameReasonAndAccuratePositionTest()
+    {
+        var path = "dir\rname" + char.ConvertFromUtf32(0x3000) + ".cs";
+
+        var violation = Assert.Single(Scan(new PrChangedFile(path, null, Utf8("class C {}"))));
+
+        Assert.Equal((2, 5, 0x3000), (violation.Line, violation.Column, violation.CodePoint));
+        Assert.Equal("non-ASCII space in a file name", violation.Reason);
+    }
+
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r")]
+    [InlineData("\r\n")]
+    [InlineData("\u0085")]
+    [InlineData("\u2028")]
+    [InlineData("\u2029")]
+    public void MetadataLineSeparatorsProduceAccurateViolationPositionTest(string separator)
+    {
+        var title = "first" + separator + char.ConvertFromUtf32(0x200B);
+
+        var violation = Assert.Single(
+            Scan(new PullRequestScanInput(Input.BaseSha, Input.HeadSha, title, "Clean body")),
+            x => x.CodePoint == 0x200B);
+
+        Assert.Equal((2, 1), (violation.Line, violation.Column));
     }
 
     [Fact]
@@ -209,7 +239,7 @@ public class ScanPrUnicodeCommandTest
         var annotation = ScanPrUnicodeCommand.FormatAnnotation(violation);
 
         Assert.Equal(
-            "::error file=src/\\u001B\\u0009\\u0085\\u202E\\U000E0001%25%2C%3ATest.cs,line=3,col=4,title=Forbidden Unicode::raw: U+202E; Forbidden format character.",
+            "::error file=src/\\u001B\\u0009\\u0085\\u202E\\U000E0001%25%2C%3ATest.cs,line=3,col=4,title=Forbidden Unicode::src/\\u001B\\u0009\\u0085\\u202E\\U000E0001%25,:Test.cs:3:4: raw: U+202E; Forbidden format character.",
             annotation);
         Assert.DoesNotContain(char.ConvertFromUtf32(0x001B), annotation, StringComparison.Ordinal);
         Assert.DoesNotContain(char.ConvertFromUtf32(0x202E), annotation, StringComparison.Ordinal);
@@ -229,6 +259,24 @@ public class ScanPrUnicodeCommandTest
         Assert.DoesNotContain('\r', annotation);
         Assert.DoesNotContain('\n', annotation);
         Assert.DoesNotContain('\u2028', annotation);
+    }
+
+    [Fact]
+    public void AnnotationMessageIncludesSourceLineAndColumnTest()
+    {
+        var violation = new UnicodeViolation(
+            "src/Test.cs",
+            12,
+            34,
+            0x202E,
+            "C# Unicode escape",
+            "escape resolves to a forbidden identifier character");
+
+        var annotation = ScanPrUnicodeCommand.FormatAnnotation(violation);
+
+        Assert.Equal(
+            "::error file=src/Test.cs,line=12,col=34,title=Forbidden Unicode::src/Test.cs:12:34: C# Unicode escape: U+202E; escape resolves to a forbidden identifier character",
+            annotation);
     }
 
     [Fact]
