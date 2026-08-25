@@ -342,7 +342,7 @@ jobs:
         env:
           ADDITIONAL_BASELINE_PATHS: ${{ inputs.additional-license-baseline-paths }}
           ALLOW_DEV_LICENSES: ${{ inputs.allow-dev-licenses }}
-          ALLOW_LICENSES: ${{ inputs.allow-licenses }}
+          ALLOW_LICENSES: ${{ inputs.allow-licenses || 'Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0' }}
         run: |
           check_args=(--report "$OL_REPORT_PATH" --allow-licenses "$ALLOW_LICENSES" --sarif "$OL_SARIF_PATH")
           while IFS= read -r baseline_path || [[ -n "$baseline_path" ]]; do
