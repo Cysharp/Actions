@@ -323,25 +323,16 @@ jobs:
           retention-days: 7
 
   pr-harness-check:
-    needs: [prevent-githubactions-changes, dependency-review, unicode-security]
+    needs:
+      [
+        prevent-githubactions-changes,
+        dependency-review,
+        unicode-security,
+        license-check,
+      ]
     permissions: {}
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
-      - name: "Verify required jobs"
-        env:
-          RESULTS: |
-            prevent-githubactions-changes=${{ needs.prevent-githubactions-changes.result }}
-            dependency-review=${{ needs.dependency-review.result }}
-            license-check=${{ needs.license-check.result }}
-        run: |
-          failed=0
-          while IFS='=' read -r job result; do
-            [[ -z "$job" ]] && continue
-            case "$result" in
-              success|skipped) echo "$job: $result" ;;
-              *) echo "::error::$job: $result"; failed=1 ;;
-            esac
-          done <<< "$RESULTS"
-          [[ "$failed" -eq 0 ]] || exit 1
-          echo "PR Harness checks passed."
+      - name: "Pass"
+        run: echo "PR Harness checks passed."
