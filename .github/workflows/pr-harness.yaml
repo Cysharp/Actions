@@ -31,9 +31,6 @@ on:
         default: ""
         type: string
 
-env:
-  OL_VERSION: "0.9.5"
-
 jobs:
   prevent-githubactions-changes:
     permissions:
@@ -395,8 +392,6 @@ jobs:
             metadata_index=$((metadata_index + 1))
           done < "$OL_CARGO_MANIFEST_LIST"
       - uses: guitarrapc/setup-ol@3128c4908a32378c0775f12c4a9dfe6c8c8c3f07 # v1.0.0
-        with:
-          ol-version: ${{ env.OL_VERSION }}
       - name: "Unpack ol evidence cache"
         run: ol cache unpack "$GITHUB_WORKSPACE/Actions/ol-cache.olcache" --cache-dir "$OL_EVIDENCE_CACHE_DIR"
       - name: "Scan license evidence"
