@@ -140,6 +140,8 @@ jobs:
   license-check:
     permissions:
       contents: read
+    env:
+      ALLOW_LICENSES: ${{ inputs.allow-licenses || 'Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     defaults:
@@ -175,8 +177,6 @@ jobs:
             echo "OL_CARGO_METADATA_LIST=$ol_work_dir/cargo-metadata.txt"
           } >> "$GITHUB_ENV"
       - name: "Validate license check inputs"
-        env:
-          ALLOW_LICENSES: ${{ inputs.allow-licenses || 'Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0' }}
         run: |
           if [[ -z "$ALLOW_LICENSES" ]]; then
             echo "::error::allow-licenses is required when license-check is true."
@@ -342,7 +342,6 @@ jobs:
         env:
           ADDITIONAL_BASELINE_PATHS: ${{ inputs.additional-license-baseline-paths }}
           ALLOW_DEV_LICENSES: ${{ inputs.allow-dev-licenses }}
-          ALLOW_LICENSES: ${{ inputs.allow-licenses || 'Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0' }}
         run: |
           check_args=(--report "$OL_REPORT_PATH" --allow-licenses "$ALLOW_LICENSES" --sarif "$OL_SARIF_PATH")
           while IFS= read -r baseline_path || [[ -n "$baseline_path" ]]; do
