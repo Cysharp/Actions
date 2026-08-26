@@ -32,7 +32,7 @@ on:
         type: string
 
 env:
-  OL_VERSION: "0.9.4"
+  OL_VERSION: "0.9.5"
 
 jobs:
   prevent-githubactions-changes:
@@ -279,19 +279,6 @@ jobs:
             echo "::error::allow-licenses is required when license-check is true."
             exit 1
           fi
-      # ol resolves most NuGet licenses from registries and the GitHub License API. A cold cache on
-      # a large repository costs hundreds of GitHub requests, and GITHUB_TOKEN allows only 1000 per
-      # hour per repository, so restoring the cache is a correctness requirement rather than a speedup.
-      - name: "Set ol evidence cache generation"
-        id: ol-cache-generation
-        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
-      - name: "Restore ol evidence cache"
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/ol-license-check/cache
-          key: ol-evidence-${{ runner.os }}-${{ env.OL_VERSION }}-${{ steps.ol-cache-generation.outputs.week }}
-          restore-keys: |
-            ol-evidence-${{ runner.os }}-${{ env.OL_VERSION }}-
       - name: "Discover package-manager manifests"
         id: license-inputs
         shell: bash
@@ -410,6 +397,8 @@ jobs:
       - uses: guitarrapc/setup-ol@3128c4908a32378c0775f12c4a9dfe6c8c8c3f07 # v1.0.0
         with:
           ol-version: ${{ env.OL_VERSION }}
+      - name: "Unpack ol evidence cache"
+        run: ol cache unpack "$GITHUB_WORKSPACE/Actions/ol-cache.olcache" --cache-dir "$OL_EVIDENCE_CACHE_DIR"
       - name: "Scan license evidence"
         env:
           EXCLUDED_INPUT_PATHS: ${{ inputs.exclude-license-input-paths }}
