@@ -151,6 +151,7 @@ jobs:
       - uses: cysharp/actions/.github/actions/checkout@main
         with:
           persist-credentials: false
+          submodules: true
           path: repo
       - uses: cysharp/actions/.github/actions/checkout@main
         with:
