@@ -137,7 +137,104 @@ jobs:
         run: |
           ${{ steps.actions-caller.outputs.path }} scan-pr-unicode --event-path "${GITHUB_EVENT_PATH}" --repository-path "${GITHUB_WORKSPACE}"
 
+  license-check-preflight:
+    if: ${{ inputs.license-check || github.repository == 'Cysharp/Actions' }}
+    needs: [prevent-githubactions-changes]
+    permissions:
+      contents: read
+    outputs:
+      run: ${{ steps.submodule-policy.outputs.run }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: cysharp/actions/.github/actions/checkout@main
+        with:
+          persist-credentials: false
+          submodules: false
+      - name: "Detect non-public submodules"
+        id: submodule-policy
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require("fs");
+            const path = require("path");
+            const gitmodulesPath = path.join(process.env.GITHUB_WORKSPACE, ".gitmodules");
+            if (!fs.existsSync(gitmodulesPath)) {
+              core.info("No submodules detected; license check will run.");
+              core.setOutput("run", "true");
+              return;
+            }
+
+            const source = fs.readFileSync(gitmodulesPath, "utf8");
+            const urls = [...source.matchAll(/^\s*url\s*=\s*(.*?)\s*$/gm)].map(match => match[1]);
+            const repositories = new Map();
+
+            function parseGitHubRepository(rawUrl) {
+              let url = rawUrl;
+              if (url.startsWith("../") || url.startsWith("./")) {
+                const base = `https://github.com/${context.repo.owner}/${context.repo.repo}.git/`;
+                url = new URL(url, base).href;
+              }
+
+              const patterns = [
+                /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/?$/i,
+                /^git@github\.com:([^/]+)\/([^/]+)$/i,
+                /^ssh:\/\/git@github\.com\/([^/]+)\/([^/]+)\/?$/i,
+              ];
+              for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) {
+                  return {
+                    owner: match[1],
+                    repo: match[2].replace(/\.git$/i, ""),
+                  };
+                }
+              }
+
+              return null;
+            }
+
+            const nonPublic = [];
+            for (const url of urls) {
+              const repository = parseGitHubRepository(url);
+              if (!repository) {
+                nonPublic.push(`${url} (not a supported public GitHub URL)`);
+                continue;
+              }
+
+              const key = `${repository.owner}/${repository.repo}`.toLowerCase();
+              repositories.set(key, repository);
+            }
+
+            for (const repository of repositories.values()) {
+              try {
+                const response = await github.rest.repos.get(repository);
+                const visibility = response.data.visibility ?? (response.data.private ? "private" : "public");
+                if (visibility !== "public") {
+                  nonPublic.push(`${repository.owner}/${repository.repo} (${visibility})`);
+                }
+              } catch (error) {
+                if (error.status === 403 || error.status === 404) {
+                  nonPublic.push(`${repository.owner}/${repository.repo} (private or inaccessible)`);
+                  continue;
+                }
+
+                throw error;
+              }
+            }
+
+            if (nonPublic.length > 0) {
+              core.notice(`Skipping ol license check because non-public submodules were detected:\n${nonPublic.join("\n")}`);
+              core.setOutput("run", "false");
+              return;
+            }
+
+            core.info("Every direct submodule is public; license check will run.");
+            core.setOutput("run", "true");
+
   license-check:
+    if: ${{ (inputs.license-check || github.repository == 'Cysharp/Actions') && needs.license-check-preflight.outputs.run == 'true' }}
+    needs: [license-check-preflight]
     permissions:
       contents: read
     env:
@@ -376,19 +473,51 @@ jobs:
             *) echo "::error::ol check failed to run (exit $check_exit)." ;;
           esac
           exit "$check_exit"
-        if: ${{ inputs.license-check || github.repository == 'Cysharp/Actions' }}
 
   pr-harness-check:
+    if: ${{ always() }} # trigger even job skipped
     needs:
       [
         prevent-githubactions-changes,
         dependency-review,
         unicode-security,
+        license-check-preflight,
         license-check,
       ]
     permissions: {}
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
-      - name: "Pass"
-        run: echo "PR Harness checks passed."
+      - name: "Evaluate PR Harness checks"
+        shell: bash
+        env:
+          PREVENT_GITHUBACTIONS_CHANGES_RESULT: ${{ needs.prevent-githubactions-changes.result }}
+          DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
+          UNICODE_SECURITY_RESULT: ${{ needs.unicode-security.result }}
+          LICENSE_CHECK_PREFLIGHT_RESULT: ${{ needs.license-check-preflight.result }}
+          LICENSE_CHECK_RESULT: ${{ needs.license-check.result }}
+        run: |
+          require_success() {
+            local name="$1"
+            local result="$2"
+            if [[ "$result" != "success" ]]; then
+              echo "::error::$name concluded with $result."
+              return 1
+            fi
+          }
+
+          allow_skipped() {
+            local name="$1"
+            local result="$2"
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              echo "::error::$name concluded with $result."
+              return 1
+            fi
+          }
+
+          require_success "prevent-githubactions-changes" "$PREVENT_GITHUBACTIONS_CHANGES_RESULT"
+          require_success "dependency-review" "$DEPENDENCY_REVIEW_RESULT"
+          require_success "unicode-security" "$UNICODE_SECURITY_RESULT"
+          allow_skipped "license-check-preflight" "$LICENSE_CHECK_PREFLIGHT_RESULT"
+          allow_skipped "license-check" "$LICENSE_CHECK_RESULT"
+          echo "PR Harness checks passed."
