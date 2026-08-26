@@ -282,11 +282,14 @@ jobs:
       # ol resolves most NuGet licenses from registries and the GitHub License API. A cold cache on
       # a large repository costs hundreds of GitHub requests, and GITHUB_TOKEN allows only 1000 per
       # hour per repository, so restoring the cache is a correctness requirement rather than a speedup.
+      - name: "Set ol evidence cache generation"
+        id: ol-cache-generation
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: "Restore ol evidence cache"
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/ol-license-check/cache
-          key: ol-evidence-${{ runner.os }}-${{ env.OL_VERSION }}-${{ github.run_id }}
+          key: ol-evidence-${{ runner.os }}-${{ env.OL_VERSION }}-${{ steps.ol-cache-generation.outputs.week }}
           restore-keys: |
             ol-evidence-${{ runner.os }}-${{ env.OL_VERSION }}-
       - name: "Discover package-manager manifests"
