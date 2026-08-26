@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "tool": {
-    "version": "0.9.4.0"
+    "version": "0.9.5.0"
   },
   "spdx": {
     "licenseListVersion": "e4c1f27"
@@ -17,7 +17,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -25,7 +27,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -37,7 +39,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -45,7 +49,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -57,7 +61,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -65,7 +71,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -77,7 +83,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -85,7 +93,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -97,7 +105,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -105,7 +115,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -122,10 +132,12 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "https://www.bouncycastle.org/csharp/licence.html"
         }
       ],
-      "fingerprint": "6b550b3832f002e491393c1c0ad4c0ad84f99536e1462a205d68af3791bd0d68"
+      "fingerprint": "353305e0f372def88290023451b62a7b709e09b1427ac9f96658259e4e952c51"
     },
     {
       "ecosystem": "nuget",
@@ -137,7 +149,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -145,7 +159,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -157,7 +171,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -165,7 +181,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -177,7 +193,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -185,7 +203,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -197,7 +215,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -205,7 +225,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -217,7 +237,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -225,7 +247,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -237,7 +259,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -245,7 +269,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -257,7 +281,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -265,7 +291,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -277,7 +303,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -285,7 +313,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -297,7 +325,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -305,7 +335,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -317,7 +347,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -325,7 +357,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -337,7 +369,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -345,7 +379,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -357,7 +391,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -365,7 +401,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -377,7 +413,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -385,7 +423,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -397,7 +435,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -405,7 +445,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -417,7 +457,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -425,7 +467,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -437,7 +479,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -445,7 +489,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -457,7 +501,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -465,7 +511,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -477,7 +523,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -485,7 +533,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -497,7 +545,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -505,7 +555,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -517,7 +567,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -525,7 +577,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -537,7 +589,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -545,7 +599,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -557,7 +611,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -565,7 +621,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -577,7 +633,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -585,7 +643,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -597,7 +655,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -605,7 +665,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -617,7 +677,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -625,7 +687,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -637,7 +699,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -645,7 +709,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -657,7 +721,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -665,7 +731,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -677,7 +743,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -685,7 +753,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -697,7 +765,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -705,7 +775,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -717,7 +787,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -725,7 +797,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -737,7 +809,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -745,7 +819,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -757,7 +831,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -765,7 +841,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -777,7 +853,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -785,7 +863,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -797,7 +875,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -805,7 +885,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -817,7 +897,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -825,7 +907,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -837,7 +919,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -845,7 +929,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -857,7 +941,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -865,7 +951,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -877,7 +963,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -885,7 +973,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -897,7 +985,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -905,7 +995,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -917,7 +1007,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -925,7 +1017,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -937,7 +1029,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -945,7 +1039,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -957,7 +1051,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -965,7 +1061,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -977,7 +1073,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -985,7 +1083,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -997,7 +1095,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1005,7 +1105,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1017,7 +1117,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1025,7 +1127,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1037,7 +1139,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1045,7 +1149,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1057,7 +1161,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1065,7 +1171,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1077,7 +1183,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1085,7 +1193,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1097,7 +1205,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1105,7 +1215,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1117,7 +1227,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1125,7 +1237,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1137,7 +1249,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1145,7 +1259,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1157,7 +1271,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1165,7 +1281,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1177,7 +1293,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1185,7 +1303,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1197,7 +1315,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1205,7 +1325,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1217,7 +1337,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1225,7 +1347,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1237,7 +1359,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1245,7 +1369,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1257,7 +1381,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1265,7 +1391,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1277,7 +1403,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1285,7 +1413,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1297,7 +1425,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1305,7 +1435,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1317,7 +1447,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1325,7 +1457,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1337,7 +1469,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1345,7 +1479,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1357,7 +1491,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1365,7 +1501,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1377,7 +1513,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1385,7 +1523,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1397,7 +1535,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1405,7 +1545,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1417,7 +1557,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1425,7 +1567,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1437,7 +1579,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1445,7 +1589,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     },
     {
       "ecosystem": "nuget",
@@ -1457,7 +1601,9 @@
         {
           "source": "nuget-registry",
           "kind": "license",
-          "raw": ""
+          "raw": "",
+          "declaredLicenseReferenceKind": "location",
+          "declaredLicenseReference": "http://go.microsoft.com/fwlink/?LinkId=329770"
         },
         {
           "source": "source-repository",
@@ -1465,7 +1611,7 @@
           "raw": "https://dot.net/"
         }
       ],
-      "fingerprint": "ee795983fad8fa8c27de2cba748565fd548d5fa978e7ddce2098aac2a9252edb"
+      "fingerprint": "f3808e9f7497105bf3dccaf655950ad5605ec8bb64502c46bb5396615af573dc"
     }
   ]
 }
