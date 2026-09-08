@@ -105,7 +105,6 @@ jobs:
     env:
       BENCHMARK_SERVER_NAME: "${{ inputs.benchmark-name }}-bench-server-vm"
       BENCHMARK_CLIENT_NAME: "${{ inputs.benchmark-name }}-bench-client-vm"
-      BENCHMARK_RESOURCE_GROUP: "${{ inputs.benchmark-project }}-${{ inputs.benchmark-name }}"
     environment:
       name: benchmark
     permissions:
@@ -162,6 +161,18 @@ jobs:
           BENCHMARK_NAME: ${{ inputs.benchmark-name }}
           BENCHMARK_PROJECT: ${{ inputs.benchmark-project }}
         working-directory: ./Actions/.github
+      - name: Resolve benchmark resource group
+        run: |
+          resource_group_id=$(az devcenter dev environment show --dev-center-name "$BENCHMARK_DEVCENTER" --project-name "$BENCHMARK_PROJECT" --name "$BENCHMARK_NAME" --query resourceGroupId -o tsv)
+          if [[ ! "$resource_group_id" =~ ^/[sS]ubscriptions/[^/]+/[rR]esource[gG]roups/([^/]+)$ ]]; then
+            echo "::error::ADE returned an invalid resourceGroupId: '$resource_group_id'"
+            exit 1
+          fi
+          echo "BENCHMARK_RESOURCE_GROUP=${BASH_REMATCH[1]}" | tee -a "$GITHUB_ENV"
+        env:
+          BENCHMARK_DEVCENTER: ${{ inputs.benchmark-devcenter }}
+          BENCHMARK_PROJECT: ${{ inputs.benchmark-project }}
+          BENCHMARK_NAME: ${{ inputs.benchmark-name }}
       - name: Comment (Progess - Benchmark environment)
         uses: Cysharp/Actions/.github/actions/benchmark-progress-comment@main
         with:
