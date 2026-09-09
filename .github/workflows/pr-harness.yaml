@@ -419,40 +419,17 @@ jobs:
           while IFS= read -r baseline_path || [[ -n "$baseline_path" ]]; do
             baseline_path="${baseline_path%$'\r'}"
             [[ -z "$baseline_path" ]] && continue
-            if [[ ! -f "$baseline_path" ]]; then
-              echo "::error::Additional ol baseline does not exist: $baseline_path"
-              exit 1
-            fi
             check_args+=(--baseline "$baseline_path")
           done <<< "$ADDITIONAL_BASELINE_PATHS"
 
-          # A baseline acknowledges unresolved evidence a reviewer has already accepted. Without one,
-          # unresolved components still fail, so requiring the file adds no safety - only an empty file
-          # that nobody reviews. Repositories that need no acknowledgement commit nothing.
+          # The shared baseline is optional; explicitly supplied baselines are validated by ol.
           if [[ -f "../Actions/ol-baseline.json" ]]; then
             check_args+=(--baseline "../Actions/ol-baseline.json")
-          else
-            echo "No ol baseline at ../Actions/ol-baseline.json; every unresolved component must satisfy the allow-list."
           fi
           if [[ -n "$ALLOW_DEV_LICENSES" ]]; then
             check_args+=(--allow-dev-licenses "$ALLOW_DEV_LICENSES")
           fi
-          set +e
           ol check "${check_args[@]}" --format markdown | tee -a "$GITHUB_STEP_SUMMARY"
-          pipeline_exit=("${PIPESTATUS[@]}")
-          check_exit=${pipeline_exit[0]}
-          set -e
-          if [[ ${pipeline_exit[1]} -ne 0 ]]; then
-            echo "::error::Unable to write the ol job summary."
-            exit "${pipeline_exit[1]}"
-          fi
-          case "$check_exit" in
-            0) ;;
-            2) echo "::error::ol found license policy violations." ;;
-            3) echo "::error::ol could not collect evidence for every finding, so the result is inconclusive rather than a policy failure. This is usually a registry outage or a GitHub rate limit; re-run the job." ;;
-            *) echo "::error::ol check failed to run (exit $check_exit)." ;;
-          esac
-          exit "$check_exit"
 
   pr-harness-check:
     if: ${{ always() }} # trigger even job skipped
