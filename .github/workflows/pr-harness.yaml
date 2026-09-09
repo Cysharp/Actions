@@ -410,18 +410,6 @@ jobs:
             scan_args+=(--exclude-input-path "$excluded_path")
           done <<< "$EXCLUDED_INPUT_PATHS"
           ol scan "${scan_args[@]}" --cache-dir "$OL_EVIDENCE_CACHE_DIR" --format json > "$OL_REPORT_PATH"
-      - name: "Summarize license evidence"
-        if: ${{ !cancelled() }}
-        run: |
-          [[ -s "$OL_REPORT_PATH" ]] || exit 0
-          {
-            echo "### ol license scan"
-            echo
-            jq -r '"- components: \(.components|length)"' "$OL_REPORT_PATH"
-            jq -r '.summary|to_entries|map("\(.key) \(.value)")|"- status: " + join(", ")' "$OL_REPORT_PATH"
-            jq -r '[.components[]|.ecosystem]|group_by(.)|sort_by(-length)|map("\(.[0]) \(length)")|"- ecosystems: " + join(", ")' "$OL_REPORT_PATH"
-            jq -r '(.metadata.sourceRepository // {})|"- github license api: \(.githubLicenseRequestCount // 0) requests, \(.cacheHitCount // 0) cache hits, \(.fetchErrorCount // 0) errors"' "$OL_REPORT_PATH"
-          } >> "$GITHUB_STEP_SUMMARY"
       - name: "Check license policy"
         env:
           ADDITIONAL_BASELINE_PATHS: ${{ inputs.additional-license-baseline-paths }}
@@ -450,9 +438,14 @@ jobs:
             check_args+=(--allow-dev-licenses "$ALLOW_DEV_LICENSES")
           fi
           set +e
-          ol check "${check_args[@]}"
-          check_exit=$?
+          ol check "${check_args[@]}" --format markdown | tee -a "$GITHUB_STEP_SUMMARY"
+          pipeline_exit=("${PIPESTATUS[@]}")
+          check_exit=${pipeline_exit[0]}
           set -e
+          if [[ ${pipeline_exit[1]} -ne 0 ]]; then
+            echo "::error::Unable to write the ol job summary."
+            exit "${pipeline_exit[1]}"
+          fi
           case "$check_exit" in
             0) ;;
             2) echo "::error::ol found license policy violations." ;;
