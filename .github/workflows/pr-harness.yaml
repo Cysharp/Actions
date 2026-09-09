@@ -329,34 +329,22 @@ jobs:
         if: ${{ steps.license-inputs.outputs.dotnet == 'true' }}
         shell: bash
         run: |
-          restore_dotnet() {
-            local path="$1"
-            echo "::group::dotnet restore $path"
-            dotnet restore "$path"
-            echo "::endgroup::"
-          }
-
           solution_input_list="$OL_DOTNET_SLNX_LIST"
           if [[ ! -s "$solution_input_list" ]]; then
             solution_input_list="$OL_DOTNET_SLN_LIST"
           fi
-          if [[ -s "$solution_input_list" ]]; then
-            while IFS= read -r solution_path; do
-              [[ -z "$solution_path" ]] && continue
-              restore_dotnet "$solution_path"
-            done < "$solution_input_list"
-          fi
-
-          # A project omitted from every solution still belongs to the repository-wide audit. Solution
-          # restore normally produced its assets already, so restore only projects still lacking them.
-          while IFS= read -r project_path; do
-            [[ -z "$project_path" ]] && continue
-            project_directory=$(dirname "$project_path")
-            if [[ -f "$project_directory/obj/project.assets.json" ]]; then
-              continue
-            fi
-            restore_dotnet "$project_path"
-          done < "$OL_DOTNET_PROJECT_LIST"
+          # Restore solutions first, then projects whose assets are still missing.
+          for input_list in "$solution_input_list" "$OL_DOTNET_PROJECT_LIST"; do
+            while IFS= read -r path; do
+              [[ -z "$path" ]] && continue
+              if [[ "$input_list" == "$OL_DOTNET_PROJECT_LIST" && -f "$(dirname "$path")/obj/project.assets.json" ]]; then
+                continue
+              fi
+              echo "::group::dotnet restore $path"
+              dotnet restore "$path"
+              echo "::endgroup::"
+            done < "$input_list"
+          done
       - name: "Generate Cargo metadata"
         if: ${{ steps.license-inputs.outputs.cargo == 'true' }}
         shell: bash
