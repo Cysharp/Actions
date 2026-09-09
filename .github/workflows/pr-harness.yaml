@@ -365,22 +365,16 @@ jobs:
           metadata_index=0
           while IFS= read -r manifest_path; do
             [[ -z "$manifest_path" ]] && continue
-            workspace_root=$(cargo metadata --format-version 1 --no-deps --manifest-path "$manifest_path" | jq -r '.workspace_root')
-            if [[ -z "$workspace_root" || "$workspace_root" == "null" ]]; then
-              echo "::error::Unable to determine the Cargo workspace for $manifest_path."
-              exit 1
-            fi
+            root_manifest=$(cargo locate-project --workspace --message-format plain --manifest-path "$manifest_path")
+            workspace_root=$(dirname "$root_manifest")
             if [[ -n "${seen_workspace_roots[$workspace_root]+x}" ]]; then
               continue
             fi
             seen_workspace_roots["$workspace_root"]=1
 
-            root_manifest="$workspace_root/Cargo.toml"
             metadata_path="$OL_CARGO_METADATA_DIR/cargo-metadata-$metadata_index.json"
             cargo_args=(metadata --format-version 1 --manifest-path "$root_manifest")
-            lock_path="$workspace_root/Cargo.lock"
-            lock_relative="${lock_path#"$GITHUB_WORKSPACE"/}"
-            if [[ "$lock_relative" != "$lock_path" ]] && git ls-files --error-unmatch -- "$lock_relative" > /dev/null 2>&1; then
+            if git -C "$workspace_root" ls-files --error-unmatch -- Cargo.lock > /dev/null 2>&1; then
               cargo_args+=(--locked)
             else
               echo "::warning::Cargo.lock is not committed next to $root_manifest; resolving without --locked."
