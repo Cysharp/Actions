@@ -288,30 +288,27 @@ jobs:
           : > "$OL_CARGO_MANIFEST_LIST"
           : > "$OL_CARGO_METADATA_LIST"
 
-          is_excluded() {
-            local candidate="${1#./}"
-            local excluded
-            while IFS= read -r excluded || [[ -n "$excluded" ]]; do
-              excluded="${excluded%$'\r'}"
-              excluded="${excluded#./}"
-              excluded="${excluded%/}"
-              [[ -z "$excluded" ]] && continue
-              if [[ "$excluded" == "." || "$candidate" == "$excluded" || "$candidate" == "$excluded/"* ]]; then
-                return 0
-              fi
-            done <<< "$EXCLUDED_INPUT_PATHS"
-            return 1
-          }
+          pathspecs=()
+          while IFS= read -r excluded || [[ -n "$excluded" ]]; do
+            excluded="${excluded%$'\r'}"
+            excluded="${excluded#./}"
+            excluded="${excluded%/}"
+            [[ -z "$excluded" ]] && continue
+            if [[ "$excluded" == "." ]]; then
+              pathspecs+=(':(top,exclude,glob)**')
+            else
+              pathspecs+=(":(top,exclude,literal)$excluded")
+            fi
+          done <<< "$EXCLUDED_INPUT_PATHS"
 
           while IFS= read -r -d '' path; do
-            is_excluded "$path" && continue
             case "$path" in
               *.slnx) printf '%s\n' "$path" >> "$OL_DOTNET_SLNX_LIST" ;;
               *.sln) printf '%s\n' "$path" >> "$OL_DOTNET_SLN_LIST" ;;
               *.csproj) printf '%s\n' "$path" >> "$OL_DOTNET_PROJECT_LIST" ;;
               Cargo.toml|*/Cargo.toml) printf '%s\n' "$path" >> "$OL_CARGO_MANIFEST_LIST" ;;
             esac
-          done < <(git ls-files -z)
+          done < <(git ls-files -z -- "${pathspecs[@]}")
 
           if [[ -s "$OL_DOTNET_SLNX_LIST" || -s "$OL_DOTNET_SLN_LIST" || -s "$OL_DOTNET_PROJECT_LIST" ]]; then
             echo "dotnet=true" >> "$GITHUB_OUTPUT"
