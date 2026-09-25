@@ -151,13 +151,14 @@ public class ScanPrUnicodeCommandTest
     }
 
     [Theory]
-    [InlineData("a​b", 2, 0x200B)]       // ZERO WIDTH SPACE not after '@'
-    [InlineData("​b", 1, 0x200B)]        // ZERO WIDTH SPACE at the start
-    [InlineData("@​​b", 3, 0x200B)] // only the first ZERO WIDTH SPACE after '@' is allowed
-    [InlineData("@‌b", 2, 0x200C)]       // ZERO WIDTH NON-JOINER after '@'
-    [InlineData("@‮b", 2, 0x202E)]       // RIGHT-TO-LEFT OVERRIDE after '@'
-    public void PullRequestBodyRejectsOtherFormatCharactersTest(string body, int column, int codePoint)
+    [InlineData("a{0}b", 0x200B, 2)]    // ZERO WIDTH SPACE not after '@'
+    [InlineData("{0}b", 0x200B, 1)]     // ZERO WIDTH SPACE at the start
+    [InlineData("@{0}{0}b", 0x200B, 3)] // only the first ZERO WIDTH SPACE after '@' is allowed
+    [InlineData("@{0}b", 0x200C, 2)]    // ZERO WIDTH NON-JOINER after '@'
+    [InlineData("@{0}b", 0x202E, 2)]    // RIGHT-TO-LEFT OVERRIDE after '@'
+    public void PullRequestBodyRejectsOtherFormatCharactersTest(string template, int codePoint, int column)
     {
+        var body = string.Format(template, char.ConvertFromUtf32(codePoint));
         var violation = Assert.Single(Scan(new PullRequestScanInput(Input.BaseSha, Input.HeadSha, "Clean title", body)));
 
         Assert.Equal(("PR body", 1, column, codePoint), (violation.Source, violation.Line, violation.Column, violation.CodePoint));
