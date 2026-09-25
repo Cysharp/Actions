@@ -142,6 +142,43 @@ public class ScanPrUnicodeCommandTest
     }
 
     [Fact]
+    public void PullRequestBodyAllowsDependabotMentionSuppressionTest()
+    {
+        var zeroWidthSpace = char.ConvertFromUtf32(0x200B);
+        var body = "by <a href=\"https://github.com/octocat\"><code>@" + zeroWidthSpace + "octocat</code></a>\n@" + zeroWidthSpace + "hubot";
+
+        Assert.Empty(Scan(new PullRequestScanInput(Input.BaseSha, Input.HeadSha, "Bump actions", body)));
+    }
+
+    [Theory]
+    [InlineData("a​b", 2, 0x200B)]       // ZERO WIDTH SPACE not after '@'
+    [InlineData("​b", 1, 0x200B)]        // ZERO WIDTH SPACE at the start
+    [InlineData("@​​b", 3, 0x200B)] // only the first ZERO WIDTH SPACE after '@' is allowed
+    [InlineData("@‌b", 2, 0x200C)]       // ZERO WIDTH NON-JOINER after '@'
+    [InlineData("@‮b", 2, 0x202E)]       // RIGHT-TO-LEFT OVERRIDE after '@'
+    public void PullRequestBodyRejectsOtherFormatCharactersTest(string body, int column, int codePoint)
+    {
+        var violation = Assert.Single(Scan(new PullRequestScanInput(Input.BaseSha, Input.HeadSha, "Clean title", body)));
+
+        Assert.Equal(("PR body", 1, column, codePoint), (violation.Source, violation.Line, violation.Column, violation.CodePoint));
+    }
+
+    [Fact]
+    public void ZeroWidthSpaceAfterAtIsRejectedOutsidePullRequestBodyTest()
+    {
+        var text = "@" + char.ConvertFromUtf32(0x200B) + "octocat";
+
+        var titleViolation = Assert.Single(Scan(new PullRequestScanInput(Input.BaseSha, Input.HeadSha, text, "Clean body")));
+        Assert.Equal(("PR title", 2, 0x200B), (titleViolation.Source, titleViolation.Column, titleViolation.CodePoint));
+
+        var pathViolation = Assert.Single(Scan(new PrChangedFile("docs/" + text + ".md", null, Utf8("text"))));
+        Assert.Equal(0x200B, pathViolation.CodePoint);
+
+        var contentViolation = Assert.Single(Scan(new PrChangedFile("src/Test.cs", null, Utf8("// " + text))));
+        Assert.Equal(0x200B, contentViolation.CodePoint);
+    }
+
+    [Fact]
     public void CSharpMustBeValidUtf8ButNonCSharpFileIsSkippedTest()
     {
         var invalidUtf8 = new byte[] { 0xFF, 0xFE, 0xFD };

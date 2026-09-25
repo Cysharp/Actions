@@ -74,7 +74,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
     private static void ScanMetadata(PullRequestScanInput input, ScanState state)
     {
         ScanText("PR title", input.Title, UnicodeScanOptions.Metadata, state);
-        ScanText("PR body", input.Body, UnicodeScanOptions.Metadata, state);
+        ScanText("PR body", input.Body, UnicodeScanOptions.PullRequestBody, state);
     }
 
     private static FileScanDisposition PrepareFile(PrChangedFile file, ScanState state)
@@ -462,11 +462,17 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         var line = 1;
         var column = 1;
         var previousWasCarriageReturn = false;
+        var previousValue = -1;
         foreach (var rune in text.EnumerateRunes())
         {
             var value = rune.Value;
             string? reason = null;
-            if (IsFormat(value))
+            if (options.AllowZeroWidthSpaceAfterAt && previousValue == '@' && value == 0x200B)
+            {
+                // Dependabot inserts ZERO WIDTH SPACE after '@' in copied release notes to suppress
+                // mentions of upstream authors. A single U+200B right after '@' cannot hide text.
+            }
+            else if (IsFormat(value))
                 reason = "Unicode format character (Cf)";
             else if (IsDefaultIgnorable(value))
                 reason = "Unicode Default_Ignorable_Code_Point";
@@ -477,6 +483,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
 
             if (reason is not null)
                 state.Add(new UnicodeViolation(source, line, column, value, "raw", reason));
+            previousValue = value;
 
             if (value == '\r')
             {
@@ -673,10 +680,11 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         }
     }
 
-    private readonly record struct UnicodeScanOptions(bool RejectNonAsciiSpace)
+    private readonly record struct UnicodeScanOptions(bool RejectNonAsciiSpace, bool AllowZeroWidthSpaceAfterAt)
     {
-        public static UnicodeScanOptions Metadata => new(false);
-        public static UnicodeScanOptions FileName => new(true);
+        public static UnicodeScanOptions Metadata => new(false, false);
+        public static UnicodeScanOptions PullRequestBody => new(false, true);
+        public static UnicodeScanOptions FileName => new(true, false);
     }
 }
 
