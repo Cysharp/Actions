@@ -92,11 +92,16 @@ public class CliContractTest
             await RunGitAsync(directory, "commit", "-m", "base");
             var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
 
+            await RunGitAsync(directory, "checkout", "--quiet", "-b", "pull-request");
             var forbiddenEscape = "\\" + "u202E";
             File.WriteAllText(sourcePath, "class C { " + forbiddenEscape + " }");
             await RunGitAsync(directory, "add", "--", "Test.cs");
             await RunGitAsync(directory, "commit", "-m", "head");
             var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            // scan-pr-unicode expects the GitHub pull request merge commit (base tip + PR head) to be checked out.
+            await RunGitAsync(directory, "checkout", "--quiet", "--detach", baseSha);
+            await RunGitAsync(directory, "merge", "--no-ff", "-m", "merge", headSha);
 
             var eventPath = Path.Combine(directory, "event.json");
             File.WriteAllText(eventPath, JsonSerializer.Serialize(new
@@ -105,7 +110,6 @@ public class CliContractTest
                 {
                     title = "Clean title",
                     body = "Clean body",
-                    @base = new { sha = baseSha },
                     head = new { sha = headSha },
                 },
             }));
