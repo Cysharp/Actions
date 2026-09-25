@@ -29,7 +29,6 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
 
         var fileCount = await changeSource.VisitChangedFilesAsync(
             repositoryPath,
-            input.BaseSha,
             input.HeadSha,
             (file, content, token) => ScanFileAsync(file, content, state, token),
             cancellationToken);
@@ -422,7 +421,6 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
             throw new ActionCommandException("GitHub event payload does not contain a pull_request object.");
 
         return new PullRequestScanInput(
-            GetRequiredString(pullRequest, "base", "sha"),
             GetRequiredString(pullRequest, "head", "sha"),
             GetOptionalString(pullRequest, "title"),
             GetOptionalString(pullRequest, "body"));
@@ -688,7 +686,7 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
     }
 }
 
-public readonly record struct PullRequestScanInput(string BaseSha, string HeadSha, string Title, string Body);
+public readonly record struct PullRequestScanInput(string HeadSha, string Title, string Body);
 
 public sealed record PrChangedFile(
     string Path,
@@ -717,7 +715,6 @@ public interface IPrChangeSource
 {
     Task<int> VisitChangedFilesAsync(
         string repositoryPath,
-        string baseSha,
         string headSha,
         Func<PrChangedFile, Stream?, CancellationToken, Task<bool>> visitor,
         CancellationToken cancellationToken = default);
@@ -732,14 +729,17 @@ internal sealed class GitPrChangeSource(
 
     public async Task<int> VisitChangedFilesAsync(
         string repositoryPath,
-        string baseSha,
         string headSha,
         Func<PrChangedFile, Stream?, CancellationToken, Task<bool>> visitor,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(visitor);
-        ValidateSha(baseSha);
         ValidateSha(headSha);
+
+        // Diff the pull request merge commit against its first parent instead of pull_request.base.sha.
+        // base.sha is the merge base, which leaves a fetch-depth: 2 clone once the base branch advances,
+        // while the merge commit's parents are always present and describe exactly what the merge introduces.
+        var (mergeSha, baseTipSha) = await ResolvePullRequestMergeAsync(repositoryPath, headSha, cancellationToken);
 
         var trackedSymlink = await FindTrackedCSharpSymlinkAsync(repositoryPath, cancellationToken);
         if (trackedSymlink is not null)
@@ -753,7 +753,7 @@ internal sealed class GitPrChangeSource(
 
         var diff = await RunGitAsync(
             repositoryPath,
-            ["diff", "--raw", "-z", "--find-renames", baseSha, headSha, "--"],
+            ["diff", "--raw", "-z", "--find-renames", baseTipSha, mergeSha, "--"],
             maxDiffBytes,
             "Git diff output",
             cancellationToken);
@@ -901,6 +901,37 @@ internal sealed class GitPrChangeSource(
         return fileCount;
     }
 
+    private static async Task<(string MergeSha, string BaseTipSha)> ResolvePullRequestMergeAsync(
+        string repositoryPath,
+        string headSha,
+        CancellationToken cancellationToken)
+    {
+        // A shallow boundary commit is listed without parents, so fetch-depth: 1 is rejected here as well.
+        var output = await RunGitAsync(
+            repositoryPath,
+            ["rev-list", "--parents", "--max-count=1", "HEAD"],
+            4096,
+            "Git HEAD parent list",
+            cancellationToken);
+        var commits = DecodeUtf8(output, "Git HEAD parent list").TrimEnd('\n').Split(' ');
+        foreach (var commit in commits)
+            ValidateGitSha(commit);
+
+        if (commits.Length != 3)
+        {
+            throw new ActionCommandException(
+                $"Checked-out HEAD {commits[0]} is not a pull request merge commit with two parents available. " +
+                "Check out the pull request merge commit (refs/pull/<number>/merge) with fetch-depth 2 or greater.");
+        }
+        if (!string.Equals(commits[2], headSha, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ActionCommandException(
+                $"Checked-out merge commit {commits[0]} merges {commits[2]}, not the pull request head {headSha}. " +
+                "Check out the pull request merge commit for the triggering event.");
+        }
+        return (commits[0], commits[1]);
+    }
+
     private static async Task<string?> FindTrackedCSharpSymlinkAsync(
         string repositoryPath,
         CancellationToken cancellationToken)
@@ -1022,9 +1053,17 @@ internal sealed class GitPrChangeSource(
 
     private static void ValidateSha(string sha)
     {
-        if (sha.Length != 40 || sha.Any(x => !Uri.IsHexDigit(x)))
-            throw new ActionCommandException("Pull request base/head SHA must be a 40-character hexadecimal Git object ID.");
+        if (!IsSha(sha))
+            throw new ActionCommandException("Pull request head SHA must be a 40-character hexadecimal Git object ID.");
     }
+
+    private static void ValidateGitSha(string sha)
+    {
+        if (!IsSha(sha))
+            throw new ActionCommandException("Invalid git rev-list --parents output.");
+    }
+
+    private static bool IsSha(string sha) => sha.Length == 40 && sha.All(Uri.IsHexDigit);
 
     private static async Task<byte[]> RunGitAsync(
         string repositoryPath,

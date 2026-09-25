@@ -7,7 +7,6 @@ namespace CysharpActions.Tests;
 public class ScanPrUnicodeCommandTest
 {
     private static readonly PullRequestScanInput Input = new(
-        new string('a', 40),
         new string('b', 40),
         "Clean title",
         "Clean body");
@@ -135,7 +134,7 @@ public class ScanPrUnicodeCommandTest
         var title = "first" + separator + char.ConvertFromUtf32(0x200B);
 
         var violation = Assert.Single(
-            Scan(new PullRequestScanInput(Input.BaseSha, Input.HeadSha, title, "Clean body")),
+            Scan(new PullRequestScanInput(Input.HeadSha, title, "Clean body")),
             x => x.CodePoint == 0x200B);
 
         Assert.Equal((2, 1), (violation.Line, violation.Column));
@@ -147,7 +146,7 @@ public class ScanPrUnicodeCommandTest
         var zeroWidthSpace = char.ConvertFromUtf32(0x200B);
         var body = "by <a href=\"https://github.com/octocat\"><code>@" + zeroWidthSpace + "octocat</code></a>\n@" + zeroWidthSpace + "hubot";
 
-        Assert.Empty(Scan(new PullRequestScanInput(Input.BaseSha, Input.HeadSha, "Bump actions", body)));
+        Assert.Empty(Scan(new PullRequestScanInput(Input.HeadSha, "Bump actions", body)));
     }
 
     [Theory]
@@ -159,7 +158,7 @@ public class ScanPrUnicodeCommandTest
     public void PullRequestBodyRejectsOtherFormatCharactersTest(string template, int codePoint, int column)
     {
         var body = string.Format(template, char.ConvertFromUtf32(codePoint));
-        var violation = Assert.Single(Scan(new PullRequestScanInput(Input.BaseSha, Input.HeadSha, "Clean title", body)));
+        var violation = Assert.Single(Scan(new PullRequestScanInput(Input.HeadSha, "Clean title", body)));
 
         Assert.Equal(("PR body", 1, column, codePoint), (violation.Source, violation.Line, violation.Column, violation.CodePoint));
     }
@@ -169,7 +168,7 @@ public class ScanPrUnicodeCommandTest
     {
         var text = "@" + char.ConvertFromUtf32(0x200B) + "octocat";
 
-        var titleViolation = Assert.Single(Scan(new PullRequestScanInput(Input.BaseSha, Input.HeadSha, text, "Clean body")));
+        var titleViolation = Assert.Single(Scan(new PullRequestScanInput(Input.HeadSha, text, "Clean body")));
         Assert.Equal(("PR title", 2, 0x200B), (titleViolation.Source, titleViolation.Column, titleViolation.CodePoint));
 
         var pathViolation = Assert.Single(Scan(new PrChangedFile("docs/" + text + ".md", null, Utf8("text"))));
@@ -335,7 +334,6 @@ public class ScanPrUnicodeCommandTest
                 {
                     title = "Clean title",
                     body = "Clean body",
-                    @base = new { sha = new string('a', 40) },
                     head = new { sha = new string('b', 40) },
                 },
             }));
@@ -405,36 +403,23 @@ public class ScanPrUnicodeCommandTest
         try
         {
             Directory.CreateDirectory(directory);
-            await RunGitAsync(directory, "init");
-            await RunGitAsync(directory, "config", "user.email", "test@example.com");
-            await RunGitAsync(directory, "config", "user.name", "Test User");
-            await RunGitAsync(directory, "config", "commit.gpgSign", "false");
+            await InitRepositoryAsync(directory);
 
             CreateFile(Path.Combine(directory, "Test.cs"), "class C {}");
             await RunGitAsync(directory, "add", "--", "Test.cs");
             await RunGitAsync(directory, "commit", "-m", "base");
-            var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
 
-            CreateFile(Path.Combine(directory, "Test.cs"), "class Changed {}");
-            await RunGitAsync(directory, "add", "--", "Test.cs");
-            await RunGitAsync(directory, "commit", "-m", "head");
-            var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+            var headSha = await CheckoutPullRequestMergeAsync(directory, async () =>
+            {
+                CreateFile(Path.Combine(directory, "Test.cs"), "class Changed {}");
+                await RunGitAsync(directory, "add", "--", "Test.cs");
+            });
 
-            // The changed-file list comes from base..head, but content must come from the checked-out tree.
+            // The changed-file list comes from the merge commit's first parent, but content must come from the checked-out tree.
             var zeroWidthSpace = char.ConvertFromUtf32(0x200B);
             CreateFile(Path.Combine(directory, "Test.cs"), "class" + zeroWidthSpace + " CheckedOut {}");
 
-            var eventPath = Path.Combine(directory, "event.json");
-            CreateFile(eventPath, JsonSerializer.Serialize(new
-            {
-                pull_request = new
-                {
-                    title = "Clean title",
-                    body = "Clean body",
-                    @base = new { sha = baseSha },
-                    head = new { sha = headSha },
-                },
-            }));
+            var eventPath = CreateEvent(directory, headSha);
 
             var command = new ScanPrUnicodeCommand();
             var exception = await Assert.ThrowsAsync<UnicodeScanViolationException>(() =>
@@ -455,35 +440,24 @@ public class ScanPrUnicodeCommandTest
         try
         {
             Directory.CreateDirectory(directory);
-            await RunGitAsync(directory, "init");
-            await RunGitAsync(directory, "config", "user.email", "test@example.com");
-            await RunGitAsync(directory, "config", "user.name", "Test User");
-            await RunGitAsync(directory, "config", "commit.gpgSign", "false");
+            await InitRepositoryAsync(directory);
 
             CreateFile(Path.Combine(directory, "README.md"), "base");
             await RunGitAsync(directory, "add", "--", "README.md");
             await RunGitAsync(directory, "commit", "-m", "base");
-            var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
 
-            // Construct mode 120000 in the Git index directly. This is independent of whether the test
-            // host is allowed to create an operating-system symbolic link.
-            CreateFile(Path.Combine(directory, "Link.cs"), "payload.txt");
-            var linkBlob = await RunGitAsync(directory, "hash-object", "-w", "--", "Link.cs");
-            await RunGitAsync(directory, "update-index", "--add", "--cacheinfo", $"120000,{linkBlob},Link.cs");
-            await RunGitAsync(directory, "commit", "-m", "head");
-            var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
-
-            var eventPath = Path.Combine(directory, "event.json");
-            CreateFile(eventPath, JsonSerializer.Serialize(new
+            var headSha = await CheckoutPullRequestMergeAsync(directory, async () =>
             {
-                pull_request = new
-                {
-                    title = "Clean title",
-                    body = "Clean body",
-                    @base = new { sha = baseSha },
-                    head = new { sha = headSha },
-                },
-            }));
+                // Construct mode 120000 in the Git index directly. This is independent of whether the test
+                // host is allowed to create an operating-system symbolic link.
+                CreateFile(Path.Combine(directory, "Link.cs"), "payload.txt");
+                var linkBlob = await RunGitAsync(directory, "hash-object", "-w", "--", "Link.cs");
+                await RunGitAsync(directory, "update-index", "--add", "--cacheinfo", $"120000,{linkBlob},Link.cs");
+                // The regular file differs from the indexed link and would block switching back to the base commit.
+                File.Delete(Path.Combine(directory, "Link.cs"));
+            });
+
+            var eventPath = CreateEvent(directory, headSha);
 
             var command = new ScanPrUnicodeCommand();
             var exception = await Assert.ThrowsAsync<UnicodeScanViolationException>(() =>
@@ -504,10 +478,7 @@ public class ScanPrUnicodeCommandTest
         try
         {
             Directory.CreateDirectory(directory);
-            await RunGitAsync(directory, "init");
-            await RunGitAsync(directory, "config", "user.email", "test@example.com");
-            await RunGitAsync(directory, "config", "user.name", "Test User");
-            await RunGitAsync(directory, "config", "commit.gpgSign", "false");
+            await InitRepositoryAsync(directory);
 
             CreateFile(Path.Combine(directory, "Payload.txt"), "class Clean {}");
             CreateFile(Path.Combine(directory, "Link.cs"), "Payload.txt");
@@ -515,26 +486,16 @@ public class ScanPrUnicodeCommandTest
             var linkBlob = await RunGitAsync(directory, "hash-object", "-w", "--", "Link.cs");
             await RunGitAsync(directory, "update-index", "--add", "--cacheinfo", $"120000,{linkBlob},Link.cs");
             await RunGitAsync(directory, "commit", "-m", "base");
-            var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
 
-            CreateFile(
-                Path.Combine(directory, "Payload.txt"),
-                "class" + char.ConvertFromUtf32(0x200B) + " Changed {}");
-            await RunGitAsync(directory, "add", "--", "Payload.txt");
-            await RunGitAsync(directory, "commit", "-m", "head");
-            var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
-
-            var eventPath = Path.Combine(directory, "event.json");
-            CreateFile(eventPath, JsonSerializer.Serialize(new
+            var headSha = await CheckoutPullRequestMergeAsync(directory, async () =>
             {
-                pull_request = new
-                {
-                    title = "Clean title",
-                    body = "Clean body",
-                    @base = new { sha = baseSha },
-                    head = new { sha = headSha },
-                },
-            }));
+                CreateFile(
+                    Path.Combine(directory, "Payload.txt"),
+                    "class" + char.ConvertFromUtf32(0x200B) + " Changed {}");
+                await RunGitAsync(directory, "add", "--", "Payload.txt");
+            });
+
+            var eventPath = CreateEvent(directory, headSha);
 
             var command = new ScanPrUnicodeCommand();
             var exception = await Assert.ThrowsAsync<UnicodeScanViolationException>(() =>
@@ -549,33 +510,161 @@ public class ScanPrUnicodeCommandTest
     }
 
     [Fact]
+    public async Task GitSourceDiffsAgainstAdvancedBaseInShallowCloneTest()
+    {
+        var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(GitSourceDiffsAgainstAdvancedBaseInShallowCloneTest)}");
+        try
+        {
+            var (origin, mergeBaseSha, headSha) = await CreateAdvancedBasePullRequestOriginAsync(Path.Combine(directory, "origin"));
+            var clone = Path.Combine(directory, "clone");
+            await ShallowCheckoutPullRequestMergeAsync(origin, clone, depth: 2);
+
+            // pull_request.base.sha is the merge base, which is outside a fetch-depth: 2 clone once the base branch advances.
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                RunGitAsync(clone, "cat-file", "-e", mergeBaseSha + "^{commit}"));
+
+            var paths = new List<string>();
+            var fileCount = await new GitPrChangeSource().VisitChangedFilesAsync(
+                clone,
+                headSha,
+                (file, _, _) =>
+                {
+                    paths.Add(file.Path);
+                    return Task.FromResult(true);
+                },
+                TestContext.Current.CancellationToken);
+
+            // Base-only changes (Advanced.cs) are already on the base branch and must not be reported as PR changes.
+            Assert.Equal(1, fileCount);
+            Assert.Equal("Pr.cs", Assert.Single(paths));
+
+            var eventPath = CreateEvent(directory, headSha);
+            await new ScanPrUnicodeCommand().ValidateAsync(eventPath, clone, TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            SafeDeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task GitSourceRejectsMergeWithoutFetchedParentsTest()
+    {
+        var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(GitSourceRejectsMergeWithoutFetchedParentsTest)}");
+        try
+        {
+            var (origin, _, headSha) = await CreateAdvancedBasePullRequestOriginAsync(Path.Combine(directory, "origin"));
+            var clone = Path.Combine(directory, "clone");
+            await ShallowCheckoutPullRequestMergeAsync(origin, clone, depth: 1);
+
+            var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
+                new GitPrChangeSource().VisitChangedFilesAsync(
+                    clone,
+                    headSha,
+                    (_, _, _) => Task.FromResult(true),
+                    TestContext.Current.CancellationToken));
+
+            Assert.Contains("not a pull request merge commit", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("fetch-depth 2", exception.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task GitSourceRejectsNonMergeHeadTest()
+    {
+        var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(GitSourceRejectsNonMergeHeadTest)}");
+        try
+        {
+            Directory.CreateDirectory(directory);
+            await InitRepositoryAsync(directory);
+
+            CreateFile(Path.Combine(directory, "README.md"), "base");
+            await RunGitAsync(directory, "add", "--", "README.md");
+            await RunGitAsync(directory, "commit", "-m", "base");
+
+            CreateFile(Path.Combine(directory, "Changed.cs"), "class C {}");
+            await RunGitAsync(directory, "add", "--", "Changed.cs");
+            await RunGitAsync(directory, "commit", "-m", "head");
+            var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+            var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
+                new GitPrChangeSource().VisitChangedFilesAsync(
+                    directory,
+                    headSha,
+                    (_, _, _) => Task.FromResult(true),
+                    TestContext.Current.CancellationToken));
+
+            Assert.Contains("not a pull request merge commit", exception.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task GitSourceRejectsMergeOfDifferentHeadTest()
+    {
+        var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(GitSourceRejectsMergeOfDifferentHeadTest)}");
+        try
+        {
+            Directory.CreateDirectory(directory);
+            await InitRepositoryAsync(directory);
+
+            CreateFile(Path.Combine(directory, "README.md"), "base");
+            await RunGitAsync(directory, "add", "--", "README.md");
+            await RunGitAsync(directory, "commit", "-m", "base");
+
+            await CheckoutPullRequestMergeAsync(directory, async () =>
+            {
+                CreateFile(Path.Combine(directory, "Changed.cs"), "class C {}");
+                await RunGitAsync(directory, "add", "--", "Changed.cs");
+            });
+
+            // A stale checkout or another ref merges a head other than the one in the event payload.
+            var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
+                new GitPrChangeSource().VisitChangedFilesAsync(
+                    directory,
+                    new string('c', 40),
+                    (_, _, _) => Task.FromResult(true),
+                    TestContext.Current.CancellationToken));
+
+            Assert.Contains("not the pull request head", exception.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
     public async Task GitSourceChecksTotalSizeBeforeLoadingNextBlobTest()
     {
         var directory = Path.GetFullPath($".tests/{nameof(ScanPrUnicodeCommandTest)}/{nameof(GitSourceChecksTotalSizeBeforeLoadingNextBlobTest)}");
         try
         {
             Directory.CreateDirectory(directory);
-            await RunGitAsync(directory, "init");
-            await RunGitAsync(directory, "config", "user.email", "test@example.com");
-            await RunGitAsync(directory, "config", "user.name", "Test User");
-            await RunGitAsync(directory, "config", "commit.gpgSign", "false");
+            await InitRepositoryAsync(directory);
 
             CreateFile(Path.Combine(directory, "README.md"), "base");
             await RunGitAsync(directory, "add", "--", "README.md");
             await RunGitAsync(directory, "commit", "-m", "base");
-            var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
 
-            CreateFile(Path.Combine(directory, "A.cs"), "12345678");
-            CreateFile(Path.Combine(directory, "B.cs"), "abcdefgh");
-            await RunGitAsync(directory, "add", "--", "A.cs", "B.cs");
-            await RunGitAsync(directory, "commit", "-m", "head");
-            var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+            var headSha = await CheckoutPullRequestMergeAsync(directory, async () =>
+            {
+                CreateFile(Path.Combine(directory, "A.cs"), "12345678");
+                CreateFile(Path.Combine(directory, "B.cs"), "abcdefgh");
+                await RunGitAsync(directory, "add", "--", "A.cs", "B.cs");
+            });
 
             var files = new List<PrChangedFile>();
             var source = new GitPrChangeSource(maxTotalTextBytes: 10);
             await source.VisitChangedFilesAsync(
                 directory,
-                baseSha,
                 headSha,
                 async (file, content, cancellationToken) =>
                 {
@@ -613,28 +702,24 @@ public class ScanPrUnicodeCommandTest
         try
         {
             Directory.CreateDirectory(directory);
-            await RunGitAsync(directory, "init");
-            await RunGitAsync(directory, "config", "user.email", "test@example.com");
-            await RunGitAsync(directory, "config", "user.name", "Test User");
-            await RunGitAsync(directory, "config", "commit.gpgSign", "false");
+            await InitRepositoryAsync(directory);
 
             CreateFile(Path.Combine(directory, "README.md"), "base");
             await RunGitAsync(directory, "add", "--", "README.md");
             await RunGitAsync(directory, "commit", "-m", "base");
-            var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
 
-            CreateFile(Path.Combine(directory, "A.txt"), "a");
-            CreateFile(Path.Combine(directory, "B.txt"), "b");
-            CreateFile(Path.Combine(directory, "C.txt"), "c");
-            await RunGitAsync(directory, "add", "--", "A.txt", "B.txt", "C.txt");
-            await RunGitAsync(directory, "commit", "-m", "head");
-            var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+            var headSha = await CheckoutPullRequestMergeAsync(directory, async () =>
+            {
+                CreateFile(Path.Combine(directory, "A.txt"), "a");
+                CreateFile(Path.Combine(directory, "B.txt"), "b");
+                CreateFile(Path.Combine(directory, "C.txt"), "c");
+                await RunGitAsync(directory, "add", "--", "A.txt", "B.txt", "C.txt");
+            });
 
             var boundarySource = new GitPrChangeSource(maxChangedFiles: 3);
             var visited = 0;
             var fileCount = await boundarySource.VisitChangedFilesAsync(
                 directory,
-                baseSha,
                 headSha,
                 (_, _, _) =>
                 {
@@ -649,7 +734,6 @@ public class ScanPrUnicodeCommandTest
             var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
                 source.VisitChangedFilesAsync(
                     directory,
-                    baseSha,
                     headSha,
                     (_, _, _) => Task.FromResult(true),
                     TestContext.Current.CancellationToken));
@@ -669,26 +753,22 @@ public class ScanPrUnicodeCommandTest
         try
         {
             Directory.CreateDirectory(directory);
-            await RunGitAsync(directory, "init");
-            await RunGitAsync(directory, "config", "user.email", "test@example.com");
-            await RunGitAsync(directory, "config", "user.name", "Test User");
-            await RunGitAsync(directory, "config", "commit.gpgSign", "false");
+            await InitRepositoryAsync(directory);
 
             CreateFile(Path.Combine(directory, "README.md"), "base");
             await RunGitAsync(directory, "add", "--", "README.md");
             await RunGitAsync(directory, "commit", "-m", "base");
-            var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
 
-            CreateFile(Path.Combine(directory, "Changed.txt"), "changed");
-            await RunGitAsync(directory, "add", "--", "Changed.txt");
-            await RunGitAsync(directory, "commit", "-m", "head");
-            var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+            var headSha = await CheckoutPullRequestMergeAsync(directory, async () =>
+            {
+                CreateFile(Path.Combine(directory, "Changed.txt"), "changed");
+                await RunGitAsync(directory, "add", "--", "Changed.txt");
+            });
 
             var source = new GitPrChangeSource(maxDiffBytes: 1);
             var exception = await Assert.ThrowsAsync<ActionCommandException>(() =>
                 source.VisitChangedFilesAsync(
                     directory,
-                    baseSha,
                     headSha,
                     (_, _, _) => Task.FromResult(true),
                     TestContext.Current.CancellationToken));
@@ -731,11 +811,97 @@ public class ScanPrUnicodeCommandTest
         return stdout.Trim();
     }
 
+    private static async Task InitRepositoryAsync(string directory)
+    {
+        await RunGitAsync(directory, "init");
+        await RunGitAsync(directory, "config", "user.email", "test@example.com");
+        await RunGitAsync(directory, "config", "user.name", "Test User");
+        await RunGitAsync(directory, "config", "commit.gpgSign", "false");
+    }
+
+    // Commits the changes staged by stageHead as the PR head on top of HEAD, then checks out a GitHub-style
+    // refs/pull/<n>/merge commit whose first parent is the base branch tip and second parent is the PR head.
+    private static async Task<string> CheckoutPullRequestMergeAsync(
+        string directory,
+        Func<Task> stageHead,
+        Func<Task>? advanceBase = null)
+    {
+        var baseSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+        await RunGitAsync(directory, "checkout", "--quiet", "-b", "pull-request");
+        await stageHead();
+        await RunGitAsync(directory, "commit", "-m", "head");
+        var headSha = await RunGitAsync(directory, "rev-parse", "HEAD");
+
+        await RunGitAsync(directory, "checkout", "--quiet", "--detach", baseSha);
+        if (advanceBase is not null)
+            await advanceBase();
+        await RunGitAsync(directory, "merge", "--no-ff", "-m", "merge", headSha);
+        return headSha;
+    }
+
+    private static async Task<(string Origin, string MergeBaseSha, string HeadSha)> CreateAdvancedBasePullRequestOriginAsync(string origin)
+    {
+        Directory.CreateDirectory(origin);
+        await InitRepositoryAsync(origin);
+
+        CreateFile(Path.Combine(origin, "README.md"), "base");
+        await RunGitAsync(origin, "add", "--", "README.md");
+        await RunGitAsync(origin, "commit", "-m", "base");
+        var mergeBaseSha = await RunGitAsync(origin, "rev-parse", "HEAD");
+
+        var headSha = await CheckoutPullRequestMergeAsync(
+            origin,
+            async () =>
+            {
+                CreateFile(Path.Combine(origin, "Pr.cs"), "class Pr {}");
+                await RunGitAsync(origin, "add", "--", "Pr.cs");
+            },
+            async () =>
+            {
+                // Unrelated commits land on the base branch after the PR branched off.
+                CreateFile(Path.Combine(origin, "Advanced.cs"), "class Advanced {}");
+                await RunGitAsync(origin, "add", "--", "Advanced.cs");
+                await RunGitAsync(origin, "commit", "-m", "advance 1");
+                CreateFile(Path.Combine(origin, "README.md"), "advanced");
+                await RunGitAsync(origin, "add", "--", "README.md");
+                await RunGitAsync(origin, "commit", "-m", "advance 2");
+            });
+        await RunGitAsync(origin, "update-ref", "refs/pull/1/merge", "HEAD");
+        return (origin, mergeBaseSha, headSha);
+    }
+
+    // Mirrors actions/checkout for a pull_request event: fetch refs/pull/<n>/merge with fetch-depth and check it out.
+    private static async Task ShallowCheckoutPullRequestMergeAsync(string origin, string clone, int depth)
+    {
+        Directory.CreateDirectory(clone);
+        await RunGitAsync(clone, "init");
+        // A file:// URL is required for a local fetch to honor --depth.
+        await RunGitAsync(
+            clone,
+            "fetch", "--no-tags", $"--depth={depth}", new Uri(origin).AbsoluteUri,
+            "+refs/pull/1/merge:refs/remotes/pull/1/merge");
+        await RunGitAsync(clone, "checkout", "--quiet", "--detach", "refs/remotes/pull/1/merge");
+    }
+
+    private static string CreateEvent(string directory, string headSha)
+    {
+        var eventPath = Path.Combine(directory, "event.json");
+        CreateFile(eventPath, JsonSerializer.Serialize(new
+        {
+            pull_request = new
+            {
+                title = "Clean title",
+                body = "Clean body",
+                head = new { sha = headSha },
+            },
+        }));
+        return eventPath;
+    }
+
     private sealed class TestPrChangeSource(params PrChangedFile[] files) : IPrChangeSource
     {
         public async Task<int> VisitChangedFilesAsync(
             string repositoryPath,
-            string baseSha,
             string headSha,
             Func<PrChangedFile, Stream?, CancellationToken, Task<bool>> visitor,
             CancellationToken cancellationToken = default)
