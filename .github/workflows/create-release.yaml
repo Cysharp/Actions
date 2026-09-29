@@ -20,6 +20,19 @@ on:
         description: "tag: Git tag to create. (sample 1.0.0)"
         required: true
         type: string
+      # nuget (DEPRECATED due to https://github.com/NuGet/login/issues/6)
+      nuget-path:
+        description: "nuget path to upload. (DEPRECATED)"
+        required: false
+        type: string
+        default: |
+          ./nuget/*.nupkg
+          ./nuget/*.snupkg
+      nuget-push:
+        description: "nuget-push: true = upload nuget package. false = not upload (DEPRECATED, write your own NUGET Trusted publish step in your workflow instead.)"
+        required: false
+        type: boolean
+        default: false
       # release
       release-asset-path:
         description: "release assets path to upload. This is a list of paths separated by a newline."
@@ -59,6 +72,19 @@ on:
         description: "Git tag to create. (sample 1.0.0)"
         required: true
         type: string
+      # nuget (DEPRECATED due to https://github.com/NuGet/login/issues/6)
+      nuget-path:
+        description: "nuget path to upload. (DEPRECATED)"
+        required: false
+        type: string
+        default: |
+          ./nuget/*.nupkg
+          ./nuget/*.snupkg
+      nuget-push:
+        description: "nuget-push: true = upload nuget package. false = not upload (DEPRECATED, write your own NUGET Trusted publish step in your workflow instead.)"
+        required: false
+        type: boolean
+        default: false
       # release
       release-asset-path:
         description: "release assets path to upload. This is a list of paths separated by a newline."
