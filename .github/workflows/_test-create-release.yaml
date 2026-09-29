@@ -102,8 +102,7 @@ jobs:
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: ${{ needs.set-tag.outputs.tag }}
-      dry-run: true # true = Release作成後に60秒待って削除される。
-      nuget-push: true # dry-run=true, nuget-push=true なら nuget-pushは実行されない。
+      dry-run: true # true = Release will be created and then deleted after 60 seconds.
       release-upload: true
       release-asset-path: |
         ./nuget/*.nupkg
@@ -122,7 +121,7 @@ jobs:
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: ${{ needs.set-tag.outputs.tag }}
-      dry-run: true # true = Release作成後に60秒待って削除される。
+      dry-run: true # true = Release will be created and then deleted after 60 seconds.
       release-format: "{0}"
     secrets: inherit
 
@@ -137,7 +136,7 @@ jobs:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: v${{ needs.set-tag.outputs.tag }}
       release-format: "{0}"
-      dry-run: true # true = Release作成後に60秒待って削除される。
+      dry-run: true # true = Release will be created and then deleted after 60 seconds.
     secrets: inherit
 
   cleanup:
