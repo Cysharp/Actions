@@ -20,19 +20,6 @@ on:
         description: "tag: Git tag to create. (sample 1.0.0)"
         required: true
         type: string
-      # nuget
-      nuget-path:
-        description: "nuget path to upload. (DEPRECATED)"
-        required: false
-        type: string
-        default: |
-          ./nuget/*.nupkg
-          ./nuget/*.snupkg
-      nuget-push:
-        description: "nuget-push: true = upload nuget package. false = not upload (DEPRECATED, write your own NUGET Trusted publish step in your workflow instead.)"
-        required: false
-        type: boolean
-        default: false
       # release
       release-asset-path:
         description: "release assets path to upload. This is a list of paths separated by a newline."
@@ -72,19 +59,6 @@ on:
         description: "Git tag to create. (sample 1.0.0)"
         required: true
         type: string
-      # nuget
-      nuget-path:
-        description: "nuget path to upload. (DEPRECATED)"
-        required: false
-        type: string
-        default: |
-          ./nuget/*.nupkg
-          ./nuget/*.snupkg
-      nuget-push:
-        description: "nuget-push: true = upload nuget package. false = not upload (DEPRECATED, write your own NUGET Trusted publish step in your workflow instead.)"
-        required: false
-        type: boolean
-        default: false
       # release
       release-asset-path:
         description: "release assets path to upload. This is a list of paths separated by a newline."
@@ -199,24 +173,6 @@ jobs:
           RELEASE_ASSET_PATH: ${{ inputs.release-asset-path }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-
-      # Upload to NuGet
-      - name: Upload to NuGet (DryRun=${{ inputs.dry-run }})
-        if: ${{ inputs.nuget-push }}
-        run: |
-          dry_run_flag=""
-          if [[ "${DRY_RUN}" == "true" ]]; then
-            dry_run_flag="--dry-run"
-          fi
-          ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${NUGET_PATH}" --api-key "${NUGET_KEY}" ${dry_run_flag}
-        env:
-          DRY_RUN: ${{ inputs.dry-run }}
-          NUGET_PATH: ${{ inputs.nuget-path }}
-          NUGET_KEY: ${{ steps.op-load-secret.outputs.NUGET_KEY }}
-      # 2025/10/1: NuGet Trusted Publish for Org is not yet supported.
-      # run: ${{ steps.actions-caller.outputs.path }} nuget-push --nuget-path-string "${{ inputs.nuget-path }}" --api-key "${NUGET_KEY}" ${{ inputs.dry-run && '--dry-run' || '' }}
-      # env:
-      #   NUGET_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
 
       # Clean up
       - name: Clean up. Wait 60s and delete release if dry-run or failure. (dry-run=${{ inputs.dry-run }}})

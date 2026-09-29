@@ -54,7 +54,7 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
 | `benchmark-execute` | Provision benchmark infrastructure, execute benchmark matrix entries, and update PR/issue progress comments. | Inputs include `benchmark-name`, `benchmark-config-path`, `branch`. Requires the `benchmark` environment and 1Password/Azure secrets. |
 | `benchmark-cleanup` | Clean benchmark environments on schedule or on demand. | Inputs: `state`, `try-redeploy`, `no-delete`. Scheduled hourly in this repo. |
 | `clean-packagejson-branch` | Delete a temporary branch created by release/update automation. | Only deletes non-default branches created by `github-actions[bot]`. Input: `branch`. |
-| `create-release` | Validate a tag, create a GitHub release, optionally push NuGet packages, and optionally upload release assets. | Inputs include `commit-id`, `tag`, `dry-run`, `nuget-push`, `release-upload`, `release-asset-path`, `download-run-id`. Uses 1Password to load `NUGET_KEY` when NuGet push is enabled. |
+| `create-release` | Validate a tag, create a GitHub release and optionally upload release assets. | Inputs include `commit-id`, `tag`, `dry-run`, `release-upload`, `release-asset-path`, `download-run-id`. |
 | `dd-event-post` | Post an event to Datadog, typically for PR merge notifications. | Inputs include `title`, `text`, `event`, `additional-tags`, `alert-type`. |
 | `increment-version` | Increment a semantic version string and expose the computed version. | Inputs: `tag`, `type`, optional `prefix`, `suffix`, `ref`. Output: `version`. |
 | `prevent-github-change` | Fail PRs from forks when they modify `.github/**/*.yml` or `.github/**/*.yaml`. | Intended for policy enforcement around GitHub configuration changes. |
@@ -150,8 +150,6 @@ jobs:
       dry-run: ${{ inputs.dry-run }}
       # Guard to prevent accidentally releasing older tags.
       require-validation: true
-      # If true, NuGet push runs and NUGET_KEY is required.
-      nuget-push: false
       # If true, release-asset-path must be provided.
       release-upload: true
       release-asset-path: |
