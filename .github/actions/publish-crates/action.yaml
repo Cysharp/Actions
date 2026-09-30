@@ -1,0 +1,30 @@
+name: Publish crate
+description: Validate the crate version and publish using crates.io trusted publishing.
+inputs:
+  manifest-path:
+    description: Path to the package Cargo.toml in the checked-out release commit.
+    required: true
+  version:
+    description: Expected version from validate-release.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Validate crate version
+      shell: bash
+      run: |
+        manifest=$(realpath "$MANIFEST_PATH")
+        cargo metadata --no-deps --format-version 1 --manifest-path "$manifest" |
+          jq -e --arg manifest "$manifest" --arg version "$VERSION" \
+            '[.packages[] | select(.manifest_path == $manifest)] | length == 1 and .[0].version == $version'
+      env:
+        MANIFEST_PATH: ${{ inputs.manifest-path }}
+        VERSION: ${{ inputs.version }}
+    - uses: rust-lang/crates-io-auth-action@b7e9a28eded4986ec6b1fa40eeee8f8f165559ec # v1.0.3
+      id: auth
+    - name: Publish crate
+      shell: bash
+      run: cargo publish --manifest-path "$MANIFEST_PATH"
+      env:
+        MANIFEST_PATH: ${{ inputs.manifest-path }}
+        CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
