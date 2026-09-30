@@ -43,7 +43,6 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
     - [upload-artifact + download-artifact](#upload-artifact--download-artifact)
     - [unity-builder](#unity-builder)
 - [Notes](#notes)
-- [Release CLI migration](#release-cli-migration)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
