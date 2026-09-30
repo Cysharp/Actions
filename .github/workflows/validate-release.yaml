@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       tag: ${{ steps.validate.outputs.tag }}
-      version: ${{ steps.validate.outputs.normalized-tag }}
+      version: ${{ steps.validate.outputs.version }}
     steps:
       # Only the validator is needed; do not check out or execute caller code.
       # In this repository, test the current source instead of the main binary.
@@ -42,11 +42,11 @@ jobs:
         run: |
           if [[ "$GH_REPO" == "Cysharp/Actions" ]]; then
             dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile -- \
-              validate-tag --tag "$TAG" --require-validation
+              validate-release --tag "$TAG"
           else
             binary="./actions/Linux-${RUNNER_ARCH}/CysharpActions"
             chmod +x "$binary"
-            "$binary" validate-tag --tag "$TAG" --require-validation
+            "$binary" validate-release --tag "$TAG"
           fi
         env:
           TAG: ${{ inputs.tag }}

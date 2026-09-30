@@ -8,7 +8,7 @@ on:
         required: false
         type: string
       dry-run:
-        description: "dry-run: true = no upload. false = dry run changes && delete release after 60s."
+        description: "dry-run: true = create a draft and upload requested assets, then clean up resources created by this run."
         required: true
         type: boolean
       require-validation:
@@ -60,7 +60,7 @@ on:
         required: true
         type: string
       dry-run:
-        description: "true = no upload. false = dry run changes && delete release after 60s."
+        description: "true = create a draft and upload requested assets, then clean up resources created by this run."
         required: true
         type: boolean
       require-validation:
@@ -115,7 +115,6 @@ jobs:
     name: Create Release
     permissions:
       contents: write # required for creating release
-      id-token: write # required for NuGet Trusted Publish
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -131,7 +130,7 @@ jobs:
           ref: ${{ inputs.commit-id }}
       - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 9.0.x
       - name: Set Cysharp/Actions binary path
         id: actions-caller
         run: |
@@ -142,6 +141,13 @@ jobs:
           else
             echo path="dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile --" | tee -a "$GITHUB_OUTPUT"
           fi
+
+      - name: Prepare ownership journal path
+        id: release-state
+        shell: bash
+        run: |
+          directory=$(mktemp -d "$RUNNER_TEMP/create-release.XXXXXX")
+          echo "path=$directory/release-state.json" >> "$GITHUB_OUTPUT"
 
       # validate
       - name: Validate and normalize tag
@@ -163,28 +169,29 @@ jobs:
         run: ls -lR
       - name: Validate package exists in artifact - release assets
         if: ${{ inputs.release-upload }}
-        run: ${{ steps.actions-caller.outputs.path }} validate-file-exists --path-pattern-string "${RELEASE_ASSET_PATH}"
+        run: '${{ steps.actions-caller.outputs.path }} validate-file-exists --path-pattern-string "$RELEASE_ASSET_PATH"'
         env:
           RELEASE_ASSET_PATH: ${{ inputs.release-asset-path }}
       # Create Releases
       - name: Create Release
-        run: ${{ steps.actions-caller.outputs.path }} create-release --tag "${TAG}" --release-title "${RELEASE_TITLE}" --release-asset-path-string "${RELEASE_ASSET_PATH}"
+        run: '${{ steps.actions-caller.outputs.path }} prepare-release --tag "$TAG" --release-title "$RELEASE_TITLE" --state-path "$STATE_PATH" --release-asset-path-string "$RELEASE_ASSET_PATH"'
         env:
+          STATE_PATH: ${{ steps.release-state.outputs.path }}
           TAG: ${{ inputs.tag }}
           RELEASE_TITLE: ${{ format(inputs.release-format, inputs.tag) }}
-          RELEASE_ASSET_PATH: ${{ inputs.release-asset-path }}
+          RELEASE_ASSET_PATH: ${{ inputs.release-upload && inputs.release-asset-path || '' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
 
-      # Clean up
-      - name: Clean up. Wait 60s and delete release if dry-run or failure. (dry-run=${{ inputs.dry-run }}})
-        if: ${{ inputs.dry-run || failure() }}
+      # Never infer ownership from a matching tag or draft release listing.
+      - name: Clean up resources created by this run
+        if: ${{ always() && (inputs.dry-run || failure() || cancelled()) }}
+        shell: bash
         run: |
-          if gh release list | grep Draft | grep "${TAG}"; then
-            sleep 60
-            gh release delete "${TAG}" --yes --cleanup-tag
+          if [[ -n "$STATE_PATH" && -f "$STATE_PATH" ]]; then
+            ${{ steps.actions-caller.outputs.path }} cleanup-release --state-path "$STATE_PATH"
           fi
         env:
-          TAG: ${{ inputs.tag }}
+          STATE_PATH: ${{ steps.release-state.outputs.path }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}

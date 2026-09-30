@@ -96,13 +96,12 @@ jobs:
     needs: [set-tag, update-packagejson, build-dotnet, build-unity]
     permissions:
       contents: write
-      id-token: write
       pull-requests: write
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: ${{ needs.set-tag.outputs.tag }}
-      dry-run: true # true = Release will be created and then deleted after 60 seconds.
+      dry-run: true # true = Resources created by this run will be cleaned up.
       release-upload: true
       release-asset-path: |
         ./nuget/*.nupkg
@@ -116,12 +115,11 @@ jobs:
     needs: [set-tag, update-packagejson, create-release]
     permissions:
       contents: write
-      id-token: write
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: ${{ needs.set-tag.outputs.tag }}
-      dry-run: true # true = Release will be created and then deleted after 60 seconds.
+      dry-run: true # true = Resources created by this run will be cleaned up.
       release-format: "{0}"
     secrets: inherit
 
@@ -130,13 +128,12 @@ jobs:
     needs: [set-tag, update-packagejson, create-release2]
     permissions:
       contents: write
-      id-token: write
     uses: ./.github/workflows/create-release.yaml
     with:
       commit-id: ${{ needs.update-packagejson.outputs.sha }}
       tag: v${{ needs.set-tag.outputs.tag }}
       release-format: "{0}"
-      dry-run: true # true = Release will be created and then deleted after 60 seconds.
+      dry-run: true # true = Resources created by this run will be cleaned up.
     secrets: inherit
 
   cleanup:

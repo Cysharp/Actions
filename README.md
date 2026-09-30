@@ -62,7 +62,7 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
 | `pr-harness` | Apply shared PR security checks, including protected workflow files, dependency review, and forbidden Unicode scanning. | Trigger on `edited` as well as code-changing PR events so title/body edits are rescanned. |
 | `stale-issue` | Mark and close stale issues and PRs using `actions/stale`. | Current defaults: stale after 180 days, close 30 days later. |
 | `update-packagejson` | Normalize a release tag, update version-bearing files, optionally run project-specific `dotnet run -- --version {tag}`, and push the result. | Supports `package.json`, `plugin.cfg`, and `Directory.Build.props`. Outputs: `branch-name`, `is-branch-created`, `sha`. |
-| `validate-release` | Run the existing release tag validation before version updates or builds, without creating tags or releases. | Input: `tag`. Outputs: original `tag` and `version` with the leading `v` removed. Requires only `contents: read`; see validation limitations below. |
+| `validate-release` | Validate Git tag syntax, NuGet version syntax and release ordering before version updates or builds. | Input: `tag`. Outputs: original `tag` and `version` with the leading `v` removed. Requires only `contents: read`. |
 
 ### Usage examples
 
@@ -142,6 +142,8 @@ jobs:
 ```yaml
 jobs:
   create-release:
+    permissions:
+      contents: write
     uses: Cysharp/Actions/.github/workflows/create-release.yaml@main
     with:
       # Empty means current checked out commit.
@@ -160,9 +162,9 @@ jobs:
       release-format: v{0}
       # Empty means download artifacts from current run.
       download-run-id: ""
-    # Reusable workflow reads org/repo secrets (1Password/NuGet).
-    secrets: inherit
 ```
+
+`commit-id` must be the SHA used by the build jobs (the output SHA of `update-packagejson` when used). Existing lightweight and annotated tags must resolve to that SHA. An existing release causes failure. The workflow calls `prepare-release` using the existing CLI resolution (the downloaded action binary, or `dotnet run` as a fallback) and records resource ownership outside the artifact directory; dry runs and failures invoke `cleanup-release` using that journal. Cleanup preserves pre-existing tags and refuses to delete changed tags or published releases. Dry runs still create a draft and upload requested assets, then clean up immediately. Do not manually modify or publish a draft while its creating job is running.
 
 #### dd-event-post
 
@@ -322,9 +324,9 @@ jobs:
           VERSION: ${{ needs.validate-release.outputs.version }}
 ```
 
-This workflow calls the same `validate-tag --require-validation` command used by `update-packagejson` and `create-release`. It exposes `tag` unchanged and maps the CLI's `normalized-tag` output to `version` (for example, `v1.2.3` becomes `1.2.3`). It queries releases in the calling repository with its `GITHUB_TOKEN`; no inherited secrets or write permissions are needed. Validation failures fail the job and block dependent jobs.
+This workflow calls the `validate-release` CLI, running the current source in Cysharp/Actions and the distributed binary for callers. It exposes `tag` unchanged and `version` with one leading `v` removed (for example, `v1.2.3` becomes `1.2.3`). It queries releases in the calling repository with its `GITHUB_TOKEN`; no inherited secrets or write permissions are needed. Validation failures fail the job and block dependent jobs.
 
-It rejects an empty normalized tag and versions older than the latest stable release. It is **not** a strict Git-tag or package-version syntax validator.
+It validates Git ref syntax and NuGet version syntax and rejects versions older than the latest release using NuGet version ordering. MagicOnion skips only the ordering check to support multiple release lines. Tag-to-build SHA equality is checked later by `create-release`, after version updates and builds.
 
 ## Composite actions
 
@@ -335,11 +337,38 @@ It rejects an empty normalized tag and versions older than the latest stable rel
 | `check-metas` | Fail or report when untracked Unity `.meta` files exist. | Inputs: `directory`, optional `exit-on-error`. Output: `meta-exists`. |
 | `checkout` | SHA-pinned wrapper around `actions/checkout`. | Mirrors most `actions/checkout` inputs while centralizing the pinned version. |
 | `download-artifact` | SHA-pinned wrapper around `actions/download-artifact`. | Supports `name`, `path`, `pattern`, `merge-multiple`, `github-token`, `repository`, `run-id`. |
+| `publish-nuget` | Download, validate and publish NuGet packages using OIDC in the caller's job. | Required: `artifact-name`, `user`, `version`. Linux X64/ARM64. Optional: `dotnet-version` (9.0.x), `include-symbols` (true), `skip-duplicate` (true). |
 | `setup-dotnet` | Install one or more .NET SDKs and configure CI-friendly environment variables. | Defaults to .NET `6.0.x` through `10.0.x`. Optional `dotnet-quality`, `skip-env`. |
 | `unity-builder` | SHA-pinned wrapper around `game-ci/unity-builder`. | Inputs include `projectPath`, `unityVersion`, `targetPlatform`, `buildMethod`, `customParameters`, `versioning`. |
 | `upload-artifact` | SHA-pinned wrapper around `actions/upload-artifact`. | Default `if-no-files-found` is `error`, not `warn`. |
 
 ### Action examples
+
+#### publish-nuget
+
+Add this job after `validate-release`, the builds, and `create-release`. If `update-packagejson` changes sources, use its output SHA for every build and for `create-release`.
+
+```yaml
+jobs:
+  publish-package:
+    needs: [validate-release, create-release]
+    if: ${{ !inputs.dry-run }}
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: Cysharp/Actions/.github/actions/publish-nuget@main
+        with:
+          artifact-name: nuget
+          user: ${{ secrets.NUGET_USER }}
+          version: ${{ needs.validate-release.outputs.version }}
+```
+
+Configure NuGet trusted publishing for the calling repository's release workflow. The composite installs the publishing SDK and the .NET 9 runtime required by the distributed CLI; no caller checkout is required. It downloads only the named artifact from the current run to an isolated directory. Put `.nupkg` and optional `.snupkg` files at the artifact root and retain the artifact long enough for retries (for example, seven days).
+
+Before authentication, the CLI requires at least one `.nupkg` and checks the nuspec version in every package, including symbols, using NuGet version equality without build metadata. Missing, corrupt or mismatched packages fail the job. Symbols are optional, but invalid symbol packages must be removed during the build. `include-symbols: 'false'` disables symbol publication, including automatic sibling symbol upload. `skip-duplicate: 'true'` permits already published versions; it does not prove their contents match. The temporary NuGet API key is used within the composite and is not exposed as an output. Skip the entire caller job during dry runs so OIDC authentication is also skipped.
 
 #### benchmark-progress-comment
 
