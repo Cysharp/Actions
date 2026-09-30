@@ -81,15 +81,29 @@ public sealed class ReleaseLifecycleCommand(RunProcess? runProcess = null)
     {
         credentials.Validate();
         // Missing, corrupt or uncertain ownership is never a reason to delete remote resources.
+        GitHubActions.WriteLog($"Release ownership journal: {statePath}");
         var state = JsonSerializer.Deserialize(File.ReadAllText(statePath), ReleaseStateJson.Default.ReleaseState)
             ?? throw new ActionCommandException("Missing release ownership state.");
+        using (GitHubActions.StartGroup("Recorded release ownership before cleanup"))
+        {
+            GitHubActions.WriteLog($"SchemaVersion: {state.SchemaVersion}");
+            GitHubActions.WriteLog($"Repository: {state.Repository}");
+            GitHubActions.WriteLog($"Tag: {state.Tag}");
+            GitHubActions.WriteLog($"CommitSha (build commit): {state.CommitSha}");
+            GitHubActions.WriteLog($"TagObjectSha (expected remote tag object): {state.TagObjectSha}");
+            GitHubActions.WriteLog($"CreatedTag (created by this run and not yet deleted): {state.CreatedTag}");
+            GitHubActions.WriteLog($"ReleaseId (created by this run and not yet deleted): {state.ReleaseId?.ToString() ?? "none"}");
+        }
         if (state.SchemaVersion != 1 || state.Repository != credentials.Repository)
             throw new ActionCommandException("Release ownership state does not match this repository.");
         ValidateReleaseCommand.ParseTag(state.Tag);
         ValidateSha(state.CommitSha);
         await run(new CommandSpec("git", ["check-ref-format", $"refs/tags/{state.Tag}"]), cancellationToken);
         if (!state.CreatedTag && state.ReleaseId is null)
+        {
+            GitHubActions.WriteLog("No owned resources remain to clean up.");
             return;
+        }
         ValidateSha(state.TagObjectSha);
         if (state.CreatedTag && state.TagObjectSha != state.CommitSha)
             throw new ActionCommandException("Created tag ownership does not match the recorded commit.");
@@ -109,6 +123,7 @@ public sealed class ReleaseLifecycleCommand(RunProcess? runProcess = null)
             await run(new CommandSpec("gh", ["api", endpoint, "--method", "DELETE"]), cancellationToken);
             state.ReleaseId = null;
             Save(statePath, state);
+            GitHubActions.WriteLog($"Deleted owned draft release: {id}");
         }
         if (state.CreatedTag)
         {
@@ -120,7 +135,13 @@ public sealed class ReleaseLifecycleCommand(RunProcess? runProcess = null)
             }
             state.CreatedTag = false;
             Save(statePath, state);
+            GitHubActions.WriteLog($"Owned tag removed or already absent: {state.Tag}");
         }
+        else
+        {
+            GitHubActions.WriteLog($"Preserved pre-existing tag: {state.Tag}");
+        }
+        GitHubActions.WriteLog("Cleanup completed. No owned resources remain in the journal.");
     }
 
     private async Task<string?> RemoteTagAsync(string tag, CancellationToken cancellationToken)
