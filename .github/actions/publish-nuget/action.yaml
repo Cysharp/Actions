@@ -1,0 +1,81 @@
+name: Publish NuGet packages
+description: Validate a same-run package artifact, authenticate with NuGet OIDC, and publish it.
+inputs:
+  artifact-name:
+    description: Name of the current workflow run's artifact containing packages at its root.
+    required: true
+  user:
+    description: NuGet user associated with the trusted publishing policy.
+    required: true
+  version:
+    description: Expected package version from validate-release.
+    required: true
+  dotnet-version:
+    description: SDK used for publishing. The CLI also requires the .NET 9 runtime.
+    default: 9.0.x
+  include-symbols:
+    description: Publish snupkg files when present.
+    default: "true"
+  skip-duplicate:
+    description: Skip already published versions; this does not verify identical package contents.
+    default: "true"
+runs:
+  using: composite
+  steps:
+    - name: Prepare isolated package directory
+      id: packages
+      shell: bash
+      run: |
+        [[ -n "$ARTIFACT_NAME" && -n "$NUGET_USER" && -n "$VERSION" ]]
+        [[ "$INCLUDE_SYMBOLS" == true || "$INCLUDE_SYMBOLS" == false ]]
+        [[ "$SKIP_DUPLICATE" == true || "$SKIP_DUPLICATE" == false ]]
+        echo "path=$(mktemp -d "$RUNNER_TEMP/publish-nuget.XXXXXX")" >> "$GITHUB_OUTPUT"
+      env:
+        ARTIFACT_NAME: ${{ inputs.artifact-name }}
+        NUGET_USER: ${{ inputs.user }}
+        VERSION: ${{ inputs.version }}
+        INCLUDE_SYMBOLS: ${{ inputs.include-symbols }}
+        SKIP_DUPLICATE: ${{ inputs.skip-duplicate }}
+    - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+      with:
+        dotnet-version: |
+          9.0.x
+          ${{ inputs.dotnet-version }}
+    - uses: Cysharp/Actions/.github/actions/download-artifact@main
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ steps.packages.outputs.path }}
+    - name: Validate all package versions before authentication
+      shell: bash
+      run: |
+        binary="$ACTION_PATH/../../../actions/Linux-${RUNNER_ARCH}/CysharpActions"
+        chmod +x "$binary"
+        "$binary" validate-package-versions --directory "$PACKAGE_DIRECTORY" --version "$VERSION"
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        PACKAGE_DIRECTORY: ${{ steps.packages.outputs.path }}
+        VERSION: ${{ inputs.version }}
+    - uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+      id: login
+      with:
+        user: ${{ inputs.user }}
+    - name: Push packages
+      shell: bash
+      run: |
+        shopt -s nullglob
+        packages=("$PACKAGE_DIRECTORY"/*.nupkg)
+        args=(--source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --no-symbols)
+        if [[ "$SKIP_DUPLICATE" == true ]]; then
+          args+=(--skip-duplicate)
+        fi
+        if [[ "$INCLUDE_SYMBOLS" == true ]]; then
+          packages+=("$PACKAGE_DIRECTORY"/*.snupkg)
+        fi
+        for package in "${packages[@]}"; do
+          dotnet nuget push "$package" "${args[@]}"
+        done
+      env:
+        PACKAGE_DIRECTORY: ${{ steps.packages.outputs.path }}
+        INCLUDE_SYMBOLS: ${{ inputs.include-symbols }}
+        SKIP_DUPLICATE: ${{ inputs.skip-duplicate }}
+        NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
