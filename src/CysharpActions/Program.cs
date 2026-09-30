@@ -137,15 +137,57 @@ namespace CysharpActions
             GitHubActions.WriteLog($"Pretty print Matrix json for debug:\n{prettyJson}");
         }
 
+        /// <summary>Validate release tag syntax and NuGet version ordering.</summary>
+        /// <param name="tag">Git tag, optionally prefixed with v.</param>
+        [Command("validate-release")]
+        public async Task ValidateRelease(string tag, CancellationToken cancellationToken)
+        {
+            environment.ValidateGitHubCli();
+            var version = await new ValidateReleaseCommand(new GitHubReleaseExeGh())
+                .ValidateAsync(tag, environment.Repository, cancellationToken);
+            GitHubActions.SetOutput("tag", tag);
+            GitHubActions.SetOutput("version", version);
+        }
+
+        /// <summary>Check package versions before publishing.</summary>
+        /// <param name="directory">Directory containing nupkg and optional snupkg files.</param>
+        /// <param name="version">Expected version, optionally prefixed with v.</param>
+        [Command("validate-package-versions")]
+        public void ValidatePackageVersions(string directory, string version)
+            => ValidateReleaseCommand.ValidatePackages(directory, version);
+
+        /// <summary>Create a draft at HEAD and record resource ownership for cleanup.</summary>
+        /// <param name="tag">Git release tag.</param>
+        /// <param name="releaseTitle">Release title.</param>
+        /// <param name="statePath">New local JSON journal path. Must not already exist.</param>
+        /// <param name="releaseAssetPathString">Newline-delimited release asset paths.</param>
+        [Command("prepare-release")]
+        public async Task PrepareRelease(string tag, string releaseTitle, string statePath, CancellationToken cancellationToken, string releaseAssetPathString = "")
+        {
+            environment.ValidateGitHubCli();
+            await new ReleaseLifecycleCommand().CreateAsync(tag, releaseTitle, statePath, environment.GitHubCredentials, cancellationToken);
+            await new CreateReleaseCommand(tag, releaseTitle).UploadAssetFilesAsync(releaseAssetPathString.ToMultiLine(), cancellationToken);
+        }
+
+        /// <summary>Delete only draft and tag resources owned by a release journal.</summary>
+        /// <param name="statePath">Local journal written by prepare-release in this workflow run.</param>
+        [Command("cleanup-release")]
+        public async Task CleanupRelease(string statePath, CancellationToken cancellationToken)
+        {
+            environment.ValidateGitHubCli();
+            await new ReleaseLifecycleCommand().CleanupAsync(statePath, environment.GitHubCredentials, cancellationToken);
+        }
+
         // Create Release
 
         /// <summary>
-        /// Validate Tag and remove v prefix if exists
+        /// Deprecated: use validate-release. Scheduled for removal after all callers migrate.
         /// </summary>
         /// <param name="tag">version string. ex) 1.0.0 OR v1.0.0</param>
         /// <param name="requireValidation">Set true to exit 1 on fail. Set false to exit 0 even fail.</param>
         /// <returns></returns>
         [Command("validate-tag")]
+        [Obsolete("Use validate-release. validate-tag will be removed after all callers migrate.")]
         public async Task ValidateTag(string tag, bool requireValidation, CancellationToken cancellationToken)
         {
             environment.ValidateGitHubCli();
@@ -211,12 +253,13 @@ namespace CysharpActions
         }
 
         /// <summary>
-        /// Create Release
+        /// Deprecated: use prepare-release and cleanup-release. Scheduled for removal after all callers migrate.
         /// </summary>
         /// <param name="tag">version string. ex) 1.0.0</param>
         /// <param name="releaseTitle">Release title</param>
         /// <param name="releaseAssetPathString">Release assets to upload</param>
         [Command("create-release")]
+        [Obsolete("Use prepare-release and cleanup-release. create-release will be removed after all callers migrate.")]
         public async Task CreateRelease(string tag, string releaseTitle, string releaseAssetPathString, CancellationToken cancellationToken)
         {
             environment.ValidateGitHubCli();

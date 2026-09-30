@@ -3,6 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="NuGet.Versioning" Version="7.6.0" />
     <PackageVersion Include="ConsoleAppFramework" Version="5.7.11" />
     <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.0" />
     <PackageVersion Include="ProcessX" Version="1.5.6" />

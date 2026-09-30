@@ -17,15 +17,19 @@ public class CliContractTest
             [
                 "benchmark-config2matrix",
                 "benchmark-loader2matrix",
+                "cleanup-release",
                 "create-dummy",
                 "create-release",
                 "delete-branch",
                 "increment-version",
                 "nuget-push",
+                "prepare-release",
                 "scan-pr-unicode",
                 "update-version",
                 "validate-file-exists",
                 "validate-nupkg-exists",
+                "validate-package-versions",
+                "validate-release",
                 "validate-tag",
             ],
             ParseCommands(result.Stdout));
@@ -42,6 +46,48 @@ public class CliContractTest
         Assert.Contains("--dry-run", result.Stdout, StringComparison.Ordinal);
         Assert.Contains("--additional-commit-path-string <string>", result.Stdout, StringComparison.Ordinal);
         Assert.Contains("--sign <bool>", result.Stdout, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("v1.2.3-preview.1", true)]
+    [InlineData("not-a-version", false)]
+    [InlineData("1.2.3-lock.lock", false)]
+    public async Task ReleaseValidationExitCodeAndOutputsTest(string tag, bool success)
+    {
+        var outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".txt");
+        try
+        {
+            var result = await RunCliAsync(["validate-release", "--tag", tag], new Dictionary<string, string?>
+            {
+                ["CI"] = "true",
+                ["GH_REPO"] = "Cysharp/MagicOnion",
+                ["GITHUB_REPOSITORY"] = "Cysharp/MagicOnion",
+                ["GH_TOKEN"] = "unused-format-validation-token",
+                ["GITHUB_OUTPUT"] = outputPath,
+            });
+            if (success)
+            {
+                Assert.Equal(0, result.ExitCode);
+                Assert.Equal(["tag=v1.2.3-preview.1", "version=1.2.3-preview.1"], File.ReadAllLines(outputPath));
+            }
+            else
+            {
+                Assert.NotEqual(0, result.ExitCode);
+                Assert.False(File.Exists(outputPath));
+            }
+        }
+        finally { File.Delete(outputPath); }
+    }
+
+    [Theory]
+    [InlineData("prepare-release", "--state-path <string>")]
+    [InlineData("cleanup-release", "--state-path <string>")]
+    [InlineData("validate-package-versions", "--directory <string>")]
+    public async Task ReleaseCommandsExposeRequiredOptions(string command, string option)
+    {
+        var result = await RunCliAsync([command, "--help"]);
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains(option, result.Stdout, StringComparison.Ordinal);
     }
 
     [Fact]

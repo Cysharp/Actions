@@ -10,10 +10,11 @@ public class CreateReleaseCommand(string tag, string releaseTitle, RunProcess? r
     private readonly RunProcess runProcess = runProcess ?? ProcessRunner.RunAsync;
 
     /// <summary>
-    /// Create GitHub Release
+    /// Create a GitHub release using the legacy workflow contract. Scheduled for removal after migration.
     /// </summary>
     /// <returns></returns>
     /// <exception cref="ActionCommandException"></exception>
+    [Obsolete("Use ReleaseLifecycleCommand.CreateAsync and CleanupAsync. This legacy creation method will be removed after all callers migrate.")]
     public async Task CreateReleaseAsync(GitHubCredentials credentials, CancellationToken cancellationToken = default)
     {
         GitHubActions.WriteLog($"Set git user.email/user.name if missing ...");
