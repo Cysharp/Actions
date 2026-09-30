@@ -1,0 +1,41 @@
+name: Test validate-release
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  validate-plain:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/validate-release.yaml
+    with:
+      tag: "999999.0.0"
+
+  validate-prefixed-prerelease:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/validate-release.yaml
+    with:
+      tag: "v999999.0.0-preview.1"
+
+  test:
+    needs: [validate-plain, validate-prefixed-prerelease]
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Verify workflow outputs
+        shell: bash
+        run: |
+          [[ "$PLAIN_TAG" == "999999.0.0" ]]
+          [[ "$PLAIN_VERSION" == "999999.0.0" ]]
+          [[ "$PREFIXED_TAG" == "v999999.0.0-preview.1" ]]
+          [[ "$PREFIXED_VERSION" == "999999.0.0-preview.1" ]]
+        env:
+          PLAIN_TAG: ${{ needs.validate-plain.outputs.tag }}
+          PLAIN_VERSION: ${{ needs.validate-plain.outputs.version }}
+          PREFIXED_TAG: ${{ needs.validate-prefixed-prerelease.outputs.tag }}
+          PREFIXED_VERSION: ${{ needs.validate-prefixed-prerelease.outputs.version }}
