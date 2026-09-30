@@ -339,37 +339,12 @@ It validates Git ref syntax and NuGet version syntax and rejects versions older 
 | `checkout` | SHA-pinned wrapper around `actions/checkout`. | Mirrors most `actions/checkout` inputs while centralizing the pinned version. |
 | `download-artifact` | SHA-pinned wrapper around `actions/download-artifact`. | Supports `name`, `path`, `pattern`, `merge-multiple`, `github-token`, `repository`, `run-id`. |
 | `publish-nuget` | Download, validate and publish NuGet packages using OIDC in the caller's job. | Required: `artifact-name`, `user`, `version`. Linux X64/ARM64. Optional: `dotnet-version` (9.0.x), `include-symbols` (true), `skip-duplicate` (true). |
+| `publish-crates` | Validate the crate version and publish using OIDC. | Required: `manifest-path`, `version`. Caller provides the release checkout, Cargo, jq and `id-token: write`. |
 | `setup-dotnet` | Install one or more .NET SDKs and configure CI-friendly environment variables. | Defaults to .NET `6.0.x` through `10.0.x`. Optional `dotnet-quality`, `skip-env`. |
 | `unity-builder` | SHA-pinned wrapper around `game-ci/unity-builder`. | Inputs include `projectPath`, `unityVersion`, `targetPlatform`, `buildMethod`, `customParameters`, `versioning`. |
 | `upload-artifact` | SHA-pinned wrapper around `actions/upload-artifact`. | Default `if-no-files-found` is `error`, not `warn`. |
 
 ### Action examples
-
-#### publish-nuget
-
-Add this job after `validate-release`, the builds, and `create-release`. If `update-packagejson` changes sources, use its output SHA for every build and for `create-release`.
-
-```yaml
-jobs:
-  publish-package:
-    needs: [validate-release, create-release]
-    if: ${{ !inputs.dry-run }}
-    permissions:
-      contents: read
-      id-token: write
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: Cysharp/Actions/.github/actions/publish-nuget@main
-        with:
-          artifact-name: nuget
-          user: ${{ secrets.NUGET_USER }}
-          version: ${{ needs.validate-release.outputs.version }}
-```
-
-Configure NuGet trusted publishing for the calling repository's release workflow. The composite installs the publishing SDK and the .NET 9 runtime required by the distributed CLI; no caller checkout is required. It downloads only the named artifact from the current run to an isolated directory. Put `.nupkg` and optional `.snupkg` files at the artifact root and retain the artifact long enough for retries (for example, seven days).
-
-Before authentication, the CLI requires at least one `.nupkg` and checks the nuspec version in every package, including symbols, using NuGet version equality without build metadata. Missing, corrupt or mismatched packages fail the job. Symbols are optional, but invalid symbol packages must be removed during the build. `include-symbols: 'false'` disables symbol publication, including automatic sibling symbol upload. `skip-duplicate: 'true'` permits already published versions; it does not prove their contents match. The temporary NuGet API key is used within the composite and is not exposed as an output. Skip the entire caller job during dry runs so OIDC authentication is also skipped.
 
 #### benchmark-progress-comment
 
@@ -425,6 +400,52 @@ steps:
       # Keep true in CI to fail immediately on untracked .meta files.
       exit-on-error: "true"
 ```
+
+#### publish-crates
+
+Run this composite after `create-release` succeeds, using the same checkout SHA
+as the builds. The manifest must identify one package, not a virtual workspace.
+
+```yaml
+steps:
+  # Check out the release commit before this step.
+  - uses: Cysharp/Actions/.github/actions/publish-crates@main
+    with:
+      manifest-path: csbindgen/Cargo.toml
+      version: ${{ needs.validate-release.outputs.version }}
+```
+
+The composite checks the manifest version with `cargo metadata`, obtains a crates.io OIDC token, and runs `cargo publish --manifest-path`. It does not add registry queries, checksum comparisons, toolchain installation, or lock-file management. Cargo publication errors, including an already published version,
+fail the step.
+
+Configure trusted publishing for the calling workflow and give its job `contents: read` and `id-token: write`. Skip the entire job during dry runs.
+Publication across crates.io and NuGet is not atomic. Do not blindly retry a combined publication job after the crate has already been published.
+
+#### publish-nuget
+
+Add this job after `validate-release`, the builds, and `create-release`. If `update-packagejson` changes sources, use its output SHA for every build and for `create-release`.
+
+```yaml
+jobs:
+  publish-package:
+    needs: [validate-release, create-release]
+    if: ${{ !inputs.dry-run }}
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: Cysharp/Actions/.github/actions/publish-nuget@main
+        with:
+          artifact-name: nuget
+          user: ${{ secrets.NUGET_USER }}
+          version: ${{ needs.validate-release.outputs.version }}
+```
+
+Configure NuGet trusted publishing for the calling repository's release workflow. The composite installs the publishing SDK and the .NET 9 runtime required by the distributed CLI; no caller checkout is required. It downloads only the named artifact from the current run to an isolated directory. Put `.nupkg` and optional `.snupkg` files at the artifact root and retain the artifact long enough for retries (for example, seven days).
+
+Before authentication, the CLI requires at least one `.nupkg` and checks the nuspec version in every package, including symbols, using NuGet version equality without build metadata. Missing, corrupt or mismatched packages fail the job. Symbols are optional, but invalid symbol packages must be removed during the build. `include-symbols: 'false'` disables symbol publication, including automatic sibling symbol upload. `skip-duplicate: 'true'` permits already published versions; it does not prove their contents match. The temporary NuGet API key is used within the composite and is not exposed as an output. Skip the entire caller job during dry runs so OIDC authentication is also skipped.
 
 #### setup-dotnet
 
