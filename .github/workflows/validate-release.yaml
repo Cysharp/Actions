@@ -1,0 +1,54 @@
+name: (R) Validate Release
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "Git tag to validate. (sample 1.0.0 or v1.0.0)"
+        required: true
+        type: string
+    outputs:
+      tag:
+        description: "Original Git tag, including its optional v prefix."
+        value: ${{ jobs.validate-release.outputs.tag }}
+      version:
+        description: "Version with the optional leading v removed."
+        value: ${{ jobs.validate-release.outputs.version }}
+
+jobs:
+  validate-release:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.validate.outputs.tag }}
+      version: ${{ steps.validate.outputs.normalized-tag }}
+    steps:
+      # Only the validator is needed; do not check out or execute caller code.
+      # In this repository, test the current source instead of the main binary.
+      - uses: Cysharp/Actions/.github/actions/checkout@main
+        with:
+          repository: Cysharp/Actions
+          ref: ${{ github.repository == 'Cysharp/Actions' && github.sha || 'main' }}
+
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Validate and normalize tag
+        id: validate
+        shell: bash
+        run: |
+          if [[ "$GH_REPO" == "Cysharp/Actions" ]]; then
+            dotnet run --project ./src/CysharpActions/CysharpActions.csproj --no-launch-profile -- \
+              validate-tag --tag "$TAG" --require-validation
+          else
+            binary="./actions/Linux-${RUNNER_ARCH}/CysharpActions"
+            chmod +x "$binary"
+            "$binary" validate-tag --tag "$TAG" --require-validation
+          fi
+        env:
+          TAG: ${{ inputs.tag }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

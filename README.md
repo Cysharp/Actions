@@ -32,6 +32,7 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
     - [pr-harness](#pr-harness)
     - [stale-issue](#stale-issue)
     - [update-packagejson](#update-packagejson)
+    - [validate-release](#validate-release)
 - [Composite actions](#composite-actions)
   - [Action examples](#action-examples)
     - [benchmark-progress-comment](#benchmark-progress-comment)
@@ -61,6 +62,7 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
 | `pr-harness` | Apply shared PR security checks, including protected workflow files, dependency review, and forbidden Unicode scanning. | Trigger on `edited` as well as code-changing PR events so title/body edits are rescanned. |
 | `stale-issue` | Mark and close stale issues and PRs using `actions/stale`. | Current defaults: stale after 180 days, close 30 days later. |
 | `update-packagejson` | Normalize a release tag, update version-bearing files, optionally run project-specific `dotnet run -- --version {tag}`, and push the result. | Supports `package.json`, `plugin.cfg`, and `Directory.Build.props`. Outputs: `branch-name`, `is-branch-created`, `sha`. |
+| `validate-release` | Run the existing release tag validation before version updates or builds, without creating tags or releases. | Input: `tag`. Outputs: original `tag` and `version` with the leading `v` removed. Requires only `contents: read`; see validation limitations below. |
 
 ### Usage examples
 
@@ -294,6 +296,35 @@ jobs:
       # Output of update-packagejson workflow.
       branch: ${{ needs.update-packagejson.outputs.branch-name }}
 ```
+
+#### validate-release
+
+```yaml
+jobs:
+  validate-release:
+    permissions:
+      contents: read
+    uses: Cysharp/Actions/.github/workflows/validate-release.yaml@main
+    with:
+      tag: ${{ inputs.tag }}
+
+  build:
+    needs: [validate-release]
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: Cysharp/Actions/.github/actions/checkout@main
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+      - run: dotnet build -c Release -p:Version="$VERSION"
+        env:
+          VERSION: ${{ needs.validate-release.outputs.version }}
+```
+
+This workflow calls the same `validate-tag --require-validation` command used by `update-packagejson` and `create-release`. It exposes `tag` unchanged and maps the CLI's `normalized-tag` output to `version` (for example, `v1.2.3` becomes `1.2.3`). It queries releases in the calling repository with its `GITHUB_TOKEN`; no inherited secrets or write permissions are needed. Validation failures fail the job and block dependent jobs.
+
+It rejects an empty normalized tag and versions older than the latest stable release. It is **not** a strict Git-tag or package-version syntax validator.
 
 ## Composite actions
 
