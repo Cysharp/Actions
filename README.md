@@ -35,6 +35,7 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
     - [validate-release](#validate-release)
 - [Composite actions](#composite-actions)
   - [Action examples](#action-examples)
+    - [publish-nuget](#publish-nuget)
     - [benchmark-progress-comment](#benchmark-progress-comment)
     - [benchmark-runnable](#benchmark-runnable)
     - [checkout](#checkout)
