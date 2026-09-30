@@ -34,6 +34,7 @@ public class GitHubReleaseExeGh(RunProcess? runProcess = null) : IGitHubReleaseE
     }
 }
 
+[Obsolete("Use ValidateReleaseCommand. This legacy validator will be removed after all callers migrate.")]
 public class ValidateTagCommand(IGitHubReleaseExe gitHubRelaeseExe)
 {
     /// <summary>

@@ -55,6 +55,21 @@ jobs:
           output_file="${RUNNER_TEMP}/generated-binary-output.txt"
           GITHUB_OUTPUT="${output_file}" ./actions/Linux-X64/CysharpActions increment-version --version 1.2.3 --type patch
           grep -Fxq "version=1.2.4" "${output_file}"
+      - name: Smoke test release commands
+        run: |
+          binary="./actions/Linux-X64/CysharpActions"
+          "$binary" prepare-release --help | grep -Fq -- "--state-path"
+          "$binary" cleanup-release --help | grep -Fq -- "--state-path"
+          "$binary" validate-package-versions --help | grep -Fq -- "--directory"
+          release_output="${RUNNER_TEMP}/release-validation-output.txt"
+          GH_REPO=Cysharp/MagicOnion GITHUB_REPOSITORY=Cysharp/MagicOnion GH_TOKEN=unused \
+            GITHUB_OUTPUT="$release_output" "$binary" validate-release --tag v1.2.3-preview.1
+          grep -Fxq "version=1.2.3-preview.1" "$release_output"
+          if GH_REPO=Cysharp/MagicOnion GITHUB_REPOSITORY=Cysharp/MagicOnion GH_TOKEN=unused \
+            "$binary" validate-release --tag invalid; then
+            echo "::error::Invalid release version was accepted."
+            exit 1
+          fi
       - name: Validate generated architectures
         run: |
           file ./actions/Linux-X64/CysharpActions
