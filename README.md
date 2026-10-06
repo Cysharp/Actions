@@ -30,7 +30,6 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
     - [increment-version](#increment-version)
     - [prevent-github-change](#prevent-github-change)
     - [pr-harness](#pr-harness)
-    - [stale-issue](#stale-issue)
     - [update-packagejson](#update-packagejson)
     - [validate-release](#validate-release)
 - [Composite actions](#composite-actions)
