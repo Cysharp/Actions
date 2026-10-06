@@ -3,6 +3,7 @@ name: (R) PR Harness Check
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, edited]
   workflow_call:
     inputs:
       license-check:
@@ -54,7 +55,7 @@ jobs:
               per_page: 100,
             });
 
-            const changedFiles = files.map(file => file.filename);
+            const changedFiles = files.flatMap(file => [file.filename, file.previous_filename].filter(Boolean));
             const isExternalPr = pr.head.repo.full_name !== pr.base.repo.full_name;
 
             if (!isExternalPr) {
@@ -62,12 +63,7 @@ jobs:
               return;
             }
 
-            const blocked = changedFiles.filter(name =>
-              /^\.github\/workflows\/.*\.ya?ml$/.test(name) ||
-              /^\.github\/actions\/.*$/.test(name) ||
-              /^\.github\/dependabot\.ya?ml$/.test(name) ||
-              name === ".github/CODEOWNERS"
-            );
+            const blocked = changedFiles.filter(name => name.startsWith(".github/"));
 
             if (blocked.length > 0) {
               core.setFailed(
@@ -135,7 +131,7 @@ jobs:
           ${{ steps.actions-caller.outputs.path }} scan-pr-unicode --event-path "${GITHUB_EVENT_PATH}" --repository-path "${GITHUB_WORKSPACE}"
 
   license-check-preflight:
-    if: ${{ inputs.license-check || github.repository == 'Cysharp/Actions' }}
+    if: ${{ (inputs.license-check || github.repository == 'Cysharp/Actions') }}
     needs: [prevent-githubactions-changes]
     permissions:
       contents: read

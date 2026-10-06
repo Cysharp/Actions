@@ -60,7 +60,7 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
 | `dd-event-post` | Post an event to Datadog, typically for PR merge notifications. | Inputs include `title`, `text`, `event`, `additional-tags`, `alert-type`. |
 | `increment-version` | Increment a semantic version string and expose the computed version. | Inputs: `tag`, `type`, optional `prefix`, `suffix`, `ref`. Output: `version`. |
 | `prevent-github-change` | Fail PRs from forks when they modify `.github/**/*.yml` or `.github/**/*.yaml`. | Intended for policy enforcement around GitHub configuration changes. |
-| `pr-harness` | Apply shared PR security checks, including protected workflow files, dependency review, and forbidden Unicode scanning. | Trigger on `edited` as well as code-changing PR events so title/body edits are rescanned. |
+| `pr-harness` | Run protected `.github/` checks, dependency review, and forbidden Unicode checks. | Trigger on `edited` as well as code-changing PR events so title/body edits are rescanned. |
 | `stale-issue` | Mark and close stale issues and PRs using `actions/stale`. | Current defaults: stale after 180 days, close 30 days later. |
 | `update-packagejson` | Normalize a release tag, update version-bearing files, optionally run project-specific `dotnet run -- --version {tag}`, and push the result. | Supports `package.json`, `plugin.cfg`, and `Directory.Build.props`. Outputs: `branch-name`, `is-branch-created`, `sha`. |
 | `validate-release` | Validate Git tag syntax, NuGet version syntax and release ordering before version updates or builds. | Input: `tag`. Outputs: original `tag` and `version` with the leading `v` removed. Requires only `contents: read`. |
@@ -201,25 +201,11 @@ jobs:
       suffix: -dev
 ```
 
-#### prevent-github-change
-
-```yaml
-on:
-  pull_request:
-    paths:
-      # Run only when GitHub config files are touched.
-      - ".github/**/*.yaml"
-      - ".github/**/*.yml"
-
-jobs:
-  detect:
-    # Reusable workflow blocks fork PR changes to .github files.
-    uses: Cysharp/Actions/.github/workflows/prevent-github-change.yaml@main
-```
-
 #### pr-harness
 
 ```yaml
+name: PR Harness
+
 on:
   pull_request:
     # `edited` is required to rescan PR title/body changes.
@@ -232,6 +218,12 @@ jobs:
       pull-requests: read
     uses: Cysharp/Actions/.github/workflows/pr-harness.yaml@main
 ```
+
+Automatic closure is managed centrally by `.github/workflows/_close-external-github-changes.yaml` in Cysharp/Actions. It runs daily at 12:17 JST (03:17 UTC), independently of each repository's PR checks. The `pre` job lists eligible repositories as a JSON array, then a matrix runs one policy job per repository with up to four jobs in parallel. `fail-fast: false` allows other repositories to finish even if one fails. No additional closure workflow is required in OSS repositories. A manual `workflow_dispatch` supports `dry-run` (enabled by default); scheduled runs enforce the policy.
+
+The central job scans open PRs, including drafts, in all public, non-archived, enabled Cysharp repositories. PR authors who are current Cysharp organization members are exempt, including members contributing from forks. Other authors' changes to any file under `.github/` are rejected, including deletions and renames out of the directory. Bot authors follow the same membership policy. A policy comment is posted and the PR is closed; an existing comment by the same App is reused if the PR is reopened. Incomplete file lists beyond GitHub's 3,000-file API limit are also rejected with an explanatory comment. PRs updated during inspection are deferred to the next run.
+
+Authentication uses the existing `OP_SERVICE_ACCOUNT_TOKEN_PUBLIC` secret and `OP_VAULT_ACTIONS_PUBLIC` variable to load `GITHUB_ACTIONS_BOT/appid` and `GITHUB_ACTIONS_BOT/private key` from 1Password. The GitHub App must be installed on every target repository and granted repository `Pull requests: write` and organization `Members: read`. Each matrix job creates its own token scoped to one repository; no token is passed between jobs, and no PAT or contents write permission is used. Each job resolves private organization membership before any PR mutations; a failed membership lookup or missing installation stops that repository's job. Member lists are not passed through job outputs. Individual PR errors are reported while scanning continues, and fail that job at the end. All inspection uses APIs without checking out or executing contributor code. Branch-protection required-check settings are managed separately by each repository.
 
 The Unicode check is implemented by the `CysharpActions scan-pr-unicode` CLI command and invoked directly from `pr-harness`; there is no standalone Unicode workflow or composite action. The checked-in Linux binary is updated only by the release workflow. It scans the PR title, PR body, changed file names, and the complete contents of changed `.cs` and `.csx` files in the checked-out working tree. Changed paths are determined by diffing GitHub's test merge commit (`refs/pull/<number>/merge`) against its first parent, the current base branch tip, so only the merge commit and its two parents (`fetch-depth: 2`) are required even after the base branch advances. The checkout must be that merge commit, and its second parent must match the event's PR head. File contents are read from the checked-out merge result. C# source rejects symbolic links, raw Unicode format/default-ignorable characters, controls, forbidden `\uXXXX` / `\UXXXXXXXX` escapes, and non-ASCII spaces regardless of whether they occur in code, comments, strings, or test data. In addition, every tracked `.cs` and `.csx` path is checked for Git symbolic-link mode, including paths not changed by the PR. Other file contents are not scanned. Tests that intentionally need these values should construct them numerically, for example with `char.ConvertFromUtf32(0x200B)`.
 
