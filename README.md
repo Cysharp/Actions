@@ -60,7 +60,7 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
 | `dd-event-post` | Post an event to Datadog, typically for PR merge notifications. | Inputs include `title`, `text`, `event`, `additional-tags`, `alert-type`. |
 | `increment-version` | Increment a semantic version string and expose the computed version. | Inputs: `tag`, `type`, optional `prefix`, `suffix`, `ref`. Output: `version`. |
 | `prevent-github-change` | Fail PRs from forks when they modify `.github/**/*.yml` or `.github/**/*.yaml`. | Intended for policy enforcement around GitHub configuration changes. |
-| `pr-harness` | Apply shared PR security checks, including protected workflow files, dependency review, and forbidden Unicode scanning. | Trigger on `edited` as well as code-changing PR events so title/body edits are rescanned. |
+| `pr-harness` | Run protected `.github/` checks, dependency review, and forbidden Unicode checks. | Trigger on `edited` as well as code-changing PR events so title/body edits are rescanned. |
 | `stale-issue` | Mark and close stale issues and PRs using `actions/stale`. | Current defaults: stale after 180 days, close 30 days later. |
 | `update-packagejson` | Normalize a release tag, update version-bearing files, optionally run project-specific `dotnet run -- --version {tag}`, and push the result. | Supports `package.json`, `plugin.cfg`, and `Directory.Build.props`. Outputs: `branch-name`, `is-branch-created`, `sha`. |
 | `validate-release` | Validate Git tag syntax, NuGet version syntax and release ordering before version updates or builds. | Input: `tag`. Outputs: original `tag` and `version` with the leading `v` removed. Requires only `contents: read`. |
@@ -201,25 +201,11 @@ jobs:
       suffix: -dev
 ```
 
-#### prevent-github-change
-
-```yaml
-on:
-  pull_request:
-    paths:
-      # Run only when GitHub config files are touched.
-      - ".github/**/*.yaml"
-      - ".github/**/*.yml"
-
-jobs:
-  detect:
-    # Reusable workflow blocks fork PR changes to .github files.
-    uses: Cysharp/Actions/.github/workflows/prevent-github-change.yaml@main
-```
-
 #### pr-harness
 
 ```yaml
+name: PR Harness
+
 on:
   pull_request:
     # `edited` is required to rescan PR title/body changes.

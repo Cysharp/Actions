@@ -1,0 +1,175 @@
+name: Close External GitHub Changes
+
+on:
+  push:
+    branches: [ci]
+    paths:
+      - ".github/workflows/_close-external-github-changes.yaml"
+  schedule:
+    - cron: "17 3 * * *" # Daily at 12:17 JST.
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Report matching PRs without posting comments or closing them."
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: close-external-github-changes
+  cancel-in-progress: false
+
+jobs:
+  pre:
+    if: ${{ github.repository == 'Cysharp/Actions' }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    outputs:
+      repositories: ${{ steps.list.outputs.repositories }}
+    steps:
+      - name: List public OSS repositories as a JSON array
+        id: list
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const repositories = (await github.paginate(github.rest.repos.listForOrg, {
+              org: "Cysharp", type: "public", per_page: 100,
+            })).filter(repo => !repo.private && !repo.archived && !repo.disabled);
+            if (repositories.length === 0) throw new Error("No public OSS repositories found.");
+            const names = repositories.map(repo => repo.name).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+            core.setOutput("repositories", JSON.stringify(names));
+
+  close:
+    needs: [pre]
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        repository: ${{ fromJson(needs.pre.outputs.repositories) }}
+    permissions: {}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Load secrets
+        id: op-load-secret
+        uses: 1password/load-secrets-action@e544b780808654ba8ceba5fb2fe2897103d92ff4 # v5.0.0
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
+          ACTIONBOT_PRIVATE_KEY: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/GITHUB_ACTIONS_BOT/private key"
+          ACTIONBOT_APPID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/GITHUB_ACTIONS_BOT/appid"
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          app-id: ${{ steps.op-load-secret.outputs.ACTIONBOT_APPID }}
+          private-key: ${{ steps.op-load-secret.outputs.ACTIONBOT_PRIVATE_KEY }}
+          owner: Cysharp
+          repositories: ${{ matrix.repository }}
+          permission-pull-requests: write
+          permission-members: read
+      - name: Enforce GitHub configuration policy
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          REPOSITORY_NAME: ${{ matrix.repository }}
+          DRY_RUN: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry-run) || false }}
+          APP_BOT_LOGIN: ${{ steps.app-token.outputs.app-slug }}[bot]
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const org = "Cysharp";
+            const dryRun = process.env.DRY_RUN === "true";
+            // Resolve private as well as public membership before any writes.
+            // A membership lookup failure must abort, never classify everyone as external.
+            const members = await github.paginate(github.rest.orgs.listMembers, {
+              org, role: "all", per_page: 100,
+            });
+            const memberIds = new Set(members.map(member => member.id));
+            if (memberIds.size === 0) {
+              throw new Error("No organization members returned; refusing to close PRs.");
+            }
+
+            const repository = { name: process.env.REPOSITORY_NAME, full_name: `${org}/${process.env.REPOSITORY_NAME}` };
+            // Recheck eligibility in case the repository changed since the pre job.
+            const { data: metadata } = await github.rest.repos.get({ owner: org, repo: repository.name });
+            if (metadata.private || metadata.archived || metadata.disabled || metadata.owner.login.toLowerCase() !== org.toLowerCase()) {
+              core.info(`Skipping ineligible repository ${repository.full_name}.`);
+              return;
+            }
+
+            let checked = 0;
+            let matched = 0;
+            let closed = 0;
+            let errors = 0;
+            const matches = [];
+            const repo = { owner: org, repo: repository.name };
+            const prs = await github.paginate(github.rest.pulls.list, {
+              ...repo, state: "open", per_page: 100,
+            });
+            for (const candidate of prs) {
+              checked++;
+              if (memberIds.has(candidate.user.id)) continue;
+              try {
+                // list PRs omits changed_files; fetch full metadata before inspection.
+                const { data: pr } = await github.rest.pulls.get({
+                  ...repo, pull_number: candidate.number,
+                });
+                if (pr.state !== "open" || memberIds.has(pr.user.id)) continue;
+                const files = await github.paginate(github.rest.pulls.listFiles, {
+                  ...repo, pull_number: pr.number, per_page: 100,
+                });
+                const blocked = files.some(file =>
+                  file.filename.startsWith(".github/") ||
+                  file.previous_filename?.startsWith(".github/")
+                );
+                // GitHub returns at most 3,000 files; do not allow hidden changes.
+                const incomplete = files.length < pr.changed_files;
+                if (!blocked && !incomplete) continue;
+
+                // Avoid acting on a PR closed or updated while files were inspected.
+                const { data: current } = await github.rest.pulls.get({
+                  ...repo, pull_number: pr.number,
+                });
+                if (current.state !== "open" || current.head.sha !== pr.head.sha || memberIds.has(current.user.id)) {
+                  core.info(`Skipping updated or exempt PR ${repository.full_name}#${pr.number}.`);
+                  continue;
+                }
+                matched++;
+                const url = `https://github.com/${repository.full_name}/pull/${pr.number}`;
+                matches.push({ number: pr.number, url, reason: blocked ? ".github/ changes" : "incomplete file list" });
+                core.info(`${dryRun ? "Would close" : "Closing"} ${url} (${matches.at(-1).reason}).`);
+                if (dryRun) continue;
+
+                const marker = "<!-- cysharp-github-change-policy -->";
+                const body = `${marker}\n` + (incomplete && !blocked
+                  ? "Contributors who are not Cysharp organization members are not permitted to change `.github/`. This PR is being closed because its complete file list could not be verified under this security policy."
+                  : "Changes to `.github/` by contributors who are not Cysharp organization members are not permitted by our security policy. This PR is being closed.");
+                // Reuse the policy comment after retries or reopening a PR.
+                // Closure is attempted even if posting or retrieving comments fails.
+                try {
+                  const comments = await github.paginate(github.rest.issues.listComments, {
+                    ...repo, issue_number: pr.number, per_page: 100,
+                  });
+                  if (!comments.some(comment => comment.user?.login === process.env.APP_BOT_LOGIN && comment.body?.startsWith(marker))) {
+                    await github.rest.issues.createComment({ ...repo, issue_number: pr.number, body });
+                  }
+                } finally {
+                  await github.rest.pulls.update({ ...repo, pull_number: pr.number, state: "closed" });
+                  closed++;
+                }
+              } catch (error) {
+                core.error(`${repository.full_name}#${candidate.number}: ${error.message}`);
+                errors++;
+              }
+            }
+            core.summary
+              .addHeading(`GitHub configuration policy: ${repository.full_name}`)
+              .addRaw(`Mode: ${dryRun ? "dry run" : "enforce"}. PRs inspected: ${checked}. Matches: ${matched}. Closed: ${closed}. Errors: ${errors}.`);
+            if (matches.length > 0) {
+              core.summary.addList(matches.map(match => `<a href="${match.url}">PR #${match.number}</a>: ${match.reason}`));
+            }
+            await core.summary.write();
+            if (errors > 0) core.setFailed(`Policy enforcement encountered ${errors} error(s).`);
