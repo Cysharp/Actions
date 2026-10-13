@@ -28,7 +28,6 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
     - [create-release](#create-release)
     - [dd-event-post](#dd-event-post)
     - [increment-version](#increment-version)
-    - [prevent-github-change](#prevent-github-change)
     - [pr-harness](#pr-harness)
     - [update-packagejson](#update-packagejson)
     - [validate-release](#validate-release)
