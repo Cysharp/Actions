@@ -26,12 +26,12 @@ jobs:
     permissions:
       contents: read
     runs-on: ubuntu-24.04
-    timeout-minutes: 3
+    timeout-minutes: 5
     outputs:
       repositories: ${{ steps.list.outputs.repositories }}
     steps:
       - name: List public OSS repositories as a JSON array
-        id: list
+        id: public-repositories
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
@@ -41,9 +41,59 @@ jobs:
             if (repositories.length === 0) throw new Error("No public OSS repositories found.");
             const names = repositories.map(repo => repo.name).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
             core.setOutput("repositories", JSON.stringify(names));
+      - name: Load secrets
+        id: op-load-secret
+        uses: 1password/load-secrets-action@e544b780808654ba8ceba5fb2fe2897103d92ff4 # v5.0.0
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PUBLIC }}
+          ACTIONBOT_PRIVATE_KEY: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/GITHUB_ACTIONS_BOT/private key"
+          ACTIONBOT_APPID: "op://${{ vars.OP_VAULT_ACTIONS_PUBLIC }}/GITHUB_ACTIONS_BOT/appid"
+      - name: Create installation discovery token
+        # Read-only discovery needs access to all repositories in this installation.
+        # seiton: disable-next-line github-app-token-inputs
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          app-id: ${{ steps.op-load-secret.outputs.ACTIONBOT_APPID }}
+          private-key: ${{ steps.op-load-secret.outputs.ACTIONBOT_PRIVATE_KEY }}
+          owner: Cysharp
+          # Omit repositories to discover the installation's selected repositories.
+          permission-pull-requests: read
+      - name: Select installed public repositories and report exclusions
+        id: list
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PUBLIC_REPOSITORIES: ${{ steps.public-repositories.outputs.repositories }}
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const publicNames = JSON.parse(process.env.PUBLIC_REPOSITORIES);
+            const installed = await github.paginate(github.rest.apps.listReposAccessibleToInstallation, {
+              per_page: 100,
+            });
+            const installedNames = new Set(installed.map(repo => repo.full_name.toLowerCase()));
+            const isInstalled = name => installedNames.has(`Cysharp/${name}`.toLowerCase());
+            const names = publicNames.filter(isInstalled);
+            const excluded = publicNames.filter(name => !isInstalled(name));
+            core.setOutput("repositories", JSON.stringify(names));
+            core.summary
+              .addHeading("GitHub configuration policy: repository coverage")
+              .addRaw(`Eligible public repositories: ${publicNames.length}. Selected: ${names.length}. Outside the App installation: ${excluded.length}.`);
+            if (names.length > 0) {
+              core.summary.addHeading("Selected repositories", 2).addList(names);
+            }
+            if (excluded.length > 0) {
+              core.info(`Skipping repositories outside the App installation: ${excluded.join(", ")}.`);
+              core.summary.addHeading("Skipped: outside the App installation", 2).addList(excluded);
+            }
+            if (names.length === 0) core.info("No eligible installed repositories; skipping policy enforcement.");
+            await core.summary.write();
 
   close:
     needs: [pre]
+    if: ${{ needs.pre.outputs.repositories != '[]' }}
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -91,6 +141,9 @@ jobs:
             if (memberIds.size === 0) {
               throw new Error("No organization members returned; refusing to close PRs.");
             }
+            // Dependabot updates are allowed, including changes under .github/.
+            const isExempt = user => memberIds.has(user.id) ||
+              (user.type === "Bot" && user.login === "dependabot[bot]");
 
             const repository = { name: process.env.REPOSITORY_NAME, full_name: `${org}/${process.env.REPOSITORY_NAME}` };
             // Recheck eligibility in case the repository changed since the pre job.
@@ -111,13 +164,13 @@ jobs:
             });
             for (const candidate of prs) {
               checked++;
-              if (memberIds.has(candidate.user.id)) continue;
+              if (isExempt(candidate.user)) continue;
               try {
                 // list PRs omits changed_files; fetch full metadata before inspection.
                 const { data: pr } = await github.rest.pulls.get({
                   ...repo, pull_number: candidate.number,
                 });
-                if (pr.state !== "open" || memberIds.has(pr.user.id)) continue;
+                if (pr.state !== "open" || isExempt(pr.user)) continue;
                 const files = await github.paginate(github.rest.pulls.listFiles, {
                   ...repo, pull_number: pr.number, per_page: 100,
                 });
@@ -133,7 +186,7 @@ jobs:
                 const { data: current } = await github.rest.pulls.get({
                   ...repo, pull_number: pr.number,
                 });
-                if (current.state !== "open" || current.head.sha !== pr.head.sha || memberIds.has(current.user.id)) {
+                if (current.state !== "open" || current.head.sha !== pr.head.sha || isExempt(current.user)) {
                   core.info(`Skipping updated or exempt PR ${repository.full_name}#${pr.number}.`);
                   continue;
                 }
@@ -145,8 +198,8 @@ jobs:
 
                 const marker = "<!-- cysharp-github-change-policy -->";
                 const body = `${marker}\n` + (incomplete && !blocked
-                  ? "Contributors who are not Cysharp organization members are not permitted to change `.github/`. This PR is being closed because its complete file list could not be verified under this security policy."
-                  : "Changes to `.github/` by contributors who are not Cysharp organization members are not permitted by our security policy. This PR is being closed.");
+                  ? "Only Cysharp organization members and Dependabot are permitted to change `.github/`. This PR is being closed because its complete file list could not be verified under this security policy."
+                  : "Only Cysharp organization members and Dependabot are permitted to change `.github/` under our security policy. This PR is being closed.");
                 // Reuse the policy comment after retries or reopening a PR.
                 // Closure is attempted even if posting or retrieving comments fails.
                 try {
