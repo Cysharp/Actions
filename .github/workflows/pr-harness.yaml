@@ -366,7 +366,7 @@ jobs:
             printf '%s\n' "$metadata_path" >> "$OL_CARGO_METADATA_LIST"
             metadata_index=$((metadata_index + 1))
           done < "$OL_CARGO_MANIFEST_LIST"
-      - uses: guitarrapc/setup-ol@3128c4908a32378c0775f12c4a9dfe6c8c8c3f07 # v1.0.0
+      - uses: guitarrapc/setup-ol@bf8315c40ac48c437b414e7582b30675eb02723c # v1.1.1
       - name: "Unpack ol evidence cache"
         run: ol cache unpack "$GITHUB_WORKSPACE/Actions/ol-cache.olcache" --cache-dir "$OL_EVIDENCE_CACHE_DIR"
       - name: "Scan license evidence"
