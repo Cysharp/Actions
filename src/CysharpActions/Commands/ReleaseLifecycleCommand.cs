@@ -25,6 +25,8 @@ public sealed class ReleaseLifecycleCommand(RunProcess? runProcess = null)
         using (var file = new FileStream(statePath, FileMode.CreateNew, FileAccess.Write))
             JsonSerializer.Serialize(file, state, ReleaseStateJson.Default.ReleaseState);
 
+        // Checkout does not persist credentials; private repositories require authentication even for reads.
+        await GitHelper.SetGitUserEmailAsync(credentials, runProcess: run, cancellationToken: cancellationToken);
         var remote = await RemoteTagAsync(tag, cancellationToken);
         if (remote is not null)
         {
@@ -45,7 +47,6 @@ public sealed class ReleaseLifecycleCommand(RunProcess? runProcess = null)
 
         if (remote is null)
         {
-            await GitHelper.SetGitUserEmailAsync(credentials, runProcess: run, cancellationToken: cancellationToken);
             // Git can report "up to date" despite an empty lease when another actor
             // creates the same tag at the same SHA. Only claim an acknowledged new ref.
             var pushed = await Git("push", "--porcelain", $"--force-with-lease=refs/tags/{tag}:", "origin", $"{head}:refs/tags/{tag}");
@@ -107,6 +108,7 @@ public sealed class ReleaseLifecycleCommand(RunProcess? runProcess = null)
         ValidateSha(state.TagObjectSha);
         if (state.CreatedTag && state.TagObjectSha != state.CommitSha)
             throw new ActionCommandException("Created tag ownership does not match the recorded commit.");
+        await GitHelper.SetGitUserEmailAsync(credentials, runProcess: run, cancellationToken: cancellationToken);
         var remote = await RemoteTagAsync(state.Tag, cancellationToken);
         if (remote != state.TagObjectSha && (remote is not null || state.ReleaseId is not null))
             throw new ActionCommandException("Tag changed since creation; refusing cleanup.");
@@ -129,7 +131,6 @@ public sealed class ReleaseLifecycleCommand(RunProcess? runProcess = null)
         {
             if (remote is not null)
             {
-                await GitHelper.SetGitUserEmailAsync(credentials, runProcess: run, cancellationToken: cancellationToken);
                 await run(new CommandSpec("git", ["push", $"--force-with-lease=refs/tags/{state.Tag}:{state.TagObjectSha}",
                     "origin", $":refs/tags/{state.Tag}"]), cancellationToken);
             }

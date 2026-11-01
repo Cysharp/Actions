@@ -10,6 +10,23 @@ public class ReleaseLifecycleTest
     private const string Tag = "v1.2.3";
     private static readonly GitHubCredentials Credentials = new("Cysharp/Actions", "test-token");
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData(Head)]
+    [InlineData(Other)]
+    public async Task PrivateRemoteIsAuthenticatedBeforeCreateAndCleanup(string? existingTag)
+    {
+        using var remote = new Remote { TagSha = existingTag, RequireAuthentication = true };
+        await remote.Create();
+        Assert.Equal(42, remote.State.ReleaseId);
+
+        // Cleanup must also work when checkout credentials are no longer present.
+        remote.Authenticated = false;
+        await remote.Cleanup();
+        Assert.Equal(existingTag, remote.TagSha);
+        Assert.Null(remote.State.ReleaseId);
+    }
+
     [Fact]
     public async Task NewResourcesAreJournaledAndCleanupIsIdempotent()
     {
@@ -166,6 +183,8 @@ public class ReleaseLifecycleTest
         public bool Draft { get; set; } = true;
         public string ReleaseTag { get; set; } = Tag;
         public int Deletes { get; private set; }
+        public bool RequireAuthentication { get; set; }
+        public bool Authenticated { get; set; }
         public List<CommandSpec> Calls { get; } = [];
         public ReleaseState State => JsonSerializer.Deserialize<ReleaseState>(File.ReadAllText(Path))!;
         public Task Create() => new ReleaseLifecycleCommand(Run).CreateAsync(Tag, "title", Path, Credentials);
@@ -178,6 +197,14 @@ public class ReleaseLifecycleTest
             string output = "";
             if (spec.FileName == "git")
             {
+                if (args.Take(3).SequenceEqual(new[] { "remote", "set-url", "origin" }))
+                {
+                    Assert.Equal("https://github-actions:test-token@github.com/Cysharp/Actions", args[3]);
+                    Assert.Contains(3, spec.SecretArguments!);
+                    Authenticated = true;
+                }
+                if (RequireAuthentication && args[0] is "ls-remote" or "fetch" or "push" && !Authenticated)
+                    throw new InvalidOperationException("Remote requires authentication.");
                 switch (args[0])
                 {
                     case "ls-remote":
