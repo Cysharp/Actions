@@ -71,6 +71,7 @@ public static class ProcessRunner
             startInfo.ArgumentList.Add(argument);
         }
 
+        GitHubActions.WriteLog($"Executing: {command.ToDisplayString()}");
         var (_, stdout, stderr) = ProcessX.GetDualAsyncEnumerable(startInfo);
         var stdoutTask = stdout.ToTask(cancellationToken);
         var stderrTask = stderr.ToTask(cancellationToken);

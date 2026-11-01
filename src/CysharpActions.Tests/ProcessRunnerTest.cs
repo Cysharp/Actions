@@ -6,6 +6,51 @@ namespace CysharpActions.Tests;
 [Collection("Git environment")]
 public class ProcessRunnerTest
 {
+    [Theory]
+    [InlineData("--version", false)]
+    [InlineData("--definitely-not-an-option", true)]
+    public async Task RunAsyncLogsRedactedCommandEvenOnFailureTest(string argument, bool fails)
+    {
+        var originalOut = Console.Out;
+        using var output = new StringWriter();
+        try
+        {
+            Console.SetOut(output);
+            var command = new CommandSpec("dotnet", [argument], new HashSet<int> { 0 });
+            if (fails)
+                await Assert.ThrowsAsync<ProcessErrorException>(() => ProcessRunner.RunAsync(command, TestContext.Current.CancellationToken));
+            else
+                await ProcessRunner.RunAsync(command, TestContext.Current.CancellationToken);
+
+            Assert.Contains("Executing: dotnet ***", output.ToString(), StringComparison.Ordinal);
+            Assert.DoesNotContain(argument, output.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsyncLogsCommandBeforeProcessCanStartTest()
+    {
+        var originalOut = Console.Out;
+        using var output = new StringWriter();
+        try
+        {
+            Console.SetOut(output);
+            var executable = "missing-command-" + Guid.NewGuid().ToString("N");
+            await Assert.ThrowsAnyAsync<Exception>(() => ProcessRunner.RunAsync(
+                new CommandSpec(executable, ["two words"]), TestContext.Current.CancellationToken));
+
+            Assert.Contains($"Executing: {executable} \"two words\"", output.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
     [Fact]
     public void ToDisplayStringQuotesArgumentsAndRedactsSecretsTest()
     {
