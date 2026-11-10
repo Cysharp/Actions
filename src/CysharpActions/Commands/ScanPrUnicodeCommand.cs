@@ -470,6 +470,12 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
                 // Dependabot inserts ZERO WIDTH SPACE after '@' in copied release notes to suppress
                 // mentions of upstream authors. A single U+200B right after '@' cannot hide text.
             }
+            else if (options.AllowEmojiVariationSequences && (value is 0xFE0E or 0xFE0F) &&
+                EmojiVariationSequences.IsBase(previousValue))
+            {
+                // Release notes use standardized text/emoji presentation sequences, such as a warning
+                // symbol followed by VS16. Permit one selector immediately after a valid emoji base only.
+            }
             else if (IsFormat(value))
                 reason = "Unicode format character (Cf)";
             else if (IsDefaultIgnorable(value))
@@ -678,11 +684,14 @@ public sealed class ScanPrUnicodeCommand(IPrChangeSource? changeSource = null)
         }
     }
 
-    private readonly record struct UnicodeScanOptions(bool RejectNonAsciiSpace, bool AllowZeroWidthSpaceAfterAt)
+    private readonly record struct UnicodeScanOptions(
+        bool RejectNonAsciiSpace,
+        bool AllowZeroWidthSpaceAfterAt,
+        bool AllowEmojiVariationSequences)
     {
-        public static UnicodeScanOptions Metadata => new(false, false);
-        public static UnicodeScanOptions PullRequestBody => new(false, true);
-        public static UnicodeScanOptions FileName => new(true, false);
+        public static UnicodeScanOptions Metadata => new(false, false, false);
+        public static UnicodeScanOptions PullRequestBody => new(false, true, true);
+        public static UnicodeScanOptions FileName => new(true, false, false);
     }
 }
 
