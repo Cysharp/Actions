@@ -149,6 +149,99 @@ public class ScanPrUnicodeCommandTest
         Assert.Empty(Scan(new PullRequestScanInput(Input.HeadSha, "Bump actions", body)));
     }
 
+    [Fact]
+    public void PullRequestBodyAllowsDependabotSecurityWarningHeadingsTest()
+    {
+        var warning = char.ConvertFromUtf32(0x26A0) + char.ConvertFromUtf32(0xFE0F);
+        var lines = Enumerable.Repeat("", 42).ToArray();
+        foreach (var line in new[] { 25, 33, 42 })
+            lines[line - 1] = "<h2>" + warning + " Security Warning</h2>";
+
+        Assert.Empty(Scan(Input with { Body = string.Join("\n", lines) }));
+    }
+
+    [Theory]
+    [InlineData(0x26A0, 0xFE0F)] // Warning, emoji style
+    [InlineData(0x26A0, 0xFE0E)] // Warning, text style
+    [InlineData(0x2764, 0xFE0F)] // Heart
+    [InlineData(0x0031, 0xFE0F)] // Keycap base
+    [InlineData(0x1F5A5, 0xFE0F)] // Desktop computer (supplementary plane)
+    public void PullRequestBodyAllowsStandardEmojiVariationSequencesTest(int baseValue, int selector)
+    {
+        var sequence = char.ConvertFromUtf32(baseValue) + char.ConvertFromUtf32(selector);
+
+        Assert.Empty(Scan(Input with { Body = "<h2>" + sequence + " Heading</h2>" }));
+    }
+
+    [Theory]
+    [InlineData("a{0}b", 0xFE0F, 2)]
+    [InlineData("a{0}b", 0xFE0E, 2)]
+    [InlineData("{0}{0}", 0xFE0F, 2)]
+    [InlineData(" {0}", 0xFE0F, 2)]
+    [InlineData("\n{0}", 0xFE0F, 1)]
+    [InlineData("{0}", 0xFE00, 1)] // Non-emoji variation selector
+    [InlineData("{0}", 0xE0100, 1)] // Ideographic variation selector
+    [InlineData("{0}", 0x200D, 1)] // ZERO WIDTH JOINER remains forbidden
+    public void PullRequestBodyRejectsInvalidEmojiVariationSequencesTest(string suffix, int codePoint, int column)
+    {
+        var body = char.ConvertFromUtf32(0x26A0) + string.Format(suffix, char.ConvertFromUtf32(codePoint));
+        var violation = Assert.Single(Scan(Input with { Body = body }));
+
+        var line = suffix.StartsWith('\n') ? 2 : 1;
+        if (line == 1)
+            column++; // The warning symbol occupies the first UTF-16 column.
+        Assert.Equal(("PR body", line, column, codePoint),
+            (violation.Source, violation.Line, violation.Column, violation.CodePoint));
+    }
+
+    [Theory]
+    [InlineData(0xFE0E)]
+    [InlineData(0xFE0F)]
+    public void PullRequestBodyRejectsStandaloneEmojiVariationSelectorTest(int selector)
+    {
+        var violation = Assert.Single(Scan(Input with { Body = char.ConvertFromUtf32(selector) }));
+
+        Assert.Equal(("PR body", 1, 1, selector),
+            (violation.Source, violation.Line, violation.Column, violation.CodePoint));
+    }
+
+    [Theory]
+    [InlineData(0x0041)] // Latin letter
+    [InlineData(0x26A2)] // Not an emoji variation base, between two allowed ranges
+    [InlineData(0x4E00)] // Ideograph
+    [InlineData(0x1F600)] // Emoji without a standardized variation sequence
+    public void PullRequestBodyRejectsVariationSelectorAfterNonEmojiVariationBaseTest(int baseValue)
+    {
+        var prefix = char.ConvertFromUtf32(baseValue);
+        var violation = Assert.Single(Scan(Input with { Body = prefix + char.ConvertFromUtf32(0xFE0F) }));
+
+        Assert.Equal((1, prefix.Length + 1, 0xFE0F), (violation.Line, violation.Column, violation.CodePoint));
+    }
+
+    [Fact]
+    public void AllowedEmojiVariationSequencePreservesSubsequentViolationPositionTest()
+    {
+        var body = char.ConvertFromUtf32(0x1F5A5) + char.ConvertFromUtf32(0xFE0F) + char.ConvertFromUtf32(0x200B);
+        var violation = Assert.Single(Scan(Input with { Body = body }));
+
+        Assert.Equal((1, 4, 0x200B), (violation.Line, violation.Column, violation.CodePoint));
+    }
+
+    [Theory]
+    [InlineData(0xFE0E)]
+    [InlineData(0xFE0F)]
+    public void EmojiVariationSequencesAreRejectedOutsidePullRequestBodyTest(int selector)
+    {
+        var sequence = char.ConvertFromUtf32(0x26A0) + char.ConvertFromUtf32(selector);
+        var violations = Scan(Input with { Title = sequence },
+            new PrChangedFile("docs/" + sequence + ".md", "docs/old" + sequence + ".md", Utf8("text")),
+            new PrChangedFile("src/Test.cs", null, Utf8("// " + sequence)),
+            new PrChangedFile("src/Test.csx", null, Utf8("// " + sequence)));
+
+        Assert.Equal(5, violations.Count);
+        Assert.All(violations, violation => Assert.Equal(selector, violation.CodePoint));
+    }
+
     [Theory]
     [InlineData("a{0}b", 0x200B, 2)]    // ZERO WIDTH SPACE not after '@'
     [InlineData("{0}b", 0x200B, 1)]     // ZERO WIDTH SPACE at the start
