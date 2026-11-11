@@ -70,6 +70,13 @@ jobs:
             echo "::error::Invalid release version was accepted."
             exit 1
           fi
+          "$binary" validate-release-ref --ref refs/heads/release/6.x --ref-type branch --default-branch main --allowed-branches 'release/*'
+          # Capture the output so that the expected error annotation does not appear on this run.
+          if ref_output=$("$binary" validate-release-ref --ref refs/tags/v1.0.0 --ref-type tag --default-branch main --allowed-branches '**' 2>&1); then
+            echo "::error::A tag was accepted as a release ref."
+            exit 1
+          fi
+          grep -Fq "This run is on 'refs/tags/v1.0.0'" <<< "$ref_output"
       - name: Validate generated architectures
         run: |
           file ./actions/Linux-X64/CysharpActions

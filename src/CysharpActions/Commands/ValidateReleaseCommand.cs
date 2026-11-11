@@ -1,4 +1,5 @@
 using CysharpActions.Runtime;
+using CysharpActions.Utils;
 using NuGet.Versioning;
 using System.IO.Compression;
 using System.Xml.Linq;
@@ -23,6 +24,36 @@ public sealed class ValidateReleaseCommand(IGitHubReleaseExe releases, RunProces
                 throw new ActionCommandException("Tag is older than the latest release. Please bump the version.");
         }
         return tag.StartsWith('v') ? tag[1..] : tag;
+    }
+
+    /// <summary>
+    /// Checks that a release run starts from the default branch or from a branch that <paramref name="allowedBranches"/> matches.
+    /// workflow_dispatch can start from any branch or tag, and the release tag is created at that commit.
+    /// </summary>
+    /// <param name="gitRef">Ref of the run (github.ref), for example refs/heads/main.</param>
+    /// <param name="refType">Ref type of the run (github.ref_type). Only branch is allowed.</param>
+    /// <param name="defaultBranch">Default branch of the repository (github.event.repository.default_branch). Empty fails.</param>
+    /// <param name="allowedBranches">Newline-delimited GitHub branch filter patterns allowed in addition to the default branch.</param>
+    /// <returns>The branch name without refs/heads/.</returns>
+    public static string ValidateRef(string gitRef, string refType, string defaultBranch, string allowedBranches)
+    {
+        const string BranchRefPrefix = "refs/heads/";
+        var filter = BranchFilter.Parse(allowedBranches.ToMultiLine().Select(x => x.Trim()).Where(x => x.Length != 0));
+        var allowed = string.Join(", ", filter.Patterns
+            .Select(x => $"'{x}'")
+            .Prepend(string.IsNullOrWhiteSpace(defaultBranch) ? "(unknown default branch)" : $"'{defaultBranch}' (default branch)"));
+
+        if (string.IsNullOrWhiteSpace(defaultBranch))
+            throw Reject("The default branch is unknown because github.event.repository.default_branch is empty. Start the release with workflow_dispatch.");
+        if (refType != "branch" || !gitRef.StartsWith(BranchRefPrefix, StringComparison.Ordinal) || gitRef.Length == BranchRefPrefix.Length)
+            throw Reject("A release must run from a branch. Tags and other refs are not allowed.");
+        var branch = gitRef[BranchRefPrefix.Length..];
+        if (branch != defaultBranch && !filter.IsMatch(branch))
+            throw Reject($"Branch '{branch}' is not allowed to release.");
+        return branch;
+
+        ActionCommandException Reject(string reason)
+            => new($"{reason} This run is on '{gitRef}' (ref type '{refType}'). Allowed branches: {allowed}.");
     }
 
     /// <summary>Parses a package version, allowing a single leading v on Git tags.</summary>

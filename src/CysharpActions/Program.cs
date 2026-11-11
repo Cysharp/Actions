@@ -149,6 +149,27 @@ namespace CysharpActions
             GitHubActions.SetOutput("version", version);
         }
 
+        /// <summary>Check that a release run starts from the default branch or an allowed branch. Tags are never allowed.</summary>
+        /// <param name="ref">Ref of the run (github.ref), for example refs/heads/main.</param>
+        /// <param name="refType">Ref type of the run (github.ref_type).</param>
+        /// <param name="defaultBranch">Default branch of the repository (github.event.repository.default_branch). Empty fails.</param>
+        /// <param name="allowedBranches">Newline-delimited GitHub branch filter patterns allowed in addition to the default branch.</param>
+        [Command("validate-release-ref")]
+        public void ValidateReleaseRef(string @ref, string refType, string defaultBranch, string allowedBranches = "")
+        {
+            try
+            {
+                var branch = ValidateReleaseCommand.ValidateRef(@ref, refType, defaultBranch, allowedBranches);
+                GitHubActions.WriteLog($"Branch '{branch}' is allowed to release.");
+            }
+            catch (ActionCommandException ex)
+            {
+                // Show the reason as an annotation on the run summary, without a stack trace.
+                GitHubActions.WriteError("Release ref check failed", ex.Message);
+                Environment.ExitCode = 1;
+            }
+        }
+
         /// <summary>Check package versions before publishing.</summary>
         /// <param name="directory">Directory containing nupkg and optional snupkg files.</param>
         /// <param name="version">Expected version, optionally prefixed with v.</param>

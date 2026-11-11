@@ -30,6 +30,7 @@ public class CliContractTest
                 "validate-nupkg-exists",
                 "validate-package-versions",
                 "validate-release",
+                "validate-release-ref",
                 "validate-tag",
             ],
             ParseCommands(result.Stdout));
@@ -77,6 +78,46 @@ public class CliContractTest
             }
         }
         finally { File.Delete(outputPath); }
+    }
+
+    [Theory]
+    [InlineData("refs/heads/release/6.x", "branch", "main", "release/*", true)]
+    [InlineData("refs/heads/release/6.x/foo", "branch", "main", "release/*", false)]
+    [InlineData("refs/tags/v1.0.0", "tag", "main", "**", false)]
+    [InlineData("refs/heads/main", "branch", "", "", false)]
+    [InlineData("refs/heads/main", "branch", "main", "v[", false)]
+    public async Task ReleaseRefValidationExitCodeAndAnnotationTest(string gitRef, string refType, string defaultBranch, string allowedBranches, bool success)
+    {
+        var result = await RunCliAsync([
+            "validate-release-ref",
+            "--ref", gitRef,
+            "--ref-type", refType,
+            "--default-branch", defaultBranch,
+            "--allowed-branches", allowedBranches,
+        ]);
+        var output = result.Stdout + result.Stderr;
+
+        if (success)
+        {
+            Assert.Equal(0, result.ExitCode);
+            Assert.DoesNotContain("::error", output, StringComparison.Ordinal);
+        }
+        else
+        {
+            Assert.NotEqual(0, result.ExitCode);
+            Assert.Contains("::error title=Release ref check failed::", output, StringComparison.Ordinal);
+            Assert.DoesNotContain(nameof(ActionCommandException), output, StringComparison.Ordinal);
+            Assert.DoesNotContain("   at ", output, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public async Task ReleaseRefValidationRequiresContextOptionsTest()
+    {
+        // A caller that omits the context fails instead of skipping the check.
+        var result = await RunCliAsync(["validate-release-ref", "--ref", "refs/heads/main", "--ref-type", "branch"]);
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("default-branch", result.Stdout + result.Stderr, StringComparison.Ordinal);
     }
 
     [Theory]
