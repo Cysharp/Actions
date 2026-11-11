@@ -1,5 +1,7 @@
 name: Test validate-release
 
+# pull_request runs skip the ref check of validate-release.yaml, because refs/pull/*/merge is not a branch.
+# workflow_dispatch runs check the real ref: run them from the default branch.
 on:
   workflow_dispatch:
   pull_request:
@@ -19,6 +21,8 @@ jobs:
     uses: ./.github/workflows/validate-release.yaml
     with:
       tag: "v999999.0.0-preview.1"
+      allowed-branches: |
+        release/*
 
   test:
     needs: [validate-plain, validate-prefixed-prerelease]
@@ -39,3 +43,74 @@ jobs:
           PLAIN_VERSION: ${{ needs.validate-plain.outputs.version }}
           PREFIXED_TAG: ${{ needs.validate-prefixed-prerelease.outputs.tag }}
           PREFIXED_VERSION: ${{ needs.validate-prefixed-prerelease.outputs.version }}
+
+  validate-release-ref:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: Cysharp/Actions/.github/actions/checkout@main
+      - uses: Cysharp/Actions/.github/actions/setup-dotnet@main
+        with:
+          dotnet-version: 9.0.x
+      - name: Build CLI
+        run: dotnet build ./src/CysharpActions/CysharpActions.csproj -c Release -o "$RUNNER_TEMP/cli"
+      - name: Check release ref rules
+        shell: bash
+        run: |
+          failed=0
+          # check <allow|reject|invalid> <name> <ref> <ref type> <default branch> <allowed branches>
+          check() {
+            local expected="$1" name="$2" ref="$3" ref_type="$4" default_branch="$5" allowed_branches="$6"
+            local output status=0 shown=1 pattern
+            # Capture the output so that expected error annotations do not appear on this run.
+            output=$(dotnet "$RUNNER_TEMP/cli/CysharpActions.dll" validate-release-ref \
+              --ref "$ref" --ref-type "$ref_type" --default-branch "$default_branch" --allowed-branches "$allowed_branches" 2>&1) || status=$?
+            if [[ "$expected" == "invalid" ]]; then
+              # A pattern error names the pattern.
+              [[ "$output" == *"Invalid branch pattern '$allowed_branches'"* ]] || shown=0
+            else
+              # A rejection shows the ref and every allowed branch.
+              [[ "$output" == *"This run is on '$ref'"* ]] || shown=0
+              if [[ -n "$default_branch" ]]; then
+                [[ "$output" == *"'$default_branch' (default branch)"* ]] || shown=0
+              else
+                [[ "$output" == *"(unknown default branch)"* ]] || shown=0
+              fi
+              while IFS= read -r pattern; do
+                [[ -z "$pattern" || "$output" == *"'$pattern'"* ]] || shown=0
+              done <<< "$allowed_branches"
+            fi
+
+            if [[ "$expected" == "allow" && "$status" -eq 0 ]] || [[ "$expected" != "allow" && "$status" -ne 0 && "$shown" -eq 1 ]]; then
+              echo "[O PASS] $name"
+            else
+              echo "::error::[X FAIL] $name: expected $expected, but the exit code is $status."
+              echo "$output"
+              failed=1
+            fi
+          }
+
+          # The default branch is always allowed, and its name comes from the event: main or master.
+          check allow   "default branch main"                refs/heads/main            branch main   ""
+          check allow   "default branch master"              refs/heads/master          branch master ""
+          check reject  "main when the default is master"    refs/heads/main            branch master ""
+          # allowed-branches adds patterns (MagicOnion: release/*, MessagePack: v2, v3, v4).
+          check allow   "extra pattern release/*"            refs/heads/release/6.x     branch main   "release/*"
+          check allow   "explicit line v3"                   refs/heads/v3              branch master $'v2\nv3\nv4'
+          check allow   "digits-only pattern v[0-9]+"        refs/heads/v10             branch master "v[0-9]+"
+          check reject  "non-matching branch"                refs/heads/feature/x       branch main   "release/*"
+          check reject  "v4_test with explicit lines"        refs/heads/v4_test         branch master $'v2\nv3\nv4'
+          check reject  "v4_test with v[0-9]+"               refs/heads/v4_test         branch master "v[0-9]+"
+          # * does not match /, ** does.
+          check reject  "* does not cross /"                 refs/heads/release/6.x/foo branch main   "release/*"
+          check allow   "** crosses /"                       refs/heads/release/6.x/foo branch main   "release/**"
+          # Tags and other refs are never allowed.
+          check reject  "tag"                                refs/tags/v1.0.0           tag    main   "**"
+          check reject  "tag named like the default branch"  refs/tags/main             tag    main   ""
+          check reject  "pull request ref"                   refs/pull/1/merge          branch main   "**"
+          # Fail closed: no default branch in the event, or an invalid pattern.
+          check reject  "empty default branch"               refs/heads/main            branch ""     ""
+          check invalid "invalid pattern"                    refs/heads/main            branch main   "v["
+          exit "$failed"

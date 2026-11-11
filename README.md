@@ -62,7 +62,7 @@ Test and maintenance workflows prefixed with `_` are intentionally omitted here.
 | `pr-harness` | Run protected `.github/` checks, dependency review, and forbidden Unicode checks. | Trigger on `edited` as well as code-changing PR events so title/body edits are rescanned. |
 | `stale-issue` | Mark and close stale issues and PRs using `actions/stale`. | Current defaults: stale after 180 days, close 30 days later. |
 | `update-packagejson` | Normalize a release tag, update version-bearing files, optionally run project-specific `dotnet run -- --version {tag}`, and push the result. | Supports `package.json`, `plugin.cfg`, and `Directory.Build.props`. Outputs: `branch-name`, `is-branch-created`, `sha`. |
-| `validate-release` | Validate Git tag syntax, NuGet version syntax and release ordering before version updates or builds. | Input: `tag`. Outputs: original `tag` and `version` with the leading `v` removed. Requires only `contents: read`. |
+| `validate-release` | Check that the run starts from the default branch or an allowed branch, then validate Git tag syntax, NuGet version syntax and release ordering before version updates or builds. | Inputs: `tag`, optional `allowed-branches`. Outputs: original `tag` and `version` with the leading `v` removed. Requires only `contents: read`. |
 
 ### Usage examples
 
@@ -295,9 +295,53 @@ jobs:
           VERSION: ${{ needs.validate-release.outputs.version }}
 ```
 
-This workflow calls the `validate-release` CLI, running the current source in Cysharp/Actions and the distributed binary for callers. It exposes `tag` unchanged and `version` with one leading `v` removed (for example, `v1.2.3` becomes `1.2.3`). It queries releases in the calling repository with its `GITHUB_TOKEN`; no inherited secrets or write permissions are needed. Validation failures fail the job and block dependent jobs.
+This workflow calls the `validate-release-ref` and `validate-release` CLI commands, running the current source in Cysharp/Actions and the distributed binary for callers. It exposes `tag` unchanged and `version` with one leading `v` removed (for example, `v1.2.3` becomes `1.2.3`). It queries releases in the calling repository with its `GITHUB_TOKEN`; no inherited secrets or write permissions are needed. Validation failures fail the job and block dependent jobs.
 
-It validates Git ref syntax and NuGet version syntax and rejects versions older than the latest release using NuGet version ordering. MagicOnion skips only the ordering check to support multiple release lines. Tag-to-build SHA equality is checked later by `create-release`, after version updates and builds.
+First, it checks the ref of the run. `workflow_dispatch` can start a run from any branch or tag, and `create-release` tags the commit of that run.
+
+- The default branch is always allowed. Its name comes from `github.event.repository.default_branch`, so repositories that use `main` and repositories that use `master` need no input.
+- `allowed-branches` adds branches, one pattern per line. The patterns use the [GitHub filter pattern syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#filter-pattern-cheat-sheet): `*` matches zero or more characters except `/`, `**` also matches `/`, `[0-9]` matches one listed character, `?` matches zero or one of the previous character or `[]`, `+` matches one or more of it, and a leading `!` excludes branches that earlier lines match. Other characters, including `.`, match only themselves. An invalid pattern fails the job.
+- Tags are never allowed. Other refs that are not branches, such as `refs/pull/1/merge`, are not allowed either.
+- If the event has no default branch (for example, a trigger that is not `workflow_dispatch`), the job fails.
+
+The error annotation shows the ref of the run and the allowed branches. In Cysharp/Actions, `pull_request` test runs skip this check, because their ref is not a branch.
+
+MagicOnion also releases from `release/5.x` and `release/6.x`:
+
+```yaml
+jobs:
+  validate-release:
+    permissions:
+      contents: read
+    uses: Cysharp/Actions/.github/workflows/validate-release.yaml@main
+    with:
+      tag: ${{ inputs.tag }}
+      # * does not match /, so release/6.x/foo is rejected.
+      allowed-branches: |
+        release/*
+```
+
+MessagePack also releases from major version branches such as `v2`, `v3` and `v4`. Write each branch on its own line:
+
+```yaml
+jobs:
+  validate-release:
+    permissions:
+      contents: read
+    uses: Cysharp/Actions/.github/workflows/validate-release.yaml@main
+    with:
+      tag: ${{ inputs.tag }}
+      allowed-branches: |
+        v2
+        v3
+        v4
+```
+
+To allow new major version branches without a change to the list, use `v[0-9]+`. It matches `v2` and `v10`, but not `v4_test`. Do not use `v*` or `v[0-9]*`. In a filter pattern, `*` is a wildcard and does not repeat `[0-9]`, so both patterns also match branches such as `v4_test`.
+
+This check gives a safe default to every caller. It does not enforce the rule: a user with write access can remove the check from the caller workflow on a branch and then start the workflow from that branch. To enforce the release branches, give the publishing jobs an environment that has deployment branch rules.
+
+Then it validates Git ref syntax and NuGet version syntax and rejects versions older than the latest release using NuGet version ordering. MagicOnion skips only the ordering check to support multiple release lines. Tag-to-build SHA equality is checked later by `create-release`, after version updates and builds.
 
 ## Composite actions
 
