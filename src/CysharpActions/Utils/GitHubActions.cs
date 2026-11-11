@@ -31,6 +31,17 @@ public static class GitHubActions
 
     public static void WriteLog(string value) => Console.WriteLine($"[{DateTime.Now:s}] {value}");
 
+    /// <summary>Writes an error annotation. Escaping keeps a newline in <paramref name="message"/> from starting another workflow command.</summary>
+    public static void WriteError(string title, string message)
+    {
+        static string EscapeData(string value) => value
+            .Replace("%", "%25", StringComparison.Ordinal)
+            .Replace("\r", "%0D", StringComparison.Ordinal)
+            .Replace("\n", "%0A", StringComparison.Ordinal);
+        var escapedTitle = EscapeData(title).Replace(":", "%3A", StringComparison.Ordinal).Replace(",", "%2C", StringComparison.Ordinal);
+        WriteRawLog($"::error title={escapedTitle}::{EscapeData(message)}");
+    }
+
     public static void WriteVerbose(string value)
     {
         if (verbose)
