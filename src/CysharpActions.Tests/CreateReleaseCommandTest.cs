@@ -10,23 +10,31 @@ namespace CysharpActions.Tests;
 [Trait("Category", LiveGitHubTest.Category)]
 public class CreateReleaseCommandTest
 {
-    [Theory(
+    [Fact(
         Skip = LiveGitHubTest.SkipReason,
         SkipUnless = nameof(LiveGitHubTest.IsAvailable),
         SkipType = typeof(LiveGitHubTest))]
-    [InlineData("1.2.0-pre", "v1.2.0-pre")]
-    public async Task SkipTagAndReleaseTest(string tag, string releaseTitle)
+    public async Task SkipTagAndReleaseTest()
     {
         var environment = ActionEnvironment.ReadFromProcess();
         environment.GitHubCredentials.Validate();
 
         Zx.Env.useShell = false;
 
+        var tag = $"1.2.0-pre-{Guid.NewGuid():N}";
+        var releaseTitle = $"v{tag}";
         var dir = $".tests/{nameof(CreateReleaseCommand)}/{nameof(CreateTagAndReleaseTest)}";
         var file = $"{tag}.txt";
         var path = Path.Combine(dir, file);
+        var localTagCreated = false;
+        var remoteTagCreated = false;
         try
         {
+            await $"git tag {tag}";
+            localTagCreated = true;
+            await $"git push origin {tag}";
+            remoteTagCreated = true;
+
             CreateFile(path, tag);
             var command = new CreateReleaseCommand(tag, releaseTitle);
             await command.CreateReleaseAsync(environment.GitHubCredentials, TestContext.Current.CancellationToken);
@@ -44,9 +52,15 @@ public class CreateReleaseCommandTest
                 .Any();
             if (exists)
             {
-                // leave tag as is
-                await $"gh release delete {tag} --yes";
+                // An explicit repository keeps gh from also deleting the local tag.
+                await $"gh release delete {tag} --yes --cleanup-tag --repo {environment.GitHubCredentials.Repository}";
+                remoteTagCreated = false;
             }
+
+            if (remoteTagCreated)
+                await $"git push origin --delete {tag}";
+            if (localTagCreated)
+                await $"git tag --delete {tag}";
         }
     }
 

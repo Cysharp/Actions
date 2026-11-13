@@ -16,8 +16,7 @@ jobs:
       - uses: ./.github/actions/setup-dotnet
       - name: Test
         run: |
-          dotnet --list-sdks | grep "6.0"
-          dotnet --list-sdks | grep "7.0"
           dotnet --list-sdks | grep "8.0"
           dotnet --list-sdks | grep "9.0"
           dotnet --list-sdks | grep "10.0"
+          dotnet --list-sdks | grep "11.0"
