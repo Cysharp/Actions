@@ -52,7 +52,8 @@ public class CreateReleaseCommandTest
                 .Any();
             if (exists)
             {
-                await $"gh release delete {tag} --yes --cleanup-tag";
+                // An explicit repository keeps gh from also deleting the local tag.
+                await $"gh release delete {tag} --yes --cleanup-tag --repo {environment.GitHubCredentials.Repository}";
                 remoteTagCreated = false;
             }
 
