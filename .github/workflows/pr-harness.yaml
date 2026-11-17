@@ -12,9 +12,9 @@ on:
         default: false
         type: boolean
       allow-licenses:
-        description: "Comma-separated SPDX License Identifiers allowed by ol."
+        description: "Comma-separated SPDX License Identifiers allowed in addition to the default set (Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0,0BSD,MIT-0). Applies to both dependency-review and ol."
         required: false
-        default: "Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0"
+        default: ""
         type: string
       allow-dev-licenses:
         description: "Comma-separated SPDX License Identifiers additionally allowed for proven development-only dependencies."
@@ -36,6 +36,10 @@ on:
         required: false
         default: ""
         type: string
+
+env:
+  # Always allowed. inputs.allow-licenses is appended to this list, never replaces it.
+  DEFAULT_ALLOW_LICENSES: "Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0,0BSD,MIT-0"
 
 jobs:
   prevent-githubactions-changes:
@@ -88,11 +92,31 @@ jobs:
       - uses: cysharp/actions/.github/actions/checkout@main
         with:
           persist-credentials: false
+      # Keep in sync with "Resolve allowed licenses" in the license-check job.
+      - name: "Resolve allowed licenses"
+        id: allow-licenses
+        shell: bash
+        env:
+          EXTRA_ALLOW_LICENSES: ${{ inputs.allow-licenses }}
+        run: |
+          merged="$DEFAULT_ALLOW_LICENSES,$EXTRA_ALLOW_LICENSES"
+          merged="${merged//[$'\r\n']/,}"
+          IFS=',' read -ra entries <<< "$merged"
+          declare -A seen=()
+          resolved=()
+          for entry in "${entries[@]}"; do
+            entry="${entry#"${entry%%[![:space:]]*}"}"
+            entry="${entry%"${entry##*[![:space:]]}"}"
+            [[ -z "$entry" || -n "${seen[$entry]+x}" ]] && continue
+            seen["$entry"]=1
+            resolved+=("$entry")
+          done
+          echo "licenses=$(IFS=','; echo "${resolved[*]}")" | tee -a "$GITHUB_OUTPUT"
       - name: "Dependency Review"
         if: ${{ github.repository_visibility == 'public' }}
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # 5.0.0
         with:
-          allow-licenses: ${{ inputs.allow-licenses || 'Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0' }}
+          allow-licenses: ${{ steps.allow-licenses.outputs.licenses }}
           allow-dependencies-licenses: ${{ inputs.allow-dependencies-licenses }}
           license-check: true
           vulnerability-check: true
@@ -236,8 +260,6 @@ jobs:
     needs: [license-check-preflight]
     permissions:
       contents: read
-    env:
-      ALLOW_LICENSES: ${{ inputs.allow-licenses || 'Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     defaults:
@@ -272,12 +294,24 @@ jobs:
             echo "OL_CARGO_METADATA_DIR=$cargo_metadata_dir"
             echo "OL_CARGO_METADATA_LIST=$ol_work_dir/cargo-metadata.txt"
           } >> "$GITHUB_ENV"
-      - name: "Validate license check inputs"
+      # Keep in sync with "Resolve allowed licenses" in the dependency-review job.
+      - name: "Resolve allowed licenses"
+        env:
+          EXTRA_ALLOW_LICENSES: ${{ inputs.allow-licenses }}
         run: |
-          if [[ -z "$ALLOW_LICENSES" ]]; then
-            echo "::error::allow-licenses is required when license-check is true."
-            exit 1
-          fi
+          merged="$DEFAULT_ALLOW_LICENSES,$EXTRA_ALLOW_LICENSES"
+          merged="${merged//[$'\r\n']/,}"
+          IFS=',' read -ra entries <<< "$merged"
+          declare -A seen=()
+          resolved=()
+          for entry in "${entries[@]}"; do
+            entry="${entry#"${entry%%[![:space:]]*}"}"
+            entry="${entry%"${entry##*[![:space:]]}"}"
+            [[ -z "$entry" || -n "${seen[$entry]+x}" ]] && continue
+            seen["$entry"]=1
+            resolved+=("$entry")
+          done
+          echo "ALLOW_LICENSES=$(IFS=','; echo "${resolved[*]}")" | tee -a "$GITHUB_ENV"
       - name: "Discover package-manager manifests"
         id: license-inputs
         shell: bash
