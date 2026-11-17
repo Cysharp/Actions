@@ -9,7 +9,7 @@ on:
       license-check:
         description: "Run ol license policy check with resolved package-manager inputs."
         required: false
-        default: false
+        default: true
         type: boolean
       allow-licenses:
         description: "Comma-separated SPDX License Identifiers allowed in addition to the default set (Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0,0BSD,MIT-0). Applies to both dependency-review and ol."
