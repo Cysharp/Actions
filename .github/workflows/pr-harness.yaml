@@ -14,7 +14,7 @@ on:
       allow-licenses:
         description: "Comma-separated SPDX License Identifiers allowed by ol."
         required: false
-        default: "Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0"
+        default: "Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,MPL-2.0,0BSD,MIT-0"
         type: string
       allow-dev-licenses:
         description: "Comma-separated SPDX License Identifiers additionally allowed for proven development-only dependencies."
