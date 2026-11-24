@@ -128,12 +128,63 @@ public class ReleaseValidationTest
         }
         finally { Directory.Delete(directory, recursive: true); }
 
-        void Package(string file, string version)
+        void Package(string file, string version) => WritePackage(directory, file, version);
+    }
+
+    [Theory]
+    // A stable release may contain a package that is shipped with a prerelease label.
+    [InlineData("7.12.0", "7.12.0", true)]
+    [InlineData("7.12.0", "7.12.0-preview", true)]
+    [InlineData("v7.12.0", "7.12.0-preview.1+build.1", true)]
+    [InlineData("7.12.0", "7.12.0.0-preview", true)]
+    // The numeric part must still match.
+    [InlineData("7.12.0", "7.11.0-preview", false)]
+    [InlineData("7.12.0", "7.12.1-preview", false)]
+    [InlineData("7.12.0", "7.12.0.1", false)]
+    [InlineData("7.12.0", "1.0.0", false)]
+    // A prerelease release requires the same prerelease label.
+    [InlineData("7.12.0-preview.1", "7.12.0-preview.1", true)]
+    [InlineData("7.12.0-preview.1", "7.12.0-PREVIEW.1+build.1", true)]
+    [InlineData("7.12.0-preview.1", "7.12.0-preview.2", false)]
+    [InlineData("7.12.0-preview.1", "7.12.0", false)]
+    [InlineData("7.12.0-preview.1", "7.12.0-rc.1", false)]
+    public void PrereleaseLabelIsAllowedOnlyForStableRelease(string version, string packageVersion, bool valid)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
         {
-            using var archive = ZipFile.Open(Path.Combine(directory, file), ZipArchiveMode.Create);
-            using var writer = new StreamWriter(archive.CreateEntry("first.nuspec").Open());
-            writer.Write($"<package xmlns=\"http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd\"><metadata><version>{version}</version></metadata></package>");
+            WritePackage(directory, "first.nupkg", packageVersion);
+            if (valid)
+                ValidateReleaseCommand.ValidatePackages(directory, version);
+            else
+                Assert.Throws<ActionCommandException>(() => ValidateReleaseCommand.ValidatePackages(directory, version));
         }
+        finally { Directory.Delete(directory, recursive: true); }
+    }
+
+    [Fact]
+    public void StableReleaseWithMixedPackagesFailsOnAnyNumericMismatch()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            WritePackage(directory, "first.nupkg", "7.12.0");
+            WritePackage(directory, "second.nupkg", "7.12.0-preview");
+            WritePackage(directory, "second.snupkg", "7.12.0-preview");
+            ValidateReleaseCommand.ValidatePackages(directory, "7.12.0");
+            WritePackage(directory, "third.nupkg", "7.11.0-preview");
+            Assert.Throws<ActionCommandException>(() => ValidateReleaseCommand.ValidatePackages(directory, "7.12.0"));
+        }
+        finally { Directory.Delete(directory, recursive: true); }
+    }
+
+    private static void WritePackage(string directory, string file, string version)
+    {
+        using var archive = ZipFile.Open(Path.Combine(directory, file), ZipArchiveMode.Create);
+        using var writer = new StreamWriter(archive.CreateEntry("first.nuspec").Open());
+        writer.Write($"<package xmlns=\"http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd\"><metadata><version>{version}</version></metadata></package>");
     }
 
     private sealed class Releases(string? latest = null, bool fail = false) : IGitHubReleaseExe
