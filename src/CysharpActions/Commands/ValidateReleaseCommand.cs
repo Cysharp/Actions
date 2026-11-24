@@ -65,7 +65,10 @@ public sealed class ValidateReleaseCommand(IGitHubReleaseExe releases, RunProces
         return version;
     }
 
-    /// <summary>Validates every package before authentication or publication; metadata is ignored as on NuGet.</summary>
+    /// <summary>
+    /// Validates every package before authentication or publication; metadata is ignored as on NuGet.
+    /// For a stable <paramref name="version"/>, a package may add a prerelease label to the same numeric version.
+    /// </summary>
     public static void ValidatePackages(string directory, string version)
     {
         var expected = ParseTag(version);
@@ -82,8 +85,15 @@ public sealed class ValidateReleaseCommand(IGitHubReleaseExe releases, RunProces
             var root = XDocument.Load(stream).Root;
             var ns = root?.Name.Namespace ?? XNamespace.None;
             var actual = root?.Element(ns + "metadata")?.Element(ns + "version")?.Value;
-            if (!NuGetVersion.TryParse(actual, out var parsed) || !VersionComparer.VersionRelease.Equals(expected, parsed))
+            if (!NuGetVersion.TryParse(actual, out var parsed) || !IsMatch(expected, parsed))
                 throw new ActionCommandException($"Package version mismatch in '{path}': expected '{version}', got '{actual}'.");
         }
+
+        // A stable release may contain a package that is intentionally shipped with a prerelease label
+        // (for example MagicOnion.Serialization.MemoryPack 7.12.0-preview in MagicOnion 7.12.0).
+        // A prerelease release still requires an exact match so that preview.1 cannot ship preview.2.
+        static bool IsMatch(NuGetVersion expected, NuGetVersion actual)
+            => expected.Version == actual.Version
+                && (!expected.IsPrerelease || VersionComparer.VersionRelease.Equals(expected, actual));
     }
 }
